@@ -37,7 +37,7 @@ export default function Auth() {
         const { data: profileData } = await (supabase as any)
           .from("profiles")
           .select("onboarding_completed")
-          .eq("user_id", currentUser?.id)
+          .eq("id", currentUser?.id)
           .single();
 
         toast.success("Welcome back!");

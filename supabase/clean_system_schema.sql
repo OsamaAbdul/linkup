@@ -1,4 +1,4 @@
--- CLEAN SYSTEM SCHEMA v2
+-- CLEAN SYSTEM SCHEMA v3
 -- High-fidelity, idempotent database definition for Linkup Marketplace.
 -- Standardizes table names (order_items_new -> order_items) and reconciles all history.
 
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS public.delivery_zones (
 
 -- Seed initial Abuja data
 INSERT INTO public.cities (name) VALUES ('Abuja') ON CONFLICT (name) DO NOTHING;
-DO $seed$
+DO $seed_zones$
 DECLARE
     v_city_id UUID;
 BEGIN
@@ -59,9 +59,31 @@ BEGIN
     (v_city_id, 'Zone 4 (Lugbe & Apo)'),
     (v_city_id, 'Zone 5 (Gwagwalada Districts)')
     ON CONFLICT (city_id, name) DO NOTHING;
-END $seed$;
+END $seed_zones$;
 
--- 4. CORE TABLES
+-- 4. CATEGORIES
+CREATE TABLE IF NOT EXISTS public.categories (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL UNIQUE,
+    slug TEXT NOT NULL UNIQUE,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Seed Categories
+INSERT INTO public.categories (name, slug) VALUES 
+('Electronics', 'electronics'),
+('Fashion', 'fashion'),
+('Home & Kitchen', 'home-kitchen'),
+('Health & Beauty', 'health-beauty'),
+('Sports', 'sports'),
+('Toys', 'toys'),
+('Automotive', 'automotive'),
+('Grocery', 'grocery'),
+('Services', 'services'),
+('Other', 'other')
+ON CONFLICT (name) DO NOTHING;
+
+-- 5. CORE TABLES
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     user_id UUID DEFAULT auth.uid(), -- Compatibility column
@@ -74,6 +96,10 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     city_id UUID REFERENCES public.cities(id),
     zone_id UUID REFERENCES public.delivery_zones(id),
     last_seen TIMESTAMPTZ,
+    onboarding_completed BOOLEAN DEFAULT false,
+    is_online BOOLEAN DEFAULT false,
+    address TEXT,
+    phone TEXT,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -92,10 +118,14 @@ CREATE TABLE IF NOT EXISTS public.products (
     description TEXT,
     price NUMERIC(10,2) NOT NULL DEFAULT 0,
     images TEXT[] DEFAULT '{}',
-    category TEXT,
+    category TEXT, -- Kept as text for legacy, but maps to categories.name
+    category_id UUID REFERENCES public.categories(id),
     inventory INTEGER NOT NULL DEFAULT 0,
+    likes_count INTEGER DEFAULT 0,
     latitude DOUBLE PRECISION,
     longitude DOUBLE PRECISION,
+    city_id UUID REFERENCES public.cities(id),
+    zone_id UUID REFERENCES public.delivery_zones(id),
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -125,31 +155,34 @@ CREATE TABLE IF NOT EXISTS public.order_items (
     seller_id UUID REFERENCES public.profiles(id),
     quantity INTEGER NOT NULL DEFAULT 1,
     price_at_purchase NUMERIC(10, 2) NOT NULL,
-    shipment_id UUID, -- Added later to avoid circularity if needed, but safe here
+    shipment_id UUID,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 5. INFRASTRUCTURE & LOGISTICS
+-- 6. INFRASTRUCTURE & LOGISTICS
 CREATE TABLE IF NOT EXISTS public.shipments (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     order_id UUID NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
-    rider_id UUID REFERENCES public.profiles(id),
+    rider_id UUID REFERENCES auth.users(id),
     seller_id UUID REFERENCES public.profiles(id),
-    status public.shipment_status DEFAULT 'pending',
-    pickup_address JSONB,
-    delivery_address JSONB NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending', -- Using text for flexibility
+    pickup_address TEXT,
+    delivery_address TEXT,
+    buyer_latitude DOUBLE PRECISION,
+    buyer_longitude DOUBLE PRECISION,
+    rider_latitude DOUBLE PRECISION,
+    rider_longitude DOUBLE PRECISION,
+    last_seen TIMESTAMPTZ,
     pickup_code TEXT DEFAULT substring(md5(random()::text) from 1 for 6),
     delivery_code TEXT DEFAULT substring(md5(random()::text) from 1 for 6),
     tracking_code TEXT UNIQUE DEFAULT substring(md5(random()::text) from 1 for 12),
-    delivery_fee NUMERIC DEFAULT 0,
-    zone public.abuja_zone, -- Legacy
+    delivery_fee NUMERIC DEFAULT 1500,
     zone_id UUID REFERENCES public.delivery_zones(id),
     notes TEXT,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Fix circular reference
 ALTER TABLE public.order_items DROP CONSTRAINT IF EXISTS order_items_shipment_id_fkey;
 ALTER TABLE public.order_items ADD CONSTRAINT order_items_shipment_id_fkey FOREIGN KEY (shipment_id) REFERENCES public.shipments(id) ON DELETE SET NULL;
 
@@ -172,6 +205,38 @@ CREATE TABLE IF NOT EXISTS public.wallet_transactions (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 7. CHAT SYSTEM
+CREATE TABLE IF NOT EXISTS public.conversations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    buyer_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    seller_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    product_id UUID REFERENCES public.products(id),
+    last_message_at TIMESTAMPTZ DEFAULT now(),
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    conversation_id UUID REFERENCES public.conversations(id) ON DELETE CASCADE NOT NULL,
+    sender_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    text TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 8. VERIFICATION & KYC
+CREATE TABLE IF NOT EXISTS public.logistics_kyc (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    full_name TEXT NOT NULL,
+    phone_number TEXT NOT NULL,
+    home_address TEXT NOT NULL,
+    passport_photo_url TEXT,
+    city_id UUID REFERENCES public.cities(id),
+    zone_id UUID REFERENCES public.delivery_zones(id),
+    status TEXT DEFAULT 'pending',
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS public.seller_verifications (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
@@ -183,14 +248,14 @@ CREATE TABLE IF NOT EXISTS public.seller_verifications (
     store_photo_url TEXT NOT NULL,
     bank_details JSONB NOT NULL,
     status public.verification_status DEFAULT 'pending',
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now(),
     city_id UUID REFERENCES public.cities(id),
     zone_id UUID REFERENCES public.delivery_zones(id),
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
     UNIQUE(user_id)
 );
 
--- 6. PROMOTER & SOCIAL
+-- 9. PROMOTER & SOCIAL
 CREATE TABLE IF NOT EXISTS public.promoter_campaigns (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     product_id UUID NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
@@ -237,16 +302,17 @@ CREATE TABLE IF NOT EXISTS public.notifications (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 7. INDEXES
+-- 10. INDEXES
 CREATE INDEX IF NOT EXISTS idx_products_title_trgm ON public.products USING GIN (title gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_products_location ON public.products (latitude, longitude);
 CREATE INDEX IF NOT EXISTS idx_orders_buyer ON public.orders(buyer_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_order ON public.order_items(order_id);
 
--- 8. SECURITY (RLS)
+-- 11. SECURITY (RLS)
 DO $rls$ BEGIN
     ALTER TABLE public.cities ENABLE ROW LEVEL SECURITY;
     ALTER TABLE public.delivery_zones ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
     ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
     ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
     ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
@@ -255,6 +321,9 @@ DO $rls$ BEGIN
     ALTER TABLE public.shipments ENABLE ROW LEVEL SECURITY;
     ALTER TABLE public.wallets ENABLE ROW LEVEL SECURITY;
     ALTER TABLE public.wallet_transactions ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.conversations ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.logistics_kyc ENABLE ROW LEVEL SECURITY;
     ALTER TABLE public.seller_verifications ENABLE ROW LEVEL SECURITY;
     ALTER TABLE public.promoter_campaigns ENABLE ROW LEVEL SECURITY;
     ALTER TABLE public.referrals ENABLE ROW LEVEL SECURITY;
@@ -270,6 +339,10 @@ DO $pol$ BEGIN
     CREATE POLICY "Anyone can view cities" ON public.cities FOR SELECT USING (true);
     DROP POLICY IF EXISTS "Anyone can view delivery zones" ON public.delivery_zones;
     CREATE POLICY "Anyone can view delivery zones" ON public.delivery_zones FOR SELECT USING (true);
+    DROP POLICY IF EXISTS "Anyone can view categories" ON public.categories;
+    CREATE POLICY "Anyone can view categories" ON public.categories FOR SELECT USING (true);
+    DROP POLICY IF EXISTS "Public insert categories" ON public.categories;
+    CREATE POLICY "Public insert categories" ON public.categories FOR INSERT WITH CHECK (true);
 
     -- Profiles
     DROP POLICY IF EXISTS "Public profiles" ON public.profiles;
@@ -277,11 +350,35 @@ DO $pol$ BEGIN
     DROP POLICY IF EXISTS "User update profile" ON public.profiles;
     CREATE POLICY "User update profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
+    -- User Roles
+    DROP POLICY IF EXISTS "Anyone view roles" ON public.user_roles;
+    CREATE POLICY "Anyone view roles" ON public.user_roles FOR SELECT USING (true);
+    DROP POLICY IF EXISTS "Users insert own role" ON public.user_roles;
+    CREATE POLICY "Users insert own role" ON public.user_roles FOR INSERT WITH CHECK (auth.uid() = user_id);
+
     -- Products
     DROP POLICY IF EXISTS "Public products" ON public.products;
     CREATE POLICY "Public products" ON public.products FOR SELECT USING (true);
+    
     DROP POLICY IF EXISTS "Seller manage product" ON public.products;
-    CREATE POLICY "Seller manage product" ON public.products FOR ALL USING (auth.uid() = seller_id);
+    
+    DROP POLICY IF EXISTS "Seller insert product" ON public.products;
+    CREATE POLICY "Seller insert product" ON public.products 
+    FOR INSERT WITH CHECK (
+        auth.uid() = seller_id 
+        AND EXISTS (
+            SELECT 1 FROM public.seller_verifications 
+            WHERE user_id = auth.uid() AND status = 'verified'
+        )
+    );
+
+    DROP POLICY IF EXISTS "Seller update product" ON public.products;
+    CREATE POLICY "Seller update product" ON public.products 
+    FOR UPDATE USING (auth.uid() = seller_id);
+
+    DROP POLICY IF EXISTS "Seller delete product" ON public.products;
+    CREATE POLICY "Seller delete product" ON public.products 
+    FOR DELETE USING (auth.uid() = seller_id);
 
     -- Orders
     DROP POLICY IF EXISTS "User view orders" ON public.orders;
@@ -309,13 +406,43 @@ DO $pol$ BEGIN
     );
     DROP POLICY IF EXISTS "Rider update assigned" ON public.shipments;
     CREATE POLICY "Rider update assigned" ON public.shipments FOR UPDATE USING (rider_id = auth.uid());
+    DROP POLICY IF EXISTS "Seller insert shipment" ON public.shipments;
+    CREATE POLICY "Seller insert shipment" ON public.shipments FOR INSERT WITH CHECK (auth.uid() = seller_id);
 
-    -- Cart
+    -- Chat
+    DROP POLICY IF EXISTS "User view conversations" ON public.conversations;
+    CREATE POLICY "User view conversations" ON public.conversations FOR SELECT USING (buyer_id = auth.uid() OR seller_id = auth.uid());
+    DROP POLICY IF EXISTS "User insert conversations" ON public.conversations;
+    CREATE POLICY "User insert conversations" ON public.conversations FOR INSERT WITH CHECK (buyer_id = auth.uid());
+    
+    DROP POLICY IF EXISTS "User view messages" ON public.messages;
+    CREATE POLICY "User view messages" ON public.messages FOR SELECT USING (EXISTS (SELECT 1 FROM public.conversations c WHERE c.id = conversation_id AND (c.buyer_id = auth.uid() OR c.seller_id = auth.uid())));
+    DROP POLICY IF EXISTS "User insert messages" ON public.messages;
+    CREATE POLICY "User insert messages" ON public.messages FOR INSERT WITH CHECK (sender_id = auth.uid());
+
+    -- Cart & Likes
     DROP POLICY IF EXISTS "Users manage own cart" ON public.cart_items;
     CREATE POLICY "Users manage own cart" ON public.cart_items FOR ALL USING (auth.uid() = user_id);
+    DROP POLICY IF EXISTS "Users manage own likes" ON public.likes;
+    CREATE POLICY "Users manage own likes" ON public.likes FOR ALL USING (auth.uid() = user_id);
+
+    -- KYC & Verifications
+    DROP POLICY IF EXISTS "Users view own kyc" ON public.logistics_kyc;
+    CREATE POLICY "Users view own kyc" ON public.logistics_kyc FOR SELECT USING (user_id = auth.uid());
+    DROP POLICY IF EXISTS "Users manage own kyc" ON public.logistics_kyc;
+    
+    DROP POLICY IF EXISTS "Users view own verification" ON public.seller_verifications;
+    CREATE POLICY "Users view own verification" ON public.seller_verifications FOR SELECT USING (user_id = auth.uid());
+    DROP POLICY IF EXISTS "Users manage own verification" ON public.seller_verifications;
+
+    -- Notifications
+    DROP POLICY IF EXISTS "Users view own notifications" ON public.notifications;
+    CREATE POLICY "Users view own notifications" ON public.notifications FOR SELECT USING (user_id = auth.uid());
+    DROP POLICY IF EXISTS "Users update own notifications" ON public.notifications;
+    CREATE POLICY "Users update own notifications" ON public.notifications FOR UPDATE USING (user_id = auth.uid());
 END $pol$;
 
--- 9. FUNCTIONS & TRIGGERS
+-- 12. FUNCTIONS & TRIGGERS
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -378,41 +505,74 @@ BEGIN
 END;
 $$;
 
--- Settlement Function
-CREATE OR REPLACE FUNCTION public.complete_order_and_settle(p_order_id UUID)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-    v_order             RECORD;
-    v_total             NUMERIC;
-    v_seller_wallet_id  UUID;
-BEGIN
-    SELECT * INTO v_order FROM public.orders WHERE id = p_order_id AND buyer_id = auth.uid() FOR UPDATE;
-    IF NOT FOUND THEN RETURN jsonb_build_object('success', false, 'error', 'Order not found or access denied'); END IF;
-
-    v_total := v_order.total;
-
-    UPDATE public.wallets SET balance = balance + v_total, updated_at = NOW()
-    WHERE user_id = v_order.seller_id
-    RETURNING id INTO v_seller_wallet_id;
-
-    IF v_seller_wallet_id IS NOT NULL THEN
-        INSERT INTO public.wallet_transactions (wallet_id, amount, type, reference)
-        VALUES (v_seller_wallet_id, v_total, 'settlement', 'Order #' || LEFT(p_order_id::TEXT, 8));
-    END IF;
-
-    UPDATE public.orders SET status = 'completed', updated_at = NOW() WHERE id = p_order_id;
-
-    RETURN jsonb_build_object('success', true);
-END;
-$$;
-
--- 10. STORAGE
+-- 13. STORAGE
 DO $st$ BEGIN
     INSERT INTO storage.buckets (id, name, public) VALUES ('product-images', 'product-images', true) ON CONFLICT DO NOTHING;
     INSERT INTO storage.buckets (id, name, public) VALUES ('kyc-documents', 'kyc-documents', false) ON CONFLICT DO NOTHING;
     INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true) ON CONFLICT DO NOTHING;
+
+    -- Storage Policies (storage.objects)
+    -- product-images
+    DROP POLICY IF EXISTS "Public view product images" ON storage.objects;
+    CREATE POLICY "Public view product images" ON storage.objects FOR SELECT USING (bucket_id = 'product-images');
+    DROP POLICY IF EXISTS "Sellers upload product images" ON storage.objects;
+    CREATE POLICY "Sellers upload product images" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'product-images' AND (storage.foldername(name))[1] = auth.uid()::text);
+    DROP POLICY IF EXISTS "Sellers delete product images" ON storage.objects;
+    CREATE POLICY "Sellers delete product images" ON storage.objects FOR DELETE USING (bucket_id = 'product-images' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+    -- avatars
+    DROP POLICY IF EXISTS "Public view avatars" ON storage.objects;
+    CREATE POLICY "Public view avatars" ON storage.objects FOR SELECT USING (bucket_id = 'avatars');
+    DROP POLICY IF EXISTS "Users upload own avatar" ON storage.objects;
+    CREATE POLICY "Users upload own avatar" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
+    DROP POLICY IF EXISTS "Users update own avatar" ON storage.objects;
+    CREATE POLICY "Users update own avatar" ON storage.objects FOR UPDATE USING (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+    -- kyc-documents
+    DROP POLICY IF EXISTS "Users view own kyc" ON storage.objects;
+    CREATE POLICY "Users view own kyc" ON storage.objects FOR SELECT USING (bucket_id = 'kyc-documents' AND (storage.foldername(name))[1] = auth.uid()::text);
+    DROP POLICY IF EXISTS "Users upload kyc" ON storage.objects;
+    CREATE POLICY "Users upload kyc" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'kyc-documents' AND (storage.foldername(name))[1] = auth.uid()::text);
 END $st$;
+
+-- 14. REALTIME
+DO $rt$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+        CREATE PUBLICATION supabase_realtime;
+    END IF;
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.conversations;
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.shipments;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $rt$;
+
+-- 15. COLUMN RECONCILIATION
+-- Ensures essential columns exist even if tables were created previously.
+DO $recon$ BEGIN
+    -- Profiles
+    ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS city_id UUID REFERENCES public.cities(id);
+    ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS zone_id UUID REFERENCES public.delivery_zones(id);
+    ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN DEFAULT false;
+    ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_online BOOLEAN DEFAULT false;
+    ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS address TEXT;
+    ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS phone TEXT;
+
+    -- Products
+    ALTER TABLE public.products ADD COLUMN IF NOT EXISTS city_id UUID REFERENCES public.cities(id);
+    ALTER TABLE public.products ADD COLUMN IF NOT EXISTS zone_id UUID REFERENCES public.delivery_zones(id);
+    ALTER TABLE public.products ADD COLUMN IF NOT EXISTS likes_count INTEGER DEFAULT 0;
+    ALTER TABLE public.products ADD COLUMN IF NOT EXISTS category_id UUID REFERENCES public.categories(id);
+
+    -- Orders
+    ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS city_id UUID REFERENCES public.cities(id);
+    ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS zone_id UUID REFERENCES public.delivery_zones(id);
+
+    -- Shipments
+    ALTER TABLE public.shipments ADD COLUMN IF NOT EXISTS zone_id UUID REFERENCES public.delivery_zones(id);
+    ALTER TABLE public.shipments ADD COLUMN IF NOT EXISTS notes TEXT;
+    ALTER TABLE public.shipments ADD COLUMN IF NOT EXISTS delivery_fee NUMERIC DEFAULT 1500;
+END $recon$;
+
+-- 16. SCHEMA RELOAD
+-- Refreshes PostgREST cache to prevent 'column not found in schema cache' errors.
+NOTIFY pgrst, 'reload schema';

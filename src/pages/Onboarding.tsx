@@ -223,8 +223,12 @@ export default function Onboarding() {
     if (selectedRole === "logistics") { setStep(3); return; }
     setStepLoading(true);
     try {
-      await (supabase as any).from("user_roles").insert({ user_id: user!.id, role: selectedRole });
-      await (supabase as any).from("profiles").update({ onboarding_completed: true }).eq("id", user!.id);
+      const { error: roleError } = await (supabase as any).from("user_roles").insert({ user_id: user!.id, role: selectedRole });
+      if (roleError && roleError.code !== "23505") throw roleError;
+      
+      const { error: profileError } = await (supabase as any).from("profiles").update({ onboarding_completed: true }).eq("id", user!.id);
+      if (profileError) throw profileError;
+
       await refreshProfile();
       toast.success("Welcome to Linkup!");
       navigate(selectedRole === "seller" ? "/dashboard" : "/");

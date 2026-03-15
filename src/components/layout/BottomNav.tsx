@@ -1,4 +1,4 @@
-import { Home, Search, PlusCircle, ShoppingCart, Grid } from "lucide-react";
+import { Home, Search, ShoppingCart, Grid } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -13,7 +13,6 @@ export function BottomNav() {
   const navItems = [
     { icon: Home, label: "Home", path: "/" },
     { icon: Search, label: "Search", path: "/search" },
-    { icon: PlusCircle, label: "Sell", path: "/sell" },
     { icon: ShoppingCart, label: "Cart", path: "/cart", count: totalCount },
   ];
 

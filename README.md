@@ -2,28 +2,28 @@
 
 A premium, full-stack marketplace and logistics platform designed for high-performance e-commerce and delivery operations. Built with a modern tech stack and a focus on visual excellence.
 
-## 🚀 Key Features
+## Key Features
 
-### 🛒 Marketplace Engine
+### Marketplace Engine
 - **Advanced Product Catalog**: Detailed product pages with premium animations and responsive layouts.
 - **Seamless Checkout**: Integrated cart management and secure checkout flow.
 - **Wishlist & Reach**: Social-ready product sharing and personal wishlists.
 
-### 🚛 Logistics & Operations
+### Logistics & Operations
 - **Real-time Tracking**: Interactive maps for live order tracking and logistics management.
 - **Mission Center**: Dedicated logistics dashboard for dispatchers and delivery partners.
 - **Intel Dashboard**: Advanced shipment intelligence and status monitoring.
 
-### 📣 Growth & Engagement
+### Growth & Engagement
 - **Promoter Dashboard**: Centralized management for marketing and engagement attribution.
 - **Affiliate Tracking**: Robust system for tracking and rewarding platform growth.
 - **Smart Notifications**: Real-time updates for orders, messages, and platform events.
 
-### 🔐 Unified Authentication
+### Unified Authentication
 - **Secure Onboarding**: Multi-step onboarding flow for different user roles (Buyer, Seller, Logistics).
 - **Profile Management**: Comprehensive user and seller profile customization.
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Frontend**: [React 18](https://reactjs.org/) + [Vite](https://vitejs.dev/)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/)
@@ -34,7 +34,7 @@ A premium, full-stack marketplace and logistics platform designed for high-perfo
 - **Backend**: [Supabase](https://supabase.com/) (Auth, Database, Storage, Edge Functions)
 - **Icons**: [Lucide React](https://lucide.dev/)
 
-## 🏁 Getting Started
+## Getting Started
 
 ### Prerequisites
 - Node.js (v18+ recommended)
@@ -61,7 +61,7 @@ A premium, full-stack marketplace and logistics platform designed for high-perfo
    npm run dev
    ```
 
-## 📂 Project Structure
+## Project Structure
 
 - `src/components`: UI components, organized by feature area (auth, products, logistics, etc.).
 - `src/pages`: Main application views.
@@ -69,10 +69,10 @@ A premium, full-stack marketplace and logistics platform designed for high-perfo
 - `src/contexts`: Application-level context providers (Auth, Cart, Theme).
 - `supabase/`: Local development environment for Supabase functions and migrations.
 
-## 📡 Deployment
+## Deployment
 
 The project is optimized for deployment on platforms like **Vercel** or **Netlify**, with seamless integration for Supabase backend services.
 
 ---
 
-*Built with ❤️ for the next generation of e-commerce.*
+*Built for the next generation of e-commerce.*

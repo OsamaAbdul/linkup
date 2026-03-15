@@ -1,0 +1,66 @@
+[
+  {
+    "line": 16,
+    "context": "duction)\r\n-- DROP SCHEMA public CASCADE;\r\n-- CREATE SCHEMA public;\r\n\r\n-- 2. ENUMS\r\nDO $$ BEGIN\r\n    CREATE TYPE public.app_role AS ENUM ('buyer', 'seller', 'promoter', 'logistics', 'admin');\r\n    CREATE TYPE public.order_status AS ENUM ('pending', 'processing', 'shipped', 'delivered', 'can"
+  },
+  {
+    "line": 17,
+    "context": "    CREATE TYPE public.app_role AS ENUM ('buyer', 'seller', 'promoter', 'logistics', 'admin');\r\n    CREATE TYPE public.order_status AS ENUM ('pending', 'processing', 'shipped', 'delivered', 'cancelled');\r\n    CREATE TYPE public.payment_status AS ENUM ('pending', 'paid', 'failed', 'refunded');\r\n    CREA"
+  },
+  {
+    "line": 18,
+    "context": "PE public.order_status AS ENUM ('pending', 'processing', 'shipped', 'delivered', 'cancelled');\r\n    CREATE TYPE public.payment_status AS ENUM ('pending', 'paid', 'failed', 'refunded');\r\n    CREATE TYPE public.shipment_status AS ENUM ('pending', 'assigned', 'picked_up', 'in_transit', "
+  },
+  {
+    "line": 19,
+    "context": "d');\r\n    CREATE TYPE public.payment_status AS ENUM ('pending', 'paid', 'failed', 'refunded');\r\n    CREATE TYPE public.shipment_status AS ENUM ('pending', 'assigned', 'picked_up', 'in_transit', 'delivered', 'failed', 'cancelled');\r\nEXCEPTION\r\n    WHEN duplicate_object THEN null;\r\nEND $$;\r\n\r\n-- 3. PROFILES & ROLES\r\nCREATE TABLE I"
+  },
+  {
+    "line": 346,
+    "context": ");\r\n    END LOOP;\r\n    RETURN new_order_id;\r\nEND;\r\n$$;\r\n\r\n-- 5. Seller KYC Schema\r\nDO $$ BEGIN\r\n    CREATE TYPE public.abuja_zone AS ENUM ('Zone 1 (Gwarinpa & Life Camp)', 'Zone 2 (Wuse & Utako)', 'Zone 3 (Kubwa Central)', 'Zone 4 (Lugbe & Apo)', 'Zone 5 (Gwagwalada Districts)');\r\nEXCEPTION WHEN duplicate_object THEN null; END $$;\r\nDO $$ BEGIN\r\n    CREATE TYPE public.verificati"
+  },
+  {
+    "line": 349,
+    "context": "e 5 (Gwagwalada Districts)');\r\nEXCEPTION WHEN duplicate_object THEN null; END $$;\r\nDO $$ BEGIN\r\n    CREATE TYPE public.verification_status AS ENUM ('pending', 'verified', 'rejected');\r\nEXCEPTION WHEN duplicate_object THEN null; END $$;\r\n\r\nCREATE TABLE IF NOT EXISTS public.seller_ver"
+  },
+  {
+    "line": 593,
+    "context": "s, and Base Schema enhancements\r\n\r\n-- 1. APP ROLES & USERS\r\n-- Safe Enum Creation\r\nDO $$ BEGIN\r\n    CREATE TYPE public.app_role AS ENUM ('buyer', 'seller', 'promoter', 'logistics', 'admin');\r\nEXCEPTION\r\n    WHEN duplicate_object THEN null;\r\nEND $$;\r\n\r\n-- 2. ORDERS & ITEMS (Robust Schema)\r\n"
+  },
+  {
+    "line": 601,
+    "context": "HEN null;\r\nEND $$;\r\n\r\n-- 2. ORDERS & ITEMS (Robust Schema)\r\n-- Order Status Enums\r\nDO $$ BEGIN\r\n    CREATE TYPE public.order_status AS ENUM ('pending', 'processing', 'shipped', 'delivered', 'cancelled');\r\n    CREATE TYPE public.payment_status AS ENUM ('pending', 'paid', 'failed', 'refunded');\r\nEXCEPTIO"
+  },
+  {
+    "line": 602,
+    "context": "PE public.order_status AS ENUM ('pending', 'processing', 'shipped', 'delivered', 'cancelled');\r\n    CREATE TYPE public.payment_status AS ENUM ('pending', 'paid', 'failed', 'refunded');\r\nEXCEPTION\r\n    WHEN duplicate_object THEN null;\r\nEND $$;\r\n\r\n-- Alter Orders Table (Enhancements)\r\n"
+  },
+  {
+    "line": 651,
+    "context": "ate_object THEN null;\r\nEND $$;\r\n\r\n-- 3. LOGISTICS SYSTEM\r\n-- Shipment Status Enum\r\nDO $$ BEGIN\r\n    CREATE TYPE public.shipment_status AS ENUM ('pending', 'assigned', 'picked_up', 'in_transit', 'delivered', 'failed', 'cancelled');\r\nEXCEPTION\r\n    WHEN duplicate_object THEN null;\r\nEND $$;\r\n\r\n-- Shipments Table\r\nCREATE TABLE IF NO"
+  },
+  {
+    "line": 724,
+    "context": "LE: 20240216_robust_orders.sql\r\n-- Create Enums for Order Status and Payment Status\r\nDO $$ BEGIN\r\n  CREATE TYPE public.order_status AS ENUM ('pending', 'processing', 'shipped', 'delivered', 'cancelled');\r\nEXCEPTION WHEN duplicate_object THEN NULL;\r\nEND $$;\r\n\r\nDO $$ BEGIN\r\n  CREATE TYPE public.payment_s"
+  },
+  {
+    "line": 729,
+    "context": ", 'delivered', 'cancelled');\r\nEXCEPTION WHEN duplicate_object THEN NULL;\r\nEND $$;\r\n\r\nDO $$ BEGIN\r\n  CREATE TYPE public.payment_status AS ENUM ('pending', 'paid', 'failed', 'refunded');\r\nEXCEPTION WHEN duplicate_object THEN NULL;\r\nEND $$;\r\n\r\n-- Drop existing orders table if it conflic"
+  },
+  {
+    "line": 864,
+    "context": " 20240216_seller_kyc.sql\r\n-- Seller Verification Schema\r\n\r\n-- 1. Create Zone Enum\r\nDO $$ BEGIN\r\n    CREATE TYPE public.abuja_zone AS ENUM (\r\n        'Zone 1 (Gwarinpa & Life Camp)',\r\n        'Zone 2 (Wuse & Utako)',\r\n        'Zone 3 (Kubwa Central)',\r\n        'Zone 4 (Lugbe & Apo)',\r\n        'Zone 5 (Gwagwalada Districts)'\r\n    );\r\nEXCEPTION\r\n    WHEN duplicate_object THEN null;\r\nEND $$;\r\n\r\nDO $$ BEGIN\r\n    CREATE TYPE public.ve"
+  },
+  {
+    "line": 876,
+    "context": "a Districts)'\r\n    );\r\nEXCEPTION\r\n    WHEN duplicate_object THEN null;\r\nEND $$;\r\n\r\nDO $$ BEGIN\r\n    CREATE TYPE public.verification_status AS ENUM ('pending', 'verified', 'rejected');\r\nEXCEPTION\r\n    WHEN duplicate_object THEN null;\r\nEND $$;\r\n\r\n-- 2. Create Verifications Table\r\nCREA"
+  },
+  {
+    "line": 976,
+    "context": "D VALUE IF NOT EXISTS 'admin';\r\n\r\n-- 2. LOGISTICS SCHEMA\r\n\r\n-- Shipment Status Enum\r\nDO $$ BEGIN\r\n  CREATE TYPE public.shipment_status AS ENUM ('pending', 'assigned', 'picked_up', 'in_transit', 'delivered', 'failed', 'cancelled');\r\nEXCEPTION WHEN duplicate_object THEN NULL;\r\nEND $$;\r\n\r\n-- Shipments Table\r\nCREATE TABLE IF NOT EXI"
+  },
+  {
+    "line": 1107,
+    "context": "LE: 20260215124017_6093fc62-2be2-4700-ab1b-8b744c81ec90.sql\r\n\r\n-- Create roles enum\r\nDO $$ BEGIN\r\n  CREATE TYPE public.app_role AS ENUM ('buyer', 'seller');\r\nEXCEPTION WHEN duplicate_object THEN NULL;\r\nEND $$;\r\n\r\n-- User roles table\r\nCREATE TABLE IF NOT EX"
+  }
+]

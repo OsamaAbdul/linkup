@@ -1,0 +1,10 @@
+project_id = "qotvokbtzjekhtclgvyd"
+
+[functions.create-order]
+verify_jwt = false
+
+[functions.paystack-public-key]
+verify_jwt = false
+
+[functions.verify-paystack]
+verify_jwt = false

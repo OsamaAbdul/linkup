@@ -1,0 +1,126 @@
+import { lazy, Suspense, useEffect } from 'react';
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Lazy load admin sections
+const AdminOverview = lazy(() => import("@/components/admin/dashboard/AdminOverview"));
+const AdminOrderTracker = lazy(() => import("@/components/admin/dashboard/AdminOrderTracker"));
+const AdminUserManagement = lazy(() => import("@/components/admin/dashboard/AdminUserManagement"));
+const AdminIssueManager = lazy(() => import("@/components/admin/dashboard/AdminIssueManager"));
+const AdminSystemHistory = lazy(() => import("@/components/admin/dashboard/AdminSystemHistory"));
+const AdminKycManager = lazy(() => import("@/components/admin/dashboard/AdminKycManager"));
+const AdminPaymentsSection = lazy(() => import("@/components/admin/dashboard/AdminPaymentsSection"));
+
+interface AdminDashboardProps {
+    activeSection?: "overview" | "orders" | "users" | "issues" | "history" | "kyc" | "payments";
+}
+
+export default function AdminDashboard({ activeSection = "overview" }: AdminDashboardProps) {
+    const queryClient = useQueryClient();
+
+    // Prefetch all admin data on mount for faster navigation
+    useEffect(() => {
+        const prefetchAdminData = async () => {
+            // Revenue data
+            queryClient.prefetchQuery({
+                queryKey: ["admin-revenue"],
+                queryFn: async () => {
+                    const { data, error } = await supabase.from("orders").select("total").eq("status", "delivered");
+                    if (error) throw error;
+                    return data?.reduce((acc, curr) => acc + (curr.total || 0), 0) || 0;
+                },
+                staleTime: 1000 * 60 * 5,
+            });
+
+            // Active orders count
+            queryClient.prefetchQuery({
+                queryKey: ["admin-active-orders-count"],
+                queryFn: async () => {
+                    const { count, error } = await supabase.from("orders").select("*", { count: 'exact', head: true }).in("status", ["pending", "processing", "shipped"]);
+                    if (error) throw error;
+                    return count || 0;
+                },
+                staleTime: 1000 * 60 * 2,
+            });
+
+            // Users count
+            queryClient.prefetchQuery({
+                queryKey: ["admin-users-count"],
+                queryFn: async () => {
+                    const { count, error } = await supabase.from("profiles").select("*", { count: 'exact', head: true });
+                    if (error) throw error;
+                    return count || 0;
+                },
+                staleTime: 1000 * 60 * 10,
+            });
+
+            // Open issues count
+            queryClient.prefetchQuery({
+                queryKey: ["admin-open-issues-count"],
+                queryFn: async () => {
+                    const { count, error } = await (supabase as any).from("issues").select("*", { count: 'exact', head: true }).eq("status", "open");
+                    if (error) throw error;
+                    return count || 0;
+                },
+                staleTime: 1000 * 60 * 1,
+            });
+
+            // Global Orders (for across-section context)
+            queryClient.prefetchQuery({
+                queryKey: ["admin-all-orders"],
+                queryFn: async () => {
+                    const { data, error } = await supabase
+                        .from("orders")
+                        .select("*, profiles:buyer_id(display_name)")
+                        .order("created_at", { ascending: false });
+                    if (error) throw error;
+                    return data;
+                },
+                staleTime: 1000 * 60 * 2,
+            });
+        };
+
+        prefetchAdminData();
+    }, [queryClient]);
+
+    return (
+        <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+            <Suspense fallback={<AdminSectionSkeleton />}>
+                {activeSection === "overview" && <AdminOverview />}
+                {activeSection === "orders" && <AdminOrderTracker />}
+                {activeSection === "users" && <AdminUserManagement />}
+                {activeSection === "issues" && <AdminIssueManager />}
+                {activeSection === "history" && <AdminSystemHistory />}
+                {activeSection === "kyc" && <AdminKycManager />}
+                {activeSection === "payments" && <AdminPaymentsSection />}
+            </Suspense>
+        </div>
+    );
+}
+
+function AdminSectionSkeleton() {
+    return (
+        <div className="space-y-8">
+            <div className="flex justify-between items-center">
+                <div className="space-y-2">
+                    <Skeleton className="h-10 w-64 rounded-xl" />
+                    <Skeleton className="h-4 w-48 rounded-lg" />
+                </div>
+                <div className="flex gap-3">
+                    <Skeleton className="h-11 w-24 rounded-2xl" />
+                    <Skeleton className="h-11 w-32 rounded-2xl" />
+                </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[1, 2, 3, 4].map((i) => (
+                    <Skeleton key={i} className="h-40 rounded-[2.5rem]" />
+                ))}
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <Skeleton className="lg:col-span-2 h-96 rounded-[2.5rem]" />
+                <Skeleton className="h-96 rounded-[2.5rem]" />
+            </div>
+        </div>
+    );
+}

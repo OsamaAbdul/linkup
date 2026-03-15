@@ -106,7 +106,7 @@ export default function Onboarding() {
       const { error } = await (supabase as any)
         .from("profiles")
         .update({ display_name: displayName, bio, updated_at: new Date().toISOString() })
-        .eq("user_id", user!.id);
+        .eq("id", user!.id);
       if (error) throw error;
       setStep(2);
     } catch (error: any) {
@@ -181,7 +181,7 @@ export default function Onboarding() {
 
       const { error: zoneError } = await (supabase as any).from("profiles")
         .update({ zone: logisticsData.zone, city_id: logisticsData.city_id, zone_id: logisticsData.zone_id })
-        .eq("user_id", user!.id);
+        .eq("id", user!.id);
       if (zoneError) throw zoneError;
 
       toast.success("KYC submitted! Final details next.");
@@ -207,7 +207,7 @@ export default function Onboarding() {
       }
       const { error: roleError } = await (supabase as any).from("user_roles").insert({ user_id: user!.id, role: "logistics" });
       if (roleError && roleError.code !== "23505") throw roleError;
-      const { error: updateError } = await (supabase as any).from("profiles").update({ onboarding_completed: true }).eq("user_id", user!.id);
+      const { error: updateError } = await (supabase as any).from("profiles").update({ onboarding_completed: true }).eq("id", user!.id);
       if (updateError) throw updateError;
       toast.success("Registration complete!");
       await refreshProfile();
@@ -224,7 +224,7 @@ export default function Onboarding() {
     setStepLoading(true);
     try {
       await (supabase as any).from("user_roles").insert({ user_id: user!.id, role: selectedRole });
-      await (supabase as any).from("profiles").update({ onboarding_completed: true }).eq("user_id", user!.id);
+      await (supabase as any).from("profiles").update({ onboarding_completed: true }).eq("id", user!.id);
       await refreshProfile();
       toast.success("Welcome to Linkup!");
       navigate(selectedRole === "seller" ? "/dashboard" : "/");

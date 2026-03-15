@@ -46,7 +46,7 @@ export default function Profile() {
       await supabase.from("profiles").update({
         display_name: form.display_name,
         bio: form.bio,
-      }).eq("user_id", user.id);
+      }).eq("id", user.id);
     },
     onSuccess: () => {
       toast.success("Profile updated!");

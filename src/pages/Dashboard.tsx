@@ -244,9 +244,9 @@ export default function Dashboard() {
 
       if (shipmentError) throw shipmentError;
 
-      // 4. Link order_items_new to this shipment
+      // 4. Link order_items to this shipment
       await (supabase as any)
-        .from("order_items_new")
+        .from("order_items")
         .update({ shipment_id: shipment.id })
         .eq("order_id", id)
         .eq("seller_id", user?.id);

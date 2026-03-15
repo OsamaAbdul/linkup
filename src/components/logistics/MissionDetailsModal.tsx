@@ -116,7 +116,7 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
         queryFn: async () => {
             if (!shipment?.id) return [];
             const { data, error } = await (supabase as any)
-                .from("order_items_new")
+                .from("order_items")
                 .select("*, products(title, images)")
                 .eq("shipment_id", shipment.id);
             if (error) throw error;

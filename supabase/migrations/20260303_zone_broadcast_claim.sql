@@ -45,6 +45,14 @@ BEGIN
         RETURN jsonb_build_object('success', false, 'error', 'Mission is no longer available');
     END IF;
 
+    -- NEW: Verify the rider's KYC status is 'verified'
+    IF NOT EXISTS (
+        SELECT 1 FROM public.logistics_kyc
+        WHERE user_id = p_rider_id AND status = 'verified'
+    ) THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Your KYC must be verified by an admin before you can claim missions');
+    END IF;
+
     -- Verify the rider is in the correct zone
     SELECT zone::TEXT INTO v_rider_zone
     FROM public.profiles
@@ -97,9 +105,11 @@ USING (
         AND EXISTS (
             SELECT 1 FROM public.user_roles ur
             JOIN public.profiles p ON ur.user_id = p.id
+            JOIN public.logistics_kyc lk ON ur.user_id = lk.user_id
             WHERE ur.user_id = auth.uid()
             AND ur.role = 'logistics'
             AND p.zone::TEXT = shipments.zone::TEXT
+            AND lk.status = 'verified'
         )
     )
     OR
@@ -121,9 +131,11 @@ USING (
         AND EXISTS (
             SELECT 1 FROM public.user_roles ur
             JOIN public.profiles p ON ur.user_id = p.id
+            JOIN public.logistics_kyc lk ON ur.user_id = lk.user_id
             WHERE ur.user_id = auth.uid()
             AND ur.role = 'logistics'
             AND p.zone::TEXT = shipments.zone::TEXT
+            AND lk.status = 'verified'
         )
     )
 );

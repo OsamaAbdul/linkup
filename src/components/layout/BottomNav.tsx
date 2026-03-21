@@ -17,8 +17,8 @@ export function BottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t-[0.5px] border-white/10 pb-safe shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.2)]">
-      <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-4">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-black/[0.03] pb-safe shadow-lg">
+      <div className="flex items-center justify-around h-14 sm:h-16 max-w-lg mx-auto px-4">
         {navItems.map(({ icon: Icon, label, path, count }) => {
           const active = location.pathname === path;
           return (
@@ -66,7 +66,7 @@ export function BottomNav() {
               <span className="text-[10px] font-heading font-bold uppercase tracking-tighter">Menu</span>
             </button>
           </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-80 glass border-white/10 rounded-r-3xl">
+          <SheetContent side="left" className="p-0 w-80 glass border-black/5 rounded-r-xl">
             <SidebarContent />
           </SheetContent>
         </Sheet>

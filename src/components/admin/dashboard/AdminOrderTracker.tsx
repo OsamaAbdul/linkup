@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -30,7 +30,7 @@ export default function AdminOrderTracker() {
         staleTime: 1000 * 60 * 2, // 2 minutes
     });
 
-    if (isLoading) return <div className="p-12 text-center text-muted-foreground font-bold bg-white rounded-[2.5rem]">Global Order Tracker Loading...</div>;
+    if (isLoading) return <div className="p-12 text-center text-muted-foreground font-bold bg-white rounded-xl">Global Order Tracker Loading...</div>;
 
     const renderOrderDetails = (order: any) => {
         if (!order) return null;
@@ -45,7 +45,7 @@ export default function AdminOrderTracker() {
                             <User size={14} className="text-primary" />
                             Customer Identification
                         </div>
-                        <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                             <p className="font-bold text-sm">{(order.profiles as any)?.display_name || "Guest"}</p>
                             <p className="text-[10px] font-medium text-muted-foreground mt-1">ID: {order.buyer_id}</p>
                         </div>
@@ -55,7 +55,7 @@ export default function AdminOrderTracker() {
                             <Calendar size={14} className="text-primary" />
                             Temporal Marker
                         </div>
-                        <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                             <p className="font-bold text-sm">{new Date(order.created_at).toLocaleString()}</p>
                             <p className="text-[10px] font-medium text-muted-foreground mt-1 text-primary lowercase tracking-tighter">System Recorded</p>
                         </div>
@@ -67,7 +67,7 @@ export default function AdminOrderTracker() {
                         <Package size={14} className="text-primary" />
                         Manifest Contents ({items.length} Units)
                     </div>
-                    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+                    <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
                         <table className="w-full text-left text-xs">
                             <thead>
                                 <tr className="bg-gray-50 border-b border-gray-100 text-[10px] font-black uppercase text-muted-foreground">
@@ -81,14 +81,14 @@ export default function AdminOrderTracker() {
                                     <tr key={i}>
                                         <td className="px-4 py-3 font-bold">{item.title || item.name || "Unknown Product"}</td>
                                         <td className="px-4 py-3 text-center font-medium">{item.quantity}</td>
-                                        <td className="px-4 py-3 text-right font-black">₦{(item.price || 0).toLocaleString()}</td>
+                                        <td className="px-4 py-3 text-right font-black">‚¦{(item.price || 0).toLocaleString()}</td>
                                     </tr>
                                 ))}
                             </tbody>
                             <tfoot>
                                 <tr className="bg-indigo-50/50">
                                     <td colSpan={2} className="px-4 py-4 font-black uppercase text-[10px] tracking-widest">Aggregate Valuation</td>
-                                    <td className="px-4 py-4 text-right font-black text-primary text-sm">₦{(order.total || 0).toLocaleString()}</td>
+                                    <td className="px-4 py-4 text-right font-black text-primary text-sm">‚¦{(order.total || 0).toLocaleString()}</td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -100,7 +100,7 @@ export default function AdminOrderTracker() {
                         <MapPin size={14} className="text-primary" />
                         Logistic Endpoint (Shipping)
                     </div>
-                    <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                         <p className="text-sm font-medium leading-relaxed">
                             {shipping.address}<br />
                             {shipping.city}, {shipping.state}<br />
@@ -119,7 +119,7 @@ export default function AdminOrderTracker() {
                 <Badge className="bg-primary/10 text-primary border-none">{orders?.length} Total Orders</Badge>
             </div>
 
-            <Card className="border-none shadow-sm rounded-[2.5rem] bg-white overflow-hidden">
+            <Card className="border-none shadow-sm rounded-xl bg-white overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
@@ -142,7 +142,7 @@ export default function AdminOrderTracker() {
                                     <td className="px-8 py-6 text-xs font-medium text-muted-foreground">
                                         {new Date(o.created_at).toLocaleDateString()}
                                     </td>
-                                    <td className="px-8 py-6 font-black text-sm">₦{(o.total || 0).toLocaleString()}</td>
+                                    <td className="px-8 py-6 font-black text-sm">‚¦{(o.total || 0).toLocaleString()}</td>
                                     <td className="px-8 py-6">
                                          <Badge className={cn(
                                             "rounded-full px-3 py-0.5 text-[9px] font-black uppercase tracking-widest border-none shadow-sm",
@@ -177,7 +177,7 @@ export default function AdminOrderTracker() {
             </Card>
 
             <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
-                <DialogContent className="max-w-2xl rounded-[2.5rem] border-none shadow-2xl overflow-hidden p-0 bg-white">
+                <DialogContent className="max-w-2xl rounded-xl border-none shadow-2xl overflow-hidden p-0 bg-white">
                     <div className="bg-primary/5 p-8 border-b border-gray-100">
                         <DialogHeader>
                             <div className="flex items-center justify-between mb-2">
@@ -204,3 +204,4 @@ export default function AdminOrderTracker() {
         </div>
     );
 }
+

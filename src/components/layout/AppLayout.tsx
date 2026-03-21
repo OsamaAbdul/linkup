@@ -8,43 +8,48 @@ import { Sidebar } from "./Sidebar";
 import { cn } from "@/lib/utils";
 
 export function AppLayout({ children, hideBottomNav = false }: { children: ReactNode, hideBottomNav?: boolean }) {
-  const { user, profile, roles, loading } = useAuth();
+  const { user, profile, roles, activeRole, loading } = useAuth();
   const navigate = useNavigate();
+  
   useEffect(() => {
-    if (!loading && user) {
-      const isAdmin = roles.includes("admin");
-      const isLogistics = roles.includes("logistics");
-      const isSeller = roles.includes("seller");
+    if (!loading && user && activeRole) {
       const path = window.location.pathname;
+      const isOnboardingPath = ["/onboarding", "/seller-verification", "/auth"].includes(path);
+      
+      if (isOnboardingPath) return;
 
-      if (isAdmin && !path.startsWith("/admin")) {
-        navigate("/admin");
-      } else if (isLogistics && path !== "/logistics-dashboard") {
-        navigate("/logistics-dashboard");
-      } else if (isSeller && path !== "/dashboard" && path !== "/onboarding" && path !== "/seller-verification") {
+      // Ensure user is on the correct dashboard for their active role
+      // This is a soft enforcement to help the user stay in context
+      if (activeRole === "seller" && path === "/") {
         navigate("/dashboard");
+      } else if (activeRole === "logistics" && path === "/") {
+        navigate("/logistics-dashboard");
+      } else if (activeRole === "promoter" && path === "/") {
+        navigate("/promoter-dashboard");
+      } else if (activeRole === "admin" && !path.startsWith("/admin")) {
+        navigate("/admin");
       }
     }
-  }, [user, roles, loading, navigate]);
+  }, [user, activeRole, loading, navigate]);
 
-  const isSeller = roles.includes("seller");
+  const isSellerView = activeRole === "seller";
 
   return (
     <div className="min-h-screen bg-surface">
-      <div className="md:flex max-w-[1700px] mx-auto p-4 gap-4">
-        {!isSeller && <Sidebar />}
+      <div className="md:flex max-w-[1700px] mx-auto p-0 sm:p-4 gap-0 sm:gap-4">
+        {!isSellerView && <Sidebar />}
         <main className={cn(
-          "flex-1 min-w-0 min-h-[calc(100vh-2rem)] rounded-2xl border shadow-sm overflow-hidden",
-          !hideBottomNav ? "pb-20 md:pb-0" : "",
-          isSeller ? "bg-surface border-none shadow-none" : "bg-background"
+          "flex-1 min-w-0 min-h-screen sm:min-h-[calc(100vh-2rem)]",
+          isSellerView ? "bg-surface border-none shadow-none" : "bg-background sm:rounded-xl border-x sm:border shadow-sm",
+          !hideBottomNav ? "pb-24 sm:pb-0" : ""
         )}>
-          {!isSeller && <Header />}
+          {!isSellerView && <Header />}
           <div className="h-full w-full">
             {children}
           </div>
         </main>
       </div>
-      {!isSeller && !hideBottomNav && (
+      {!isSellerView && !hideBottomNav && (
         <div className="md:hidden">
           <BottomNav />
         </div>
@@ -52,3 +57,4 @@ export function AppLayout({ children, hideBottomNav = false }: { children: React
     </div>
   );
 }
+

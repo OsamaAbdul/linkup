@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { motion } from "framer-motion";
 import { Check, MapPin, Smartphone } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -39,7 +39,7 @@ export const AgentCard: React.FC<AgentCardProps> = ({
             transition={{ delay: index * 0.05 }}
             onClick={() => onSelect(agent.id)}
             className={cn(
-                "relative w-full text-left p-6 rounded-[2.5rem] transition-all duration-500 border-2 group bg-white",
+                "relative w-full text-left p-6 rounded-xl transition-all duration-500 border-2 group bg-white",
                 isSelected
                     ? "bg-primary/[0.04] border-primary shadow-[0_20px_48px_-12px_rgba(var(--primary),0.2)]"
                     : "border-black/[0.03] hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5"
@@ -47,7 +47,7 @@ export const AgentCard: React.FC<AgentCardProps> = ({
         >
             <div className="flex items-start gap-6">
                 <div className="relative shrink-0">
-                    <Avatar className="h-16 w-16 rounded-3xl border-2 border-white shadow-md group-hover:scale-105 transition-transform duration-500">
+                    <Avatar className="h-16 w-16 rounded-xl border-2 border-white shadow-md group-hover:scale-105 transition-transform duration-500">
                         <AvatarImage src={agent.avatar_url || ""} />
                         <AvatarFallback className="bg-primary/5 text-primary text-xl font-bold">
                             {agent.display_name?.[0] || "?"}
@@ -103,7 +103,7 @@ export const AgentCard: React.FC<AgentCardProps> = ({
 
                 <div
                     className={cn(
-                        "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 shrink-0 self-center",
+                        "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0 self-center",
                         isSelected
                             ? "bg-primary text-white scale-110 shadow-lg shadow-primary/20"
                             : "bg-muted/40 text-muted-foreground/20 group-hover:bg-primary/5 group-hover:text-primary/40 group-hover:scale-105"
@@ -115,3 +115,4 @@ export const AgentCard: React.FC<AgentCardProps> = ({
         </motion.button>
     );
 };
+

@@ -24,7 +24,7 @@ export default function ProductDetail() {
   const { user } = useAuth();
   const { addToCart } = useCart();
   const navigate = useNavigate();
-  const position = useGeolocation();
+  const { position } = useGeolocation();
   const queryClient = useQueryClient();
   const [commentText, setCommentText] = useState("");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -166,8 +166,8 @@ export default function ProductDetail() {
 
   if (isLoading) return (
     <AppLayout hideBottomNav>
-      <div className="p-4 space-y-4">
-        <Skeleton className="w-full aspect-square rounded-3xl" />
+      <div className="p-4 sm:p-8 space-y-4">
+        <Skeleton className="w-full aspect-square rounded-xl" />
         <Skeleton className="h-8 w-2/3" />
         <Skeleton className="h-6 w-1/3" />
         <Skeleton className="h-24 w-full" />
@@ -209,12 +209,12 @@ export default function ProductDetail() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6 }}
         >
-          <div className="relative aspect-square overflow-hidden bg-muted lg:rounded-3xl lg:shadow-2xl group">
-            <Link to="/" aria-label="Go back" className="absolute top-4 left-4 z-20 bg-foreground/20 backdrop-blur-xl p-3 rounded-2xl text-card hover:bg-foreground/40 transition-all border border-card/10 shadow-lg focus-visible:ring-2 focus-visible:ring-ring">
+          <div className="relative aspect-square overflow-hidden bg-muted lg:rounded-xl lg:shadow-xl group">
+            <Link to="/" aria-label="Go back" className="absolute top-4 left-4 z-20 bg-foreground/20 backdrop-blur-xl p-2.5 rounded-xl text-card hover:bg-foreground/40 transition-all border border-card/10 shadow-lg focus-visible:ring-2 focus-visible:ring-ring">
               <ArrowLeft size={20} />
             </Link>
 
-            <button aria-label="Share product" className="absolute top-4 right-4 z-20 bg-foreground/20 backdrop-blur-xl p-3 rounded-2xl text-card hover:bg-foreground/40 transition-all border border-card/10 shadow-lg focus-visible:ring-2 focus-visible:ring-ring">
+            <button aria-label="Share product" className="absolute top-4 right-4 z-20 bg-foreground/20 backdrop-blur-xl p-2.5 rounded-xl text-card hover:bg-foreground/40 transition-all border border-card/10 shadow-lg focus-visible:ring-2 focus-visible:ring-ring">
               <Share2 size={20} />
             </button>
 
@@ -261,7 +261,7 @@ export default function ProductDetail() {
                 <button
                   onClick={() => setCurrentImageIndex(prev => Math.max(0, prev - 1))}
                   className={cn(
-                    "absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-black/20 backdrop-blur-xl p-3 rounded-2xl text-white hover:bg-black/40 transition-all border border-white/10 opacity-0 group-hover:opacity-100 hidden lg:block",
+                    "absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-black/20 backdrop-blur-xl p-3 rounded-xl text-white hover:bg-black/40 transition-all border border-white/10 opacity-0 group-hover:opacity-100 hidden lg:block",
                     currentImageIndex === 0 && "pointer-events-none opacity-0"
                   )}
                 >
@@ -270,7 +270,7 @@ export default function ProductDetail() {
                 <button
                   onClick={() => setCurrentImageIndex(prev => Math.min(images.length - 1, prev + 1))}
                   className={cn(
-                    "absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-black/20 backdrop-blur-xl p-3 rounded-2xl text-white hover:bg-black/40 transition-all border border-white/10 opacity-0 group-hover:opacity-100 hidden lg:block",
+                    "absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-black/20 backdrop-blur-xl p-2.5 rounded-xl text-white hover:bg-black/40 transition-all border border-white/10 opacity-0 group-hover:opacity-100 hidden lg:block",
                     currentImageIndex === images.length - 1 && "pointer-events-none opacity-0"
                   )}
                 >
@@ -281,8 +281,8 @@ export default function ProductDetail() {
 
             {/* Price Floating Badge for Mobile */}
             <div className="absolute bottom-6 right-6 lg:hidden">
-              <div className="bg-primary/90 backdrop-blur-xl px-4 py-2 rounded-2xl border border-white/20 shadow-2xl">
-                <p className="text-white font-bold text-xl">₦{product.price.toLocaleString()}</p>
+              <div className="bg-primary/90 backdrop-blur-xl px-4 py-1.5 rounded-xl border border-white/20 shadow-2xl">
+                <p className="text-white font-black text-lg">₦{product.price.toLocaleString()}</p>
               </div>
             </div>
           </div>
@@ -324,7 +324,7 @@ export default function ProductDetail() {
           <m.div {...animationProps} transition={{ delay: 0.1 }} className="lg:space-y-3 space-y-4">
             <div className="flex gap-3">
               <Button
-                className="flex-1 h-14 lg:h-12 rounded-2xl text-lg lg:text-base font-bold shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                className="flex-1 h-12 lg:h-11 rounded-xl text-base lg:text-sm font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
                 onClick={() => {
                   if ((product.inventory || 0) <= 0) {
                     toast.error("Out of stock");
@@ -338,7 +338,7 @@ export default function ProductDetail() {
               </Button>
               <Button
                 variant="outline"
-                className="flex-1 h-14 lg:h-12 rounded-2xl text-lg lg:text-base font-bold border-primary text-primary hover:bg-primary/5 transition-all"
+                className="flex-1 h-12 lg:h-11 rounded-xl text-base lg:text-sm font-black uppercase tracking-widest border-primary text-primary hover:bg-primary/5 transition-all"
                 onClick={() => {
                   if ((product.inventory || 0) <= 0) {
                     toast.error("Out of stock");
@@ -437,7 +437,7 @@ export default function ProductDetail() {
               </p>
             </div>
 
-            <div className="p-3 bg-muted/20 border border-border/50 lg:rounded-2xl rounded-3xl flex items-center justify-between">
+            <div className="p-3 bg-muted/20 border border-border/50 rounded-xl flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {(product as any).profiles?.avatar_url ? (
                   <img
@@ -492,7 +492,7 @@ export default function ProductDetail() {
                     transition={{ delay: idx * 0.05 }}
                     className="flex gap-4 group"
                   >
-                    <div className="h-10 w-10 rounded-xl bg-muted overflow-hidden flex-shrink-0 border-2 border-transparent group-hover:border-primary/20 transition-all">
+                    <div className="h-10 w-10 rounded-lg bg-muted overflow-hidden flex-shrink-0 border-2 border-transparent group-hover:border-primary/20 transition-all">
                       {c.profiles?.avatar_url ? (
                         <img src={c.profiles.avatar_url} alt={c.profiles.display_name} className="w-full h-full object-cover" />
                       ) : (
@@ -506,7 +506,7 @@ export default function ProductDetail() {
                         <span className="text-sm font-black text-foreground">{c.profiles?.display_name ?? "Anonymous"}</span>
                         <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">{new Date(c.created_at).toLocaleDateString()}</span>
                       </div>
-                      <div className="bg-muted/30 p-4 rounded-3xl rounded-tl-none border border-border/20 group-hover:bg-muted/50 transition-colors">
+                      <div className="bg-muted/30 p-4 rounded-xl rounded-tl-none border border-border/20 group-hover:bg-muted/50 transition-colors">
                         <p className="text-sm leading-relaxed text-foreground/90">{c.text}</p>
                       </div>
                     </div>
@@ -514,7 +514,7 @@ export default function ProductDetail() {
                 ))}
               </AnimatePresence>
               {comments.length === 0 && (
-                <div className="text-center py-12 bg-muted/10 rounded-3xl border-2 border-dashed border-border/50">
+                <div className="text-center py-12 bg-muted/10 rounded-xl border border-dashed border-border/50">
                   <MessageSquare className="mx-auto text-muted-foreground/30 mb-3" size={32} />
                   <p className="text-muted-foreground italic font-medium">Be the first to start the conversation.</p>
                 </div>
@@ -529,7 +529,7 @@ export default function ProductDetail() {
                 onChange={(e) => setCommentText(e.target.value)}
                 onFocus={() => !user && toggleAuth()}
                 onKeyDown={(e) => e.key === "Enter" && commentText.trim() && commentMutation.mutate()}
-                className="h-14 pl-6 pr-14 rounded-2xl bg-muted/30 border-border/50 group-focus-within:bg-background group-focus-within:border-primary/50 transition-all shadow-inner"
+                className="h-12 pl-6 pr-14 rounded-xl bg-muted/30 border-border/50 group-focus-within:bg-background group-focus-within:border-primary/50 transition-all shadow-inner"
               />
               <button
                 aria-label="Send comment"
@@ -545,13 +545,13 @@ export default function ProductDetail() {
 
         {/* Global Floating Action Bar for Mobile */}
         <div className="fixed bottom-0 left-0 right-0 lg:hidden z-50 p-6 bg-gradient-to-t from-background via-background/95 to-transparent">
-          <div className="bg-foreground/90 backdrop-blur-3xl p-3 px-4 rounded-[2rem] border border-white/10 shadow-2xl flex items-center justify-between gap-4">
+          <div className="bg-foreground/90 backdrop-blur-3xl p-3 px-4 rounded-xl border border-white/10 shadow-2xl flex items-center justify-between gap-4">
             <div className="flex flex-col pl-2">
               <span className="text-[10px] text-accent font-bold uppercase tracking-widest leading-none mb-1">Total Due</span>
               <span className="text-card font-black text-lg leading-none">₦{product.price.toLocaleString()}</span>
             </div>
             <Button
-              className="bg-primary text-primary-foreground h-12 rounded-2xl px-8 font-black text-sm uppercase tracking-widest shadow-xl shadow-primary/20 flex-1"
+              className="bg-primary text-primary-foreground h-11 rounded-xl px-8 font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 flex-1"
               onClick={() => {
                 if ((product.inventory || 0) <= 0) {
                   toast.error("This item is out of stock");
@@ -577,3 +577,4 @@ export default function ProductDetail() {
 }
 
 const Separator = ({ className }: { className?: string }) => <div className={cn("h-[1px] w-full bg-border", className)} />;
+

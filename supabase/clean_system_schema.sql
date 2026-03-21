@@ -19,9 +19,6 @@ DO $type_safe$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'shipment_status') THEN
         CREATE TYPE public.shipment_status AS ENUM ('pending', 'assigned', 'picked_up', 'in_transit', 'delivered', 'failed', 'cancelled');
     END IF;
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'abuja_zone') THEN
-        CREATE TYPE public.abuja_zone AS ENUM ('Zone 1 (Gwarinpa & Life Camp)', 'Zone 2 (Wuse & Utako)', 'Zone 3 (Kubwa Central)', 'Zone 4 (Lugbe & Apo)', 'Zone 5 (Gwagwalada Districts)');
-    END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'verification_status') THEN
         CREATE TYPE public.verification_status AS ENUM ('pending', 'verified', 'rejected');
     END IF;
@@ -66,22 +63,23 @@ CREATE TABLE IF NOT EXISTS public.categories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL UNIQUE,
     slug TEXT NOT NULL UNIQUE,
+    icon TEXT, -- Lucide icon name
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- Seed Categories
-INSERT INTO public.categories (name, slug) VALUES 
-('Electronics', 'electronics'),
-('Fashion', 'fashion'),
-('Home & Kitchen', 'home-kitchen'),
-('Health & Beauty', 'health-beauty'),
-('Sports', 'sports'),
-('Toys', 'toys'),
-('Automotive', 'automotive'),
-('Grocery', 'grocery'),
-('Services', 'services'),
-('Other', 'other')
-ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.categories (name, slug, icon) VALUES 
+('Electronics', 'electronics', 'Laptop'),
+('Fashion', 'fashion', 'Shirt'),
+('Home & Kitchen', 'home-kitchen', 'Home'),
+('Health & Beauty', 'health-beauty', 'Sparkles'),
+('Sports', 'sports', 'Heart'),
+('Toys', 'toys', 'ShoppingBag'),
+('Automotive', 'automotive', 'Settings'),
+('Grocery', 'grocery', 'Apple'),
+('Services', 'services', 'MapPin'),
+('Other', 'other', 'Grid')
+ON CONFLICT (name) DO UPDATE SET icon = EXCLUDED.icon;
 
 -- 5. CORE TABLES
 CREATE TABLE IF NOT EXISTS public.profiles (
@@ -92,7 +90,6 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     avatar_url TEXT,
     latitude DOUBLE PRECISION,
     longitude DOUBLE PRECISION,
-    zone public.abuja_zone, -- Legacy enum support
     city_id UUID REFERENCES public.cities(id),
     zone_id UUID REFERENCES public.delivery_zones(id),
     last_seen TIMESTAMPTZ,
@@ -139,8 +136,11 @@ CREATE TABLE IF NOT EXISTS public.orders (
     total NUMERIC(10, 2) DEFAULT 0,
     total_amount NUMERIC(10, 2) GENERATED ALWAYS AS (total) STORED, -- Mirror for legacy
     shipping_address JSONB,
+    shipping_info JSONB, -- Consolidated shipping data
+    payment_method TEXT,
+    payment_ref TEXT,
+    promoter_id UUID REFERENCES public.profiles(id),
     items JSONB, -- Cache for item manifest
-    zone public.abuja_zone, -- Legacy
     city_id UUID REFERENCES public.cities(id),
     zone_id UUID REFERENCES public.delivery_zones(id),
     created_at TIMESTAMPTZ DEFAULT now(),
@@ -165,7 +165,7 @@ CREATE TABLE IF NOT EXISTS public.shipments (
     order_id UUID NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
     rider_id UUID REFERENCES auth.users(id),
     seller_id UUID REFERENCES public.profiles(id),
-    status TEXT NOT NULL DEFAULT 'pending', -- Using text for flexibility
+    status public.shipment_status NOT NULL DEFAULT 'pending',
     pickup_address TEXT,
     delivery_address TEXT,
     buyer_latitude DOUBLE PRECISION,
@@ -243,7 +243,6 @@ CREATE TABLE IF NOT EXISTS public.seller_verifications (
     business_name TEXT NOT NULL,
     phone_number TEXT NOT NULL,
     business_address TEXT NOT NULL,
-    zone public.abuja_zone NOT NULL,
     national_id_url TEXT NOT NULL,
     store_photo_url TEXT NOT NULL,
     bank_details JSONB NOT NULL,
@@ -366,9 +365,15 @@ DO $pol$ BEGIN
     CREATE POLICY "Seller insert product" ON public.products 
     FOR INSERT WITH CHECK (
         auth.uid() = seller_id 
-        AND EXISTS (
-            SELECT 1 FROM public.seller_verifications 
-            WHERE user_id = auth.uid() AND status = 'verified'
+        AND (
+            EXISTS (
+                SELECT 1 FROM public.user_roles 
+                WHERE user_id = auth.uid() AND role = 'seller'::public.app_role
+            )
+            OR EXISTS (
+                SELECT 1 FROM public.seller_verifications 
+                WHERE user_id = auth.uid() AND status = 'verified'
+            )
         )
     );
 
@@ -466,7 +471,7 @@ DO $trigger$ BEGIN
 EXCEPTION WHEN OTHERS THEN NULL;
 END $trigger$;
 
--- Order Placement RPC (Scalable v3)
+-- Order Placement RPC (Scalable v3 - Hardened)
 CREATE OR REPLACE FUNCTION public.create_order(
     p_items JSONB,
     p_shipping_address JSONB,
@@ -483,17 +488,34 @@ DECLARE
     v_order_id UUID;
     v_item RECORD;
     v_first_seller_id UUID;
+    v_product_price NUMERIC;
+    v_calculated_total NUMERIC := 0;
 BEGIN
+    -- v_first_seller_id := (p_items->0->>'seller_id')::UUID; -- Legacy: might be wrong if multiple sellers
+
+    -- Preliminary check to get first seller for the order table (legacy requirement)
+    -- Though we should probably eventually remove seller_id from orders table.
     v_first_seller_id := (p_items->0->>'seller_id')::UUID;
 
+    -- Create order record
+    -- Note: We use the input p_total for now, but we'll verify it below.
     INSERT INTO public.orders (buyer_id, seller_id, status, payment_status, total, shipping_address, items, city_id, zone_id)
     VALUES (auth.uid(), v_first_seller_id, 'pending', 'paid', p_total, p_shipping_address, p_items, p_city_id, p_zone_id)
     RETURNING id INTO v_order_id;
 
-    FOR v_item IN SELECT * FROM jsonb_to_recordset(p_items) AS x(product_id UUID, quantity INTEGER, price NUMERIC, seller_id UUID)
+    FOR v_item IN SELECT * FROM jsonb_to_recordset(p_items) AS x(product_id UUID, quantity INTEGER, seller_id UUID)
     LOOP
+        -- SECURITY: Fetch AUTHENTIC price from products table
+        SELECT price INTO v_product_price FROM public.products WHERE id = v_item.product_id;
+        
+        IF v_product_price IS NULL THEN
+            RAISE EXCEPTION 'Product % not found', v_item.product_id;
+        END IF;
+
+        v_calculated_total := v_calculated_total + (v_product_price * v_item.quantity);
+
         INSERT INTO public.order_items (order_id, product_id, seller_id, quantity, price_at_purchase)
-        VALUES (v_order_id, v_item.product_id, v_item.seller_id, v_item.quantity, v_item.price);
+        VALUES (v_order_id, v_item.product_id, v_item.seller_id, v_item.quantity, v_product_price);
 
         UPDATE public.products SET inventory = inventory - v_item.quantity
         WHERE id = v_item.product_id AND inventory >= v_item.quantity;
@@ -501,9 +523,59 @@ BEGIN
         IF NOT FOUND THEN RAISE EXCEPTION 'Insufficient inventory for product ID %', v_item.product_id; END IF;
     END LOOP;
 
-    RETURN jsonb_build_object('success', true, 'order_id', v_order_id);
+    -- Update order total with calculated value if it differs (hardening against price spoofing)
+    UPDATE public.orders SET total = v_calculated_total WHERE id = v_order_id;
+
+    RETURN jsonb_build_object('success', true, 'order_id', v_order_id, 'final_total', v_calculated_total);
 END;
 $$;
+
+-- Escrow Release Trigger
+CREATE OR REPLACE FUNCTION public.handle_shipment_delivery_settlement()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_order_id UUID;
+    v_total NUMERIC;
+    v_seller_id UUID;
+    v_wallet_id UUID;
+BEGIN
+    -- release funds when shipment is 'delivered'
+    IF NEW.status::TEXT = 'delivered' AND OLD.status::TEXT != 'delivered' THEN
+        v_order_id := NEW.order_id;
+        
+        -- Get order details
+        SELECT total, seller_id INTO v_total, v_seller_id 
+        FROM public.orders WHERE id = v_order_id;
+
+        -- Find seller's wallet
+        SELECT id INTO v_wallet_id FROM public.wallets 
+        WHERE user_id = v_seller_id OR seller_id = v_seller_id LIMIT 1;
+
+        IF v_wallet_id IS NOT NULL THEN
+            -- Move from escrow to balance
+            UPDATE public.wallets 
+            SET balance = balance + v_total,
+                escrow_balance = GREATEST(0, escrow_balance - v_total),
+                updated_at = NOW()
+            WHERE id = v_wallet_id;
+
+            -- Record Transaction
+            INSERT INTO public.wallet_transactions (wallet_id, amount, type, reference)
+            VALUES (v_wallet_id, v_total, 'settlement', 'Escrow release for Order #' || v_order_id);
+            
+            -- Notify Seller
+            INSERT INTO public.notifications (user_id, type, message)
+            VALUES (v_seller_id, 'payment', 'Payment of ₦' || v_total || ' released from escrow for order #' || LEFT(v_order_id::TEXT, 8));
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER tr_release_escrow_on_delivery
+AFTER UPDATE OF status ON public.shipments
+FOR EACH ROW
+EXECUTE FUNCTION public.handle_shipment_delivery_settlement();
 
 -- 13. STORAGE
 DO $st$ BEGIN

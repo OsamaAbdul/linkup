@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
     Dialog,
@@ -101,7 +101,7 @@ export function ZoneBroadcastSelector({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[500px] w-[95vw] max-h-[90vh] rounded-[2.5rem] p-0 overflow-hidden border-none shadow-[0_32px_128px_-16px_rgba(0,0,0,0.3)] bg-background/95 backdrop-blur-3xl flex flex-col">
+            <DialogContent className="sm:max-w-[500px] w-[95vw] max-h-[90vh] rounded-xl p-0 overflow-hidden border-none shadow-[0_32px_128px_-16px_rgba(0,0,0,0.3)] bg-background/95 backdrop-blur-3xl flex flex-col">
                 {/* Top accent */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
@@ -110,7 +110,7 @@ export function ZoneBroadcastSelector({
                         <motion.div
                             initial={{ scale: 0.8, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
-                            className="w-14 h-14 rounded-3xl bg-primary shadow-[0_8px_24px_-4px_rgba(var(--primary),0.3)] flex items-center justify-center text-white shrink-0"
+                            className="w-14 h-14 rounded-xl bg-primary shadow-[0_8px_24px_-4px_rgba(var(--primary),0.3)] flex items-center justify-center text-white shrink-0"
                         >
                             <Radio size={28} strokeWidth={2.5} />
                         </motion.div>
@@ -139,7 +139,7 @@ export function ZoneBroadcastSelector({
                                 value={pickupTime}
                                 onChange={(e) => setPickupTime(e.target.value)}
                                 min={new Date().toISOString().slice(0, 16)}
-                                className="w-full h-12 px-4 rounded-2xl border border-black/10 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
+                                className="w-full h-12 px-4 rounded-xl border border-black/10 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
                             />
                         </div>
                         <p className="text-[10px] text-muted-foreground font-medium pl-1">When will the package be ready for pickup?</p>
@@ -157,7 +157,7 @@ export function ZoneBroadcastSelector({
                                     whileTap={{ scale: 0.97 }}
                                     onClick={() => setSelectedZone(zone.name)}
                                     className={cn(
-                                        "relative p-4 rounded-2xl border-2 text-left transition-all duration-200",
+                                        "relative p-4 rounded-xl border-2 text-left transition-all duration-200",
                                         selectedZone === zone.name
                                             ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
                                             : "border-black/5 bg-white hover:border-primary/30"
@@ -189,7 +189,7 @@ export function ZoneBroadcastSelector({
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
-                                className="p-4 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-between"
+                                className="p-4 rounded-xl bg-primary/5 border border-primary/10 flex items-center justify-between"
                             >
                                 <div className="flex items-center gap-3">
                                     <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
@@ -212,14 +212,14 @@ export function ZoneBroadcastSelector({
                     <Button
                         variant="ghost"
                         onClick={() => onOpenChange(false)}
-                        className="w-full sm:w-auto rounded-2xl h-14 px-8 text-xs font-bold uppercase tracking-widest text-muted-foreground hover:bg-muted/50"
+                        className="w-full sm:w-auto rounded-xl h-14 px-8 text-xs font-bold uppercase tracking-widest text-muted-foreground hover:bg-muted/50"
                     >
                         Cancel
                     </Button>
                     <Button
                         onClick={handleConfirm}
                         disabled={!selectedZone || !pickupPoint || !pickupTime || isBroadcasting}
-                        className="flex-1 rounded-2xl h-14 px-12 text-xs font-black uppercase tracking-widest bg-primary shadow-[0_12px_32px_-8px_rgba(var(--primary),0.3)] active:scale-95 transition-all text-white disabled:opacity-50"
+                        className="flex-1 rounded-xl h-14 px-12 text-xs font-black uppercase tracking-widest bg-primary shadow-[0_12px_32px_-8px_rgba(var(--primary),0.3)] active:scale-95 transition-all text-white disabled:opacity-50"
                     >
                         {isBroadcasting ? (
                             <Loader2 className="animate-spin mr-3" size={18} strokeWidth={3} />
@@ -233,3 +233,4 @@ export function ZoneBroadcastSelector({
         </Dialog>
     );
 }
+

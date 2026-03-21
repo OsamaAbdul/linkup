@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from 'react';
+﻿import { lazy, Suspense, useEffect } from 'react';
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -108,19 +108,20 @@ function AdminSectionSkeleton() {
                     <Skeleton className="h-4 w-48 rounded-lg" />
                 </div>
                 <div className="flex gap-3">
-                    <Skeleton className="h-11 w-24 rounded-2xl" />
-                    <Skeleton className="h-11 w-32 rounded-2xl" />
+                    <Skeleton className="h-11 w-24 rounded-xl" />
+                    <Skeleton className="h-11 w-32 rounded-xl" />
                 </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[1, 2, 3, 4].map((i) => (
-                    <Skeleton key={i} className="h-40 rounded-[2.5rem]" />
+                    <Skeleton key={i} className="h-40 rounded-xl" />
                 ))}
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <Skeleton className="lg:col-span-2 h-96 rounded-[2.5rem]" />
-                <Skeleton className="h-96 rounded-[2.5rem]" />
+                <Skeleton className="lg:col-span-2 h-96 rounded-xl" />
+                <Skeleton className="h-96 rounded-xl" />
             </div>
         </div>
     );
 }
+

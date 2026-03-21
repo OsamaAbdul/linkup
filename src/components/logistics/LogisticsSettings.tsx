@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -72,7 +72,7 @@ export function LogisticsSettings({ details }: LogisticsSettingsProps) {
         <div className="space-y-8 animate-in zoom-in-95 duration-500">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Account Settings */}
-                <Card className="border-none shadow-xl shadow-black/[0.02] rounded-[2.5rem]">
+                <Card className="border-none shadow-xl shadow-black/[0.02] rounded-xl">
                     <CardHeader className="pb-2">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
@@ -137,7 +137,7 @@ export function LogisticsSettings({ details }: LogisticsSettingsProps) {
                 </Card>
 
                 {/* Notifications */}
-                <Card className="border-none shadow-xl shadow-black/[0.02] rounded-[2.5rem]">
+                <Card className="border-none shadow-xl shadow-black/[0.02] rounded-xl">
                     <CardHeader className="pb-2">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
@@ -192,3 +192,4 @@ function ToggleItem({ label, checked, onCheckedChange }: { label: string, checke
         </div>
     );
 }
+

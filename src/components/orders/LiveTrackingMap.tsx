@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+﻿import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -42,14 +42,14 @@ export function LiveTrackingMap({ riderCoords, buyerCoords }: LiveTrackingMapPro
     if (!map) return;
 
     const riderIcon = L.divIcon({
-      html: `<div style="font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5))">🏍️</div>`,
+      html: `<div style="font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5))">ðŸï¸</div>`,
       className: "",
       iconSize: [30, 30],
       iconAnchor: [15, 15],
     });
 
     const buyerIcon = L.divIcon({
-      html: `<div style="font-size:20px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5))">📍</div>`,
+      html: `<div style="font-size:20px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5))">ðŸ“</div>`,
       className: "",
       iconSize: [28, 28],
       iconAnchor: [14, 28],
@@ -85,7 +85,8 @@ export function LiveTrackingMap({ riderCoords, buyerCoords }: LiveTrackingMapPro
   return (
     <div
       ref={mapRef}
-      className="w-full h-[200px] rounded-2xl overflow-hidden border border-border/50"
+      className="w-full h-[200px] rounded-xl overflow-hidden border border-border/50"
     />
   );
 }
+

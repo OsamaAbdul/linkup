@@ -55,16 +55,16 @@ export function OrdersTabs({
                 </TabsList>
             </div>
 
-            <div className="grid gap-6">
+            <div className="grid gap-4 sm:gap-6">
                 {filteredOrders.length === 0 ? (
-                    <div className="text-center py-20 border-2 border-dashed border-black/[0.03] rounded-[2rem] bg-muted/20 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4">
-                        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4 text-muted-foreground/30">
-                            <ShoppingBag size={32} />
+                    <div className="text-center py-12 sm:py-20 border border-dashed border-black/[0.05] rounded-xl bg-muted/5 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4">
+                        <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-muted flex items-center justify-center mb-4 text-muted-foreground/30">
+                            <ShoppingBag className="w-6 h-6 sm:w-8 sm:h-8" />
                         </div>
-                        <h3 className="font-bold text-lg">No Orders Yet</h3>
-                        <p className="text-sm text-muted-foreground mb-6 max-w-xs">Your commercial registry is currently empty. Start browsing our global products.</p>
+                        <h3 className="font-bold text-base sm:text-lg">No Orders Yet</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-6 max-w-[240px] sm:max-w-xs">Your commercial registry is currently empty. Start browsing our global products.</p>
                         <Link to="/">
-                            <Button className="rounded-full px-8 font-bold text-xs shadow-xl shadow-primary/20 transition-transform active:scale-95">Browse Marketplace</Button>
+                            <Button className="rounded-full px-6 sm:px-8 font-bold text-[10px] sm:text-xs shadow-lg sm:shadow-xl shadow-primary/20 transition-transform active:scale-95">Browse Marketplace</Button>
                         </Link>
                     </div>
                 ) : (

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -96,7 +96,7 @@ export default function Logistics() {
             <div className="p-6 md:p-10 max-w-5xl mx-auto space-y-10 pb-32">
                 <div>
                     <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 rounded-2xl bg-green-500/10 flex items-center justify-center text-green-600">
+                        <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center text-green-600">
                             <Truck size={20} strokeWidth={3} />
                         </div>
                         <p className="text-[10px] font-black text-green-600 uppercase tracking-[0.2em]">Logistics Intelligence</p>
@@ -107,10 +107,10 @@ export default function Logistics() {
 
                 {isLoading ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-40 animate-pulse">
-                        {[1, 2].map(i => <div key={i} className="h-64 bg-muted rounded-3xl" />)}
+                        {[1, 2].map(i => <div key={i} className="h-64 bg-muted rounded-xl" />)}
                     </div>
                 ) : shipments.length === 0 ? (
-                    <Card className="rounded-[2.5rem] border-dashed border-2 border-black/5 bg-white shadow-none p-12 text-center flex flex-col items-center justify-center space-y-4">
+                    <Card className="rounded-xl border-dashed border-2 border-black/5 bg-white shadow-none p-12 text-center flex flex-col items-center justify-center space-y-4">
                         <div className="w-20 h-20 rounded-full bg-muted/30 flex items-center justify-center text-muted-foreground/30">
                             <Package size={40} />
                         </div>
@@ -122,10 +122,10 @@ export default function Logistics() {
                 ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         {shipments.map((s) => (
-                            <Card key={s.id} className="rounded-[2.5rem] border-black/[0.03] bg-white shadow-xl shadow-black/[0.01] overflow-hidden flex flex-col">
+                            <Card key={s.id} className="rounded-xl border-black/[0.03] bg-white shadow-xl shadow-black/[0.01] overflow-hidden flex flex-col">
                                 <CardHeader className="p-8 border-b border-black/[0.03] bg-muted/5 flex flex-row items-center justify-between">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 rounded-2xl bg-white border border-black/5 flex items-center justify-center text-primary font-mono text-xs font-black">
+                                        <div className="w-12 h-12 rounded-xl bg-white border border-black/5 flex items-center justify-center text-primary font-mono text-xs font-black">
                                             #{s.tracking_code?.slice(-4)}
                                         </div>
                                         <div>
@@ -141,7 +141,7 @@ export default function Logistics() {
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-sm font-black text-foreground">₦{s.order?.total?.toLocaleString()}</p>
+                                        <p className="text-sm font-black text-foreground">‚¦{s.order?.total?.toLocaleString()}</p>
                                     </div>
                                 </CardHeader>
 
@@ -172,7 +172,7 @@ export default function Logistics() {
                                 <CardFooter className="p-8 pt-0 gap-3">
                                     {s.status === "assigned" && (
                                         <Button
-                                            className="w-full rounded-2xl h-14 font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 active:scale-95 transition-transform"
+                                            className="w-full rounded-xl h-14 font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 active:scale-95 transition-transform"
                                             onClick={() => {
                                                 const address = (s.delivery_address as any)?.address;
                                                 const lat = (s.delivery_address as any)?.lat;
@@ -196,7 +196,7 @@ export default function Logistics() {
                                     )}
                                     {s.status === "picked_up" && (
                                         <Button
-                                            className="w-full rounded-2xl h-14 font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 bg-green-600 hover:bg-green-700 active:scale-95 transition-transform"
+                                            className="w-full rounded-xl h-14 font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 bg-green-600 hover:bg-green-700 active:scale-95 transition-transform"
                                             onClick={() => {
                                                 setUpdatingId(s.id);
                                                 updateShipmentStatus.mutate({ id: s.id, status: "delivered", orderId: s.order_id });
@@ -207,7 +207,7 @@ export default function Logistics() {
                                         </Button>
                                     )}
                                     {s.status === "delivered" && (
-                                        <div className="w-full flex items-center justify-center gap-2 py-4 text-green-600 font-black text-[10px] uppercase tracking-[0.2em] bg-green-500/5 rounded-2xl">
+                                        <div className="w-full flex items-center justify-center gap-2 py-4 text-green-600 font-black text-[10px] uppercase tracking-[0.2em] bg-green-500/5 rounded-xl">
                                             <CheckCircle2 size={16} />
                                             Mission Completed
                                         </div>
@@ -221,3 +221,4 @@ export default function Logistics() {
         </AppLayout>
     );
 }
+

@@ -1,4 +1,4 @@
-import { m } from "framer-motion";
+﻿import { m } from "framer-motion";
 import { MapPin, Shield, Zap } from "lucide-react";
 
 const features = [
@@ -26,7 +26,7 @@ export const AuthSidebar = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
-          <div className="rounded-2xl overflow-hidden shadow-2xl shadow-black/20 border border-primary-foreground/10 mb-10">
+          <div className="rounded-xl overflow-hidden shadow-2xl shadow-black/20 border border-primary-foreground/10 mb-10">
             <img
               src="/src/assets/link-up.png"
               alt="Linkup"
@@ -81,3 +81,4 @@ export const AuthSidebar = () => {
     </div>
   );
 };
+

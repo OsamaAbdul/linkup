@@ -1,4 +1,4 @@
-import { useAuth } from "@/contexts/AuthContext";
+﻿import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useParams, Link } from "react-router-dom";
@@ -129,7 +129,7 @@ export default function Chat() {
                             <ArrowLeft size={20} />
                         </Link>
                         <div className="flex items-center gap-3 min-w-0">
-                            <div className="h-10 w-10 md:h-12 md:w-12 rounded-2xl bg-primary text-white flex items-center justify-center font-black text-lg shadow-lg shadow-primary/20 shrink-0">
+                            <div className="h-10 w-10 md:h-12 md:w-12 rounded-xl bg-primary text-white flex items-center justify-center font-black text-lg shadow-lg shadow-primary/20 shrink-0">
                                 {otherUser?.display_name?.[0]?.toUpperCase() || "?"}
                             </div>
                             <div className="min-w-0">
@@ -151,7 +151,7 @@ export default function Chat() {
                             </div>
                             <div className="min-w-0">
                                 <p className="text-xs font-bold text-foreground truncate">{conversation.product.title}</p>
-                                <p className="text-[10px] font-black text-primary uppercase tracking-tight">₦{conversation.product.price?.toLocaleString()}</p>
+                                <p className="text-[10px] font-black text-primary uppercase tracking-tight">‚¦{conversation.product.price?.toLocaleString()}</p>
                             </div>
                         </div>
                         <Link to={`/product/${conversation.product.id}`}>
@@ -194,7 +194,7 @@ export default function Chat() {
                                         )}
                                     >
                                         <div className={cn(
-                                            "p-4 rounded-[2rem] text-sm md:text-base font-medium shadow-sm leading-relaxed",
+                                            "p-4 rounded-xl text-sm md:text-base font-medium shadow-sm leading-relaxed",
                                             isOwn
                                                 ? "bg-primary text-white rounded-tr-none shadow-primary/20"
                                                 : "bg-white text-foreground rounded-tl-none border border-black/[0.03] shadow-lg shadow-black/[0.01]"
@@ -220,7 +220,7 @@ export default function Chat() {
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
                             onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                            className="h-14 md:h-16 pl-6 pr-16 rounded-[2rem] bg-gray-50 border-none font-bold text-foreground placeholder:text-muted-foreground/50 focus:bg-white focus:ring-2 focus:ring-primary/10 transition-all shadow-inner"
+                            className="h-14 md:h-16 pl-6 pr-16 rounded-xl bg-gray-50 border-none font-bold text-foreground placeholder:text-muted-foreground/50 focus:bg-white focus:ring-2 focus:ring-primary/10 transition-all shadow-inner"
                         />
                         <button
                             onClick={handleSend}
@@ -235,3 +235,4 @@ export default function Chat() {
         </AppLayout>
     );
 }
+

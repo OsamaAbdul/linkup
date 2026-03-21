@@ -80,7 +80,7 @@ export default function Dashboard() {
         .from("profiles")
         .select("zone, city_id, zone_id")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
       const { data: verification } = await (supabase as any)
         .from("seller_verifications")
@@ -203,10 +203,11 @@ export default function Dashboard() {
     }
   });
 
-  // Zone-based broadcast: create shipment in zone with NO rider_id
+  // Zone-based broadcast: update order and let trigger handle shipment basic creation/sync
   const broadcastOrderMutation = useMutation({
     mutationFn: async ({ id, zone, zoneId, cityId, pickupAddress, pickupTime }: { id: string; zone: string; zoneId?: string; cityId?: string; pickupAddress: string; pickupTime: string }) => {
       // 1. Update order status to awaiting_agent + store zone info
+      // This fires the database trigger tr_sync_order_to_shipment
       const { error: orderError } = await (supabase as any)
         .from("orders")
         .update({
@@ -218,40 +219,25 @@ export default function Dashboard() {
         .eq("id", id);
       if (orderError) throw orderError;
 
-      // 2. Fetch shipping address
-      const { data: order } = await (supabase as any).from("orders").select("shipping_address").eq("id", id).single();
-      if (!order) throw new Error("Order not found");
-
-      const trackingCode = `LK-${Math.random().toString(36).toUpperCase().slice(2, 10)}`;
-
-      // 3. Create shipment with NO rider_id — broadcast to zone
-      const { data: shipment, error: shipmentError } = await (supabase as any)
+      // 2. Update the shipment with the specific pickup details provided by the seller
+      // The trigger has already ensured a shipment exists and is linked.
+      const { error: shipmentError } = await (supabase as any)
         .from("shipments")
-        .insert({
-          order_id: id,
-          seller_id: user?.id,
-          rider_id: null,
+        .update({
           zone: zone,
           zone_id: zoneId,
+          city_id: cityId,
           status: "broadcast",
-          tracking_code: trackingCode,
-          pickup_address: { address: pickupAddress },
+          pickup_address: pickupAddress,
           pickup_time: pickupTime ? new Date(pickupTime).toISOString() : null,
-          delivery_address: order.shipping_address as any
         })
-        .select()
-        .single();
+        .eq("order_id", id);
 
-      if (shipmentError) throw shipmentError;
+      if (shipmentError) {
+        console.error("Secondary Shipment Update Error (Non-Critical):", shipmentError);
+      }
 
-      // 4. Link order_items to this shipment
-      await (supabase as any)
-        .from("order_items")
-        .update({ shipment_id: shipment.id })
-        .eq("order_id", id)
-        .eq("seller_id", user?.id);
-
-      console.log(`Broadcasted shipment ${shipment.id} to zone: ${zone}`);
+      console.log(`Broadcasted order ${id} to zone: ${zone}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["seller-orders"] });

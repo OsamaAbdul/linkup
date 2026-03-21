@@ -1,7 +1,7 @@
 import React, { FC, useState, useRef } from 'react';
 import { X, Printer, Share2, Download } from 'lucide-react';
 import html2canvas from 'html2canvas';
-import Logo from "@/assets/logo.jpeg";
+import Logo from "@/assets/logo.png";
 import './Receipt.css';
 
 interface ReceiptItem {

@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -34,7 +34,7 @@ export const ZoneSelector: React.FC<ZoneSelectorProps> = ({
                             whileTap={{ scale: 0.95 }}
                             onClick={() => onZoneSelect(zone)}
                             className={cn(
-                                "px-5 py-2.5 rounded-2xl text-[10px] font-bold whitespace-nowrap transition-all border-2 shrink-0",
+                                "px-5 py-2.5 rounded-xl text-[10px] font-bold whitespace-nowrap transition-all border-2 shrink-0",
                                 selectedZone === zone
                                     ? "bg-primary text-white border-primary shadow-[0_8px_16px_-4px_rgba(var(--primary),0.25)]"
                                     : "bg-muted/50 text-muted-foreground border-transparent hover:bg-muted"
@@ -48,3 +48,4 @@ export const ZoneSelector: React.FC<ZoneSelectorProps> = ({
         </div>
     );
 };
+

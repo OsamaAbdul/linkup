@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+﻿import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Wallet, ShoppingBag, Activity, MapPin, BarChart3 } from "lucide-react";
 import { AnalyticMetric } from "./MetricCards";
@@ -12,25 +12,25 @@ interface AnalyticsTabProps {
 
 export function AnalyticsTab({ revenue, totalOrders, chartData }: AnalyticsTabProps) {
     return (
-        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="space-y-2">
-                <p className="text-[10px] font-black text-primary/60 uppercase tracking-[0.2em] mb-1">Intelligence Analytics</p>
-                <h1 className="text-3xl md:text-5xl font-black text-foreground tracking-tight">Performance Monitor</h1>
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div>
+                <p className="text-[9px] font-black text-primary/60 uppercase tracking-[0.2em] mb-1">Intelligence Analytics</p>
+                <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight">Performance Monitor</h1>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                <AnalyticMetric label="Gross Payout" value={`₦${revenue.toLocaleString()}`} icon={Wallet} color="text-primary" />
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <AnalyticMetric label="Gross Payout" value={`‚¦${revenue.toLocaleString()}`} icon={Wallet} color="text-primary" />
                 <AnalyticMetric label="Total Orders" value={totalOrders} icon={ShoppingBag} />
                 <AnalyticMetric label="Conversion" value="4.2%" icon={Activity} />
                 <AnalyticMetric label="Global Reach" value="+15" icon={MapPin} />
             </div>
 
             {chartData.length > 0 ? (
-                <Card className="rounded-[3rem] border-black/[0.03] bg-white p-10 shadow-2xl shadow-black/[0.02]">
-                    <CardHeader className="p-0 mb-10 flex flex-row items-center justify-between">
+                <Card className="rounded-xl border-black/[0.03] bg-white p-6 shadow-2xl shadow-black/[0.02]">
+                    <CardHeader className="p-0 mb-6 flex flex-row items-center justify-between">
                         <div>
-                            <CardTitle className="text-2xl font-black tracking-tight">Registry Momentum</CardTitle>
-                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-1">Orders Volatility Registry</p>
+                            <CardTitle className="text-xl font-black tracking-tight">Registry Momentum</CardTitle>
+                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mt-0.5">Orders Volatility Registry</p>
                         </div>
                         <div className="flex gap-2">
                             <Button variant="outline" size="sm" className="rounded-full text-[9px] font-black uppercase px-4 border-black/5 bg-muted/30">7D</Button>
@@ -38,7 +38,7 @@ export function AnalyticsTab({ revenue, totalOrders, chartData }: AnalyticsTabPr
                         </div>
                     </CardHeader>
                     <CardContent className="p-0">
-                        <ResponsiveContainer width="100%" height={400}>
+                        <ResponsiveContainer width="100%" height={300}>
                             <BarChart data={chartData}>
                                 <defs>
                                     <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
@@ -72,11 +72,12 @@ export function AnalyticsTab({ revenue, totalOrders, chartData }: AnalyticsTabPr
                     </CardContent>
                 </Card>
             ) : (
-                <div className="h-[400px] rounded-[3rem] border-2 border-dashed border-black/5 flex flex-col items-center justify-center gap-4 text-muted-foreground">
-                    <BarChart3 size={48} strokeWidth={1} />
-                    <p className="text-xs font-black uppercase tracking-widest">Awaiting system data points...</p>
+                <div className="h-[300px] rounded-xl border-2 border-dashed border-black/5 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+                    <BarChart3 size={32} strokeWidth={1} />
+                    <p className="text-[11px] font-black uppercase tracking-widest">Awaiting system data points...</p>
                 </div>
             )}
         </div>
     );
 }
+

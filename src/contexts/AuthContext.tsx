@@ -10,6 +10,8 @@ interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   roles: string[];
+  activeRole: string | null;
+  setActiveRole: (role: string | null) => void;
   loading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -17,7 +19,7 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType>({
-  session: null, user: null, profile: null, roles: [], loading: true,
+  session: null, user: null, profile: null, roles: [], activeRole: null, setActiveRole: () => { }, loading: true,
   signOut: async () => { }, refreshProfile: async () => { },
   getToken: async () => null,
 });
@@ -29,7 +31,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
+  const [activeRole, setActiveRoleState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const setActiveRole = (role: string | null) => {
+    setActiveRoleState(role);
+    if (role) localStorage.setItem("linkup_active_role", role);
+  };
 
   const fetchLock = useRef<string | null>(null);
 
@@ -57,7 +65,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const [{ data: profileData, error: pError }, { data: rolesData, error: rError }] = result as any;
 
       if (!pError && profileData) setProfile(profileData as any);
-      if (!rError && rolesData) setRoles(rolesData.map((r: any) => r.role));
+      if (!rError && rolesData) {
+        const fetchedRoles = rolesData.map((r: any) => r.role);
+        setRoles(fetchedRoles);
+
+        // Initialize active role
+        const savedRole = localStorage.getItem("linkup_active_role");
+        if (savedRole && fetchedRoles.includes(savedRole)) {
+          setActiveRoleState(savedRole);
+        } else if (fetchedRoles.length > 0) {
+          // Priority: seller > first role
+          const initialRole = fetchedRoles.includes("seller") ? "seller" : fetchedRoles[0];
+          setActiveRoleState(initialRole);
+        } else {
+          setActiveRoleState("buyer");
+        }
+      }
 
     } catch (error) {
       console.error("Auth Data Fetch Error:", error);
@@ -128,7 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      session, user, profile, roles, loading,
+      session, user, profile, roles, activeRole, setActiveRole, loading,
       signOut, refreshProfile, getToken
     }}>
       {children}

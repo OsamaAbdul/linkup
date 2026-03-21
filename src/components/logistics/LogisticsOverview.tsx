@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+﻿import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,14 +14,16 @@ import { motion, AnimatePresence } from "framer-motion";
 
 interface LogisticsOverviewProps {
     showAllOrders?: boolean;
+    kycStatus?: string;
+    onVerificationClick?: () => void;
 }
 
-export function LogisticsOverview({ showAllOrders = false }: LogisticsOverviewProps) {
+export function LogisticsOverview({ showAllOrders = false, kycStatus = "none", onVerificationClick }: LogisticsOverviewProps) {
     const { user } = useAuth();
     const queryClient = useQueryClient();
     const [viewingOrder, setViewingOrder] = useState<any>(null);
 
-    // ── Claim a broadcast mission (atomic, race-safe via RPC) ──
+    // ”€”€ Claim a broadcast mission (atomic, race-safe via RPC) ”€”€
     const claimMissionMutation = useMutation({
         mutationFn: async (shipmentId: string) => {
             const { data, error } = await (supabase as any).rpc("claim_order_mission", {
@@ -45,7 +47,7 @@ export function LogisticsOverview({ showAllOrders = false }: LogisticsOverviewPr
         },
     });
 
-    // ── Update status for shipments already assigned to this agent ──
+    // ”€”€ Update status for shipments already assigned to this agent ”€”€
     const updateShipmentStatus = useMutation({
         mutationFn: async ({ id, status, orderId }: { id: string; status: any; orderId: string }) => {
             const { error: sError } = await (supabase as any)
@@ -74,7 +76,7 @@ export function LogisticsOverview({ showAllOrders = false }: LogisticsOverviewPr
         },
     });
 
-    // ── Fetch this agent's own active shipments ──
+    // ”€”€ Fetch this agent's own active shipments ”€”€
     const { data: shipments = [] } = useQuery({
         queryKey: ["agent-shipments", user?.id],
         queryFn: async () => {
@@ -88,7 +90,7 @@ export function LogisticsOverview({ showAllOrders = false }: LogisticsOverviewPr
         enabled: !!user,
     });
 
-    // ── Fetch broadcast (unclaimed) missions in agent's zone ──
+    // ”€”€ Fetch broadcast (unclaimed) missions in agent's zone ”€”€
     const { data: broadcastMissions = [] } = useQuery({
         queryKey: ["broadcast-missions", user?.id],
         queryFn: async () => {
@@ -104,7 +106,9 @@ export function LogisticsOverview({ showAllOrders = false }: LogisticsOverviewPr
         refetchInterval: 8000, // Poll every 8 seconds for new missions
     });
 
-    // ── Real-time listener for both assigned shipments and broadcasts ──
+    const isKycVerified = kycStatus === "verified";
+
+    // ”€”€ Real-time listener for both assigned shipments and broadcasts ”€”€
     useEffect(() => {
         if (!user) return;
 
@@ -134,7 +138,7 @@ export function LogisticsOverview({ showAllOrders = false }: LogisticsOverviewPr
             }, (payload) => {
                 if ((payload.new as any).status === "broadcast") {
                     queryClient.invalidateQueries({ queryKey: ["broadcast-missions", user.id] });
-                    toast("📡 New Mission Available!", {
+                    toast("ðŸ“¡ New Mission Available!", {
                         description: "A new order has been broadcast to your zone. Be the first to claim it!",
                     });
                 }
@@ -189,9 +193,9 @@ export function LogisticsOverview({ showAllOrders = false }: LogisticsOverviewPr
             {/* Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {stats.map((stat, i) => (
-                    <Card key={i} className="border-none shadow-sm rounded-[2rem] overflow-hidden">
+                    <Card key={i} className="border-none shadow-sm rounded-xl overflow-hidden">
                         <CardContent className="p-6 flex items-center gap-4">
-                            <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center", stat.bg, stat.color)}>
+                            <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center", stat.bg, stat.color)}>
                                 <stat.icon size={24} strokeWidth={2.5} />
                             </div>
                             <div>
@@ -203,7 +207,7 @@ export function LogisticsOverview({ showAllOrders = false }: LogisticsOverviewPr
                 ))}
             </div>
 
-            {/* ━━━ AVAILABLE MISSIONS (BROADCAST POOL) ━━━ */}
+            {/* ””” AVAILABLE MISSIONS (BROADCAST POOL) ””” */}
             <section className="space-y-4">
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600">
@@ -211,7 +215,7 @@ export function LogisticsOverview({ showAllOrders = false }: LogisticsOverviewPr
                     </div>
                     <div>
                         <h2 className="text-xl font-black tracking-tight">Available Missions</h2>
-                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Open to all agents in your zone — first to claim wins</p>
+                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Open to all agents in your zone €” first to claim wins</p>
                     </div>
                     {broadcastMissions.length > 0 && (
                         <span className="ml-auto px-3 py-1 rounded-full bg-blue-500 text-white text-[10px] font-black uppercase tracking-widest animate-pulse">
@@ -220,12 +224,56 @@ export function LogisticsOverview({ showAllOrders = false }: LogisticsOverviewPr
                     )}
                 </div>
 
+                {isKycVerified ? (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-6 rounded-xl bg-green-500/10 border border-green-500/20 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left shadow-sm"
+                    >
+                        <div className="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center text-white shrink-0 shadow-lg shadow-green-500/20">
+                            <CheckCircle size={24} strokeWidth={2.5} />
+                        </div>
+                        <div>
+                            <p className="text-sm font-black text-green-900 uppercase tracking-widest leading-none mb-1">Verify Protocol Active</p>
+                            <p className="text-xs font-medium text-green-700 leading-relaxed max-w-lg">
+                                Your account is fully verified. You can now claim any broadcast missions available in your operational zone.
+                            </p>
+                        </div>
+                    </motion.div>
+                ) : (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-6 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-col md:flex-row items-center gap-6 text-center md:text-left shadow-sm mb-8"
+                    >
+                        <div className="w-16 h-16 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-600 shrink-0 border border-amber-500/10">
+                            <AlertTriangle size={32} strokeWidth={2.5} />
+                        </div>
+                        <div className="flex-1 space-y-1">
+                            <p className="text-sm font-black text-amber-900 uppercase tracking-widest leading-none">KYC Verification Required</p>
+                            <p className="text-xs font-medium text-amber-700 leading-relaxed max-w-lg">
+                                {kycStatus === "pending" 
+                                    ? "Your documents are currently under review by our safety team. You'll be notified once you can start accepting missions." 
+                                    : "You need to complete your KYC submission in the Verification tab before you can claim delivery missions."}
+                            </p>
+                        </div>
+                        {kycStatus !== "pending" && (
+                            <Button 
+                                onClick={onVerificationClick}
+                                className="rounded-xl h-12 px-8 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-amber-600/20 active:scale-95 transition-all w-full md:w-auto"
+                            >
+                                Complete KYC
+                            </Button>
+                        )}
+                    </motion.div>
+                )}
+
                 <AnimatePresence>
                     {broadcastMissions.length === 0 ? (
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            className="py-10 text-center border-2 border-dashed border-black/5 rounded-[2rem] text-muted-foreground text-sm font-medium"
+                            className="py-10 text-center border-2 border-dashed border-black/5 rounded-xl text-muted-foreground text-sm font-medium"
                         >
                             <Radio size={32} strokeWidth={1} className="mx-auto mb-3 opacity-20" />
                             No missions broadcast to your zone yet. Stay ready!
@@ -238,10 +286,10 @@ export function LogisticsOverview({ showAllOrders = false }: LogisticsOverviewPr
                                     initial={{ opacity: 0, y: 16 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, scale: 0.97 }}
-                                    className="rounded-[2rem] border border-blue-500/20 bg-gradient-to-r from-blue-500/5 to-transparent p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-5"
+                                    className="rounded-xl border border-blue-500/20 bg-gradient-to-r from-blue-500/5 to-transparent p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-5"
                                 >
                                     <div className="flex items-start gap-4 flex-1">
-                                        <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center text-blue-600 font-black text-[11px] font-mono shrink-0">
+                                        <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 font-black text-[11px] font-mono shrink-0">
                                             #{mission.order_id?.slice(-6).toUpperCase()}
                                         </div>
                                         <div className="space-y-1 min-w-0">
@@ -272,12 +320,24 @@ export function LogisticsOverview({ showAllOrders = false }: LogisticsOverviewPr
                                         </div>
                                     </div>
                                     <Button
-                                        className="rounded-2xl h-12 px-8 bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] uppercase tracking-widest gap-2 active:scale-95 transition-all shrink-0 shadow-lg shadow-blue-600/20"
+                                        className={cn(
+                                            "rounded-xl h-12 px-8 font-black text-[10px] uppercase tracking-widest gap-2 active:scale-95 transition-all shrink-0 shadow-lg",
+                                            isKycVerified ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/20" : "bg-muted text-muted-foreground shadow-none cursor-not-allowed"
+                                        )}
                                         onClick={() => claimMissionMutation.mutate(mission.id)}
-                                        disabled={claimMissionMutation.isPending}
+                                        disabled={claimMissionMutation.isPending || !isKycVerified}
                                     >
-                                        <Zap size={14} strokeWidth={3} />
-                                        Claim Mission
+                                        {isKycVerified ? (
+                                            <>
+                                                <Zap size={14} strokeWidth={3} />
+                                                Claim Mission
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Clock size={14} strokeWidth={3} />
+                                                {kycStatus === "pending" ? "Awaiting Verification" : "Profile Incomplete"}
+                                            </>
+                                        )}
                                     </Button>
                                 </motion.div>
                             ))}
@@ -286,7 +346,7 @@ export function LogisticsOverview({ showAllOrders = false }: LogisticsOverviewPr
                 </AnimatePresence>
             </section>
 
-            {/* ━━━ ACTIVE TRANSITS (already-claimed shipments) ━━━ */}
+            {/* ””” ACTIVE TRANSITS (already-claimed shipments) ””” */}
             <section className="space-y-4">
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600">
@@ -298,7 +358,7 @@ export function LogisticsOverview({ showAllOrders = false }: LogisticsOverviewPr
                     </div>
                 </div>
 
-                <Card className="border-none shadow-xl shadow-black/[0.02] rounded-[2.5rem] overflow-hidden">
+                <Card className="border-none shadow-xl shadow-black/[0.02] rounded-xl overflow-hidden">
                     <Table>
                         <TableHeader className="bg-muted/30">
                             <TableRow className="border-none hover:bg-transparent">
@@ -386,3 +446,4 @@ export function LogisticsOverview({ showAllOrders = false }: LogisticsOverviewPr
         </div>
     );
 }
+

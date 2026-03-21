@@ -162,11 +162,11 @@ export function LogisticsEarnings() {
     return (
         <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
             {/* Wallet Balance Hero */}
-            <Card className="rounded-[2.5rem] border-none overflow-hidden shadow-2xl shadow-primary/20 bg-gradient-to-br from-primary via-primary to-primary/80 text-white relative">
+            <Card className="rounded-xl border-none overflow-hidden shadow-2xl shadow-primary/20 bg-gradient-to-br from-primary via-primary to-primary/80 text-white relative">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20" />
                 <CardContent className="p-10 relative space-y-6">
                     <div className="flex justify-between items-start">
-                        <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center">
+                        <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center">
                             <Wallet size={28} strokeWidth={2.5} />
                         </div>
                         <Badge className="bg-white/20 text-white border-none rounded-full px-4 font-black text-[10px] uppercase tracking-widest">
@@ -186,7 +186,7 @@ export function LogisticsEarnings() {
                     <Button
                         onClick={() => setWithdrawOpen(true)}
                         disabled={!wallet?.balance || wallet.balance <= 0}
-                        className="bg-white text-primary rounded-2xl h-14 px-10 font-black text-xs uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-50 gap-2"
+                        className="bg-white text-primary rounded-xl h-14 px-10 font-black text-xs uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-50 gap-2"
                     >
                         <ArrowDownToLine size={16} strokeWidth={3} /> Withdraw Earnings
                     </Button>
@@ -200,14 +200,14 @@ export function LogisticsEarnings() {
                     { label: "This Week", value: weekEarnings, icon: Calendar, color: "text-purple-600", bg: "bg-purple-50" },
                     { label: "Total Earned", value: totalEarnings, icon: TrendingUp, color: "text-green-600", bg: "bg-green-50" },
                 ].map((card, i) => (
-                    <Card key={i} className="border-none shadow-sm rounded-[2rem]">
+                    <Card key={i} className="border-none shadow-sm rounded-xl">
                         <CardContent className="p-8 flex items-center gap-5">
-                            <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shrink-0", card.bg, card.color)}>
+                            <div className={cn("w-14 h-14 rounded-xl flex items-center justify-center shrink-0", card.bg, card.color)}>
                                 <card.icon size={24} strokeWidth={2.5} />
                             </div>
                             <div>
                                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{card.label}</p>
-                                <p className="text-2xl font-black text-foreground mt-0.5">₦{card.value.toLocaleString()}</p>
+                                <p className="text-2xl font-black text-foreground mt-0.5">‚¦{card.value.toLocaleString()}</p>
                             </div>
                         </CardContent>
                     </Card>
@@ -220,12 +220,12 @@ export function LogisticsEarnings() {
                     <Package size={18} strokeWidth={2.5} /> Completed Deliveries
                 </h2>
                 {computedEarnings.length === 0 ? (
-                    <div className="py-14 text-center border-2 border-dashed border-black/5 rounded-[2rem] text-muted-foreground text-sm font-medium">
+                    <div className="py-14 text-center border-2 border-dashed border-black/5 rounded-xl text-muted-foreground text-sm font-medium">
                         <TrendingUp size={32} strokeWidth={1} className="mx-auto mb-3 opacity-20" />
                         No completed deliveries yet.
                     </div>
                 ) : (
-                    <Card className="border-none shadow-xl shadow-black/[0.02] rounded-[2.5rem] overflow-hidden">
+                    <Card className="border-none shadow-xl shadow-black/[0.02] rounded-xl overflow-hidden">
                         <Table>
                             <TableHeader className="bg-muted/30">
                                 <TableRow className="border-none hover:bg-transparent">
@@ -242,7 +242,7 @@ export function LogisticsEarnings() {
                                         <TableCell className="font-mono text-xs pl-8 text-muted-foreground">#{s.order_id?.slice(0, 8)}</TableCell>
                                         <TableCell className="text-xs font-bold">{s.zone?.split(" (")[0] || "—"}</TableCell>
                                         <TableCell className="text-xs font-medium">{new Date(s.orders?.updated_at ?? s.created_at).toLocaleDateString()}</TableCell>
-                                        <TableCell className="text-sm font-bold">₦{(s.orders?.total ?? 0).toLocaleString()}</TableCell>
+                                        <TableCell className="text-sm font-bold">‚¦{(s.orders?.total ?? 0).toLocaleString()}</TableCell>
                                         <TableCell className="text-right pr-8">
                                             <span className="text-sm font-black text-green-600">+₦{s.computed_fee.toLocaleString()}</span>
                                         </TableCell>
@@ -258,7 +258,7 @@ export function LogisticsEarnings() {
             {withdrawalRequests.length > 0 && (
                 <section className="space-y-4">
                     <h2 className="text-xl font-black tracking-tight">Withdrawal History</h2>
-                    <Card className="border-none shadow-xl shadow-black/[0.02] rounded-[2.5rem] overflow-hidden">
+                    <Card className="border-none shadow-xl shadow-black/[0.02] rounded-xl overflow-hidden">
                         <Table>
                             <TableHeader className="bg-muted/30">
                                 <TableRow className="border-none hover:bg-transparent">
@@ -273,7 +273,7 @@ export function LogisticsEarnings() {
                                     <TableRow key={w.id} className="border-black/[0.03]">
                                         <TableCell className="font-medium text-xs pl-8">{new Date(w.requested_at).toLocaleDateString()}</TableCell>
                                         <TableCell className="text-xs font-bold">{w.bank_name} · {w.account_number}</TableCell>
-                                        <TableCell className="text-sm font-black text-primary">₦{w.amount?.toLocaleString()}</TableCell>
+                                        <TableCell className="text-sm font-black text-primary">‚¦{w.amount?.toLocaleString()}</TableCell>
                                         <TableCell className="text-right pr-8">{statusBadge(w.status)}</TableCell>
                                     </TableRow>
                                 ))}
@@ -285,11 +285,11 @@ export function LogisticsEarnings() {
 
             {/* Withdrawal Dialog */}
             <Dialog open={withdrawOpen} onOpenChange={setWithdrawOpen}>
-                <DialogContent className="rounded-[2.5rem] p-0 border-none shadow-[0_32px_128px_-16px_rgba(0,0,0,0.25)] max-w-md overflow-hidden">
+                <DialogContent className="rounded-xl p-0 border-none shadow-[0_32px_128px_-16px_rgba(0,0,0,0.25)] max-w-md overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
                     <DialogHeader className="p-8 pb-4">
                         <div className="flex items-center gap-4 mb-2">
-                            <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center text-white">
+                            <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-white">
                                 <ArrowDownToLine size={22} strokeWidth={2.5} />
                             </div>
                             <div>
@@ -322,11 +322,11 @@ export function LogisticsEarnings() {
                         </div>
                     </div>
                     <DialogFooter className="p-8 pt-4 border-t border-black/5 flex gap-3">
-                        <Button variant="ghost" onClick={() => setWithdrawOpen(false)} className="flex-1 rounded-2xl h-12 font-black text-xs uppercase tracking-widest">Cancel</Button>
+                        <Button variant="ghost" onClick={() => setWithdrawOpen(false)} className="flex-1 rounded-xl h-12 font-black text-xs uppercase tracking-widest">Cancel</Button>
                         <Button
                             onClick={() => requestWithdrawal.mutate()}
                             disabled={!amount || !bankName || !accountNumber || !accountName || requestWithdrawal.isPending || parseFloat(amount) > (wallet?.balance || 0) || parseFloat(amount) > remainingDailyLimit}
-                            className="flex-1 rounded-2xl h-12 font-black text-xs uppercase tracking-widest gap-2 bg-primary active:scale-95 transition-all"
+                            className="flex-1 rounded-xl h-12 font-black text-xs uppercase tracking-widest gap-2 bg-primary active:scale-95 transition-all"
                         >
                             {requestWithdrawal.isPending ? <Loader2 size={15} className="animate-spin" /> : <ArrowDownToLine size={15} strokeWidth={3} />}
                             {requestWithdrawal.isPending ? "Submitting..." : "Request Withdrawal"}
@@ -337,3 +337,4 @@ export function LogisticsEarnings() {
         </div>
     );
 }
+

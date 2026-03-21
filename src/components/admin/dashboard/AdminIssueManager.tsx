@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+﻿import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -102,7 +102,7 @@ export default function AdminIssueManager() {
                         <p className="text-muted-foreground font-medium text-lg">Platform integrity is currently at 100%. No active threats reported.</p>
                     </div>
                 ) : issues?.map((issue: any) => (
-                    <Card key={issue.id} className="border-none shadow-sm rounded-[2.5rem] bg-white hover:shadow-2xl transition-all duration-500 group overflow-hidden">
+                    <Card key={issue.id} className="border-none shadow-sm rounded-xl bg-white hover:shadow-2xl transition-all duration-500 group overflow-hidden">
                         <CardHeader className="p-8 pb-4">
                             <div className="flex items-center justify-between mb-4">
                                 <Badge className={cn(
@@ -177,18 +177,18 @@ export default function AdminIssueManager() {
                             <div className="flex gap-3">
                                 {issue.status !== 'resolved' ? (
                                     <Button
-                                        className="flex-1 rounded-2xl h-12 font-black text-[11px] uppercase tracking-widest bg-emerald-600 hover:bg-emerald-700 shadow-xl shadow-emerald-200 active:scale-95 transition-all"
+                                        className="flex-1 rounded-xl h-12 font-black text-[11px] uppercase tracking-widest bg-emerald-600 hover:bg-emerald-700 shadow-xl shadow-emerald-200 active:scale-95 transition-all"
                                         onClick={() => resolveIssueMutation.mutate({ id: issue.id, status: 'resolved' })}
                                         disabled={resolveIssueMutation.isPending}
                                     >
                                         <Check size={16} className="mr-2 stroke-[3px]" /> Resolve Ticket
                                     </Button>
                                 ) : (
-                                    <Badge className="flex-1 justify-center rounded-2xl h-12 bg-emerald-50 text-emerald-700 font-black uppercase text-[11px] tracking-widest border-2 border-emerald-100">Operation Restored</Badge>
+                                    <Badge className="flex-1 justify-center rounded-xl h-12 bg-emerald-50 text-emerald-700 font-black uppercase text-[11px] tracking-widest border-2 border-emerald-100">Operation Restored</Badge>
                                 )}
                                 <Button
                                     variant="outline"
-                                    className="rounded-2xl h-12 font-black text-[11px] uppercase tracking-widest border-2 hover:bg-black hover:text-white transition-colors"
+                                    className="rounded-xl h-12 font-black text-[11px] uppercase tracking-widest border-2 hover:bg-black hover:text-white transition-colors"
                                     onClick={() => {
                                         const contact = issue.seller_info?.phone_number || issue.logistics_info?.phone_number || "No contact info";
                                         toast.info(`Rapid Intel: Contact [ ${contact} ]`);
@@ -204,3 +204,4 @@ export default function AdminIssueManager() {
         </div>
     );
 }
+

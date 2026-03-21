@@ -116,20 +116,20 @@ export default function Wishlist() {
 
     return (
         <AppLayout>
-            <div className="p-6 space-y-6">
+            <div className="p-4 sm:p-8 space-y-4 sm:space-y-6 max-w-4xl mx-auto">
                 {/* Page Title */}
                 <div>
-                    <h1 className="text-2xl font-bold text-foreground">My Wishlist</h1>
-                    <p className="text-muted-foreground text-sm mt-1">{wishlistItems.length} Items saved</p>
+                    <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">Wishlist Registry</h1>
+                    <p className="text-muted-foreground text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] mt-0.5">{wishlistItems.length} Securely Preserved Items</p>
                 </div>
 
                 {wishlistItems.length === 0 ? (
-                    <div className="text-center py-12 bg-white rounded-xl border border-dashed">
-                        <Heart className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-20" />
-                        <h3 className="text-lg font-medium">Your wishlist is empty</h3>
-                        <p className="text-muted-foreground mb-6">Save items you love to buy later.</p>
+                    <div className="text-center py-20 bg-white rounded-xl border border-dashed border-black/[0.05] shadow-inner">
+                        <Heart className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-10" />
+                        <h3 className="text-lg font-black tracking-tight">Registry Empty</h3>
+                        <p className="text-xs text-muted-foreground mb-6 max-w-[200px] mx-auto">Save items you love to your commercial registry for future acquisition.</p>
                         <Link to="/">
-                            <Button>Explore Products</Button>
+                            <Button className="rounded-full px-8 font-bold text-xs shadow-xl shadow-primary/20 transition-transform active:scale-95">Explore Index</Button>
                         </Link>
                     </div>
                 ) : (
@@ -140,59 +140,52 @@ export default function Wishlist() {
                             if (!product) return null; // Should not happen with inner join but safe guard
 
                             return (
-                                <Card key={item.id} className="overflow-hidden border border-border/40 shadow-sm hover:shadow-md transition-shadow">
+                                <Card key={item.id} className="overflow-hidden border border-border/40 shadow-sm hover:shadow-md transition-shadow rounded-xl">
                                     <CardContent className="p-0">
-                                        <div className="flex flex-col sm:flex-row">
+                                        <div className="flex flex-row items-center">
                                             {/* Image */}
-                                            <div className="w-full sm:w-48 h-48 sm:h-auto bg-muted relative flex-shrink-0">
+                                            <div className="w-20 sm:w-28 h-20 sm:h-28 bg-muted/30 relative flex-shrink-0 border-r border-black/[0.03]">
                                                 {product.images?.[0] ? (
-                                                    <img src={product.images[0]} alt={product.title} className="w-full h-full object-contain p-2" />
+                                                    <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-500" />
                                                 ) : (
-                                                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">No Image</div>
+                                                    <div className="w-full h-full flex items-center justify-center text-muted-foreground text-[8px] font-black uppercase tracking-widest opacity-30">No asset</div>
                                                 )}
                                             </div>
 
                                             {/* Content */}
-                                            <div className="flex-1 p-4 flex flex-col justify-between gap-4">
-                                                <div className="flex justify-between items-start">
-                                                    <div className="space-y-1">
-                                                        <h3 className="font-semibold text-lg line-clamp-1">{product.title}</h3>
-                                                        <div className="flex items-center gap-3">
-                                                            <span className="font-bold text-lg">NGN {product.price?.toLocaleString()}</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-4 text-sm text-muted-foreground pt-1">
-                                                            <div className="flex items-center gap-1 text-blue-600 font-medium">
-                                                                <Store size={14} />
-                                                                {product.profiles?.display_name || "Seller"}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="flex flex-col gap-2 items-end">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                                            onClick={() => removeFromWishlist.mutate(product.id)}
-                                                            disabled={removeFromWishlist.isPending}
-                                                        >
-                                                            <Trash2 size={18} />
-                                                        </Button>
+                                            <div className="flex-1 p-3 sm:p-4 flex flex-row items-center justify-between gap-4">
+                                                <div className="min-w-0">
+                                                    <h3 className="font-black text-[14px] sm:text-[15px] tracking-tight text-foreground line-clamp-1 group-hover:text-primary transition-colors">{product.title}</h3>
+                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                        <span className="font-black text-base sm:text-lg tracking-tighter text-primary">₦{product.price?.toLocaleString()}</span>
                                                     </div>
                                                 </div>
 
-                                                <div className="flex justify-end pt-2 border-t border-dashed mt-auto">
+                                                <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                                                     <Button
-                                                        className="bg-[#27ae60] hover:bg-[#219150] text-white gap-2 w-full sm:w-auto"
+                                                        size="sm"
+                                                        className="bg-[#27ae60] hover:bg-[#219150] text-white gap-2 rounded-xl h-9 sm:h-10 px-4 sm:px-6 text-[10px] sm:text-[11px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 active:scale-90 transition-all"
                                                         onClick={() => moveToCart.mutate(product)}
                                                         disabled={moveToCart.isPending}
                                                     >
-                                                        <ArrowRight size={16} />
-                                                        Move to Cart
+                                                        <ShoppingCart size={14} className="sm:hidden" />
+                                                        <ShoppingCart size={16} className="hidden sm:block" />
+                                                        <span className="hidden xs:inline">Acquire</span>
+                                                    </Button>
+                                                    
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl text-muted-foreground/40 hover:text-destructive hover:bg-destructive/5 active:scale-90 transition-all border border-transparent hover:border-destructive/10"
+                                                        onClick={() => removeFromWishlist.mutate(product.id)}
+                                                        disabled={removeFromWishlist.isPending}
+                                                    >
+                                                        <Trash2 size={16} />
                                                     </Button>
                                                 </div>
                                             </div>
                                         </div>
+
                                     </CardContent>
                                 </Card>
                             );

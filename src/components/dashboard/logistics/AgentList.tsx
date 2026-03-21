@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -68,7 +68,7 @@ export const AgentList: React.FC<AgentListProps> = ({
                                 variant="outline"
                                 size="lg"
                                 onClick={onResetZone}
-                                className="rounded-2xl px-8 h-12 text-xs font-bold uppercase tracking-widest hover:bg-primary hover:text-white transition-all ring-offset-background active:scale-95"
+                                className="rounded-xl px-8 h-12 text-xs font-bold uppercase tracking-widest hover:bg-primary hover:text-white transition-all ring-offset-background active:scale-95"
                             >
                                 Try All Zones
                             </Button>
@@ -96,3 +96,4 @@ export const AgentList: React.FC<AgentListProps> = ({
         </div>
     );
 };
+

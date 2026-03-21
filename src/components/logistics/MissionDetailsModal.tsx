@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import {
     Dialog,
     DialogContent,
@@ -197,13 +197,13 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[700px] rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl">
+            <DialogContent className="sm:max-w-[700px] rounded-xl p-0 overflow-hidden border-none shadow-2xl">
                 <div className="bg-primary/5 p-8 border-b border-primary/10">
                     <DialogHeader>
                         <div className="flex items-center justify-between gap-4">
                             <div>
                                 <DialogTitle className="text-2xl font-black tracking-tight text-foreground flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                                         <Package size={20} strokeWidth={3} />
                                     </div>
                                     Mission Details
@@ -270,7 +270,7 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                         {/* Map Overlay Info */}
                         <div className="absolute bottom-4 left-4 right-4 z-[1000] space-y-2">
                             {buyerLocation && (
-                                <div className="bg-green-600/90 backdrop-blur-md p-3 rounded-2xl shadow-lg border border-white/20 text-white flex items-center justify-between animate-in slide-in-from-bottom-2">
+                                <div className="bg-green-600/90 backdrop-blur-md p-3 rounded-xl shadow-lg border border-white/20 text-white flex items-center justify-between animate-in slide-in-from-bottom-2">
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
                                             <LocateFixed size={14} className="animate-pulse" />
@@ -283,7 +283,7 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                                     <Badge className="bg-white/20 text-white border-none text-[8px] font-black uppercase">Active</Badge>
                                 </div>
                             )}
-                            <div className="bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-lg border border-black/5">
+                            <div className="bg-white/90 backdrop-blur-md p-4 rounded-xl shadow-lg border border-black/5">
                                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-2">
                                     <Navigation size={10} strokeWidth={3} />
                                     Drop-off Coordinates
@@ -303,7 +303,7 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                                         <Smartphone size={12} strokeWidth={3} />
                                         Consignee Identity
                                     </h4>
-                                    <div className="bg-muted/30 p-4 rounded-2xl border border-black/[0.03]">
+                                    <div className="bg-muted/30 p-4 rounded-xl border border-black/[0.03]">
                                         <p className="font-black text-sm">{deliveryAddress?.name || "Customer"}</p>
                                         <p className="text-xs font-bold text-primary mt-0.5">{deliveryAddress?.phone || "No phone link"}</p>
                                     </div>
@@ -375,7 +375,7 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                         <div className="p-6 bg-muted/10 border-t border-black/[0.03] space-y-3 flex flex-col">
                             {shipment.status === 'assigned' && (
                                 <Button
-                                    className="w-full rounded-2xl h-12 font-black text-[10px] uppercase tracking-widest bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-600/20 active:scale-95 transition-all gap-2"
+                                    className="w-full rounded-xl h-12 font-black text-[10px] uppercase tracking-widest bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-600/20 active:scale-95 transition-all gap-2"
                                     onClick={() => updateStatus.mutate('accepted')}
                                     disabled={updateStatus.isPending}
                                 >
@@ -385,7 +385,7 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                             )}
                             {shipment.status === 'accepted' && (
                                 <Button
-                                    className="w-full rounded-2xl h-12 font-black text-[10px] uppercase tracking-widest bg-amber-500 hover:bg-amber-600 text-white shadow-xl shadow-amber-500/20 active:scale-95 transition-all gap-2"
+                                    className="w-full rounded-xl h-12 font-black text-[10px] uppercase tracking-widest bg-amber-500 hover:bg-amber-600 text-white shadow-xl shadow-amber-500/20 active:scale-95 transition-all gap-2"
                                     onClick={() => updateStatus.mutate('out_for_pickup')}
                                     disabled={updateStatus.isPending}
                                 >
@@ -395,7 +395,7 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                             )}
                             {shipment.status === 'out_for_pickup' && (
                                 <Button
-                                    className="w-full rounded-2xl h-12 font-black text-[10px] uppercase tracking-widest bg-orange-600 hover:bg-orange-700 text-white shadow-xl shadow-orange-600/20 active:scale-95 transition-all gap-2"
+                                    className="w-full rounded-xl h-12 font-black text-[10px] uppercase tracking-widest bg-orange-600 hover:bg-orange-700 text-white shadow-xl shadow-orange-600/20 active:scale-95 transition-all gap-2"
                                     onClick={() => updateStatus.mutate('arrived_at_seller')}
                                     disabled={updateStatus.isPending}
                                 >
@@ -405,7 +405,7 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                             )}
                             {shipment.status === 'arrived_at_seller' && (
                                 <Button
-                                    className="w-full rounded-2xl h-12 font-black text-[10px] uppercase tracking-widest bg-purple-600 hover:bg-purple-700 text-white shadow-xl shadow-purple-600/20 active:scale-95 transition-all gap-2"
+                                    className="w-full rounded-xl h-12 font-black text-[10px] uppercase tracking-widest bg-purple-600 hover:bg-purple-700 text-white shadow-xl shadow-purple-600/20 active:scale-95 transition-all gap-2"
                                     onClick={() => updateStatus.mutate('picked_up')}
                                     disabled={updateStatus.isPending}
                                 >
@@ -415,7 +415,7 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                             )}
                             {shipment.status === 'picked_up' && (
                                 <Button
-                                    className="w-full rounded-2xl h-12 font-black text-[10px] uppercase tracking-widest bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-600/20 active:scale-95 transition-all gap-2"
+                                    className="w-full rounded-xl h-12 font-black text-[10px] uppercase tracking-widest bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-600/20 active:scale-95 transition-all gap-2"
                                     onClick={() => updateStatus.mutate('out_for_delivery')}
                                     disabled={updateStatus.isPending}
                                 >
@@ -425,7 +425,7 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                             )}
                             {shipment.status === 'out_for_delivery' && (
                                 <Button
-                                    className="w-full rounded-2xl h-12 font-black text-[10px] uppercase tracking-widest bg-cyan-600 hover:bg-cyan-700 text-white shadow-xl shadow-cyan-600/20 active:scale-95 transition-all gap-2"
+                                    className="w-full rounded-xl h-12 font-black text-[10px] uppercase tracking-widest bg-cyan-600 hover:bg-cyan-700 text-white shadow-xl shadow-cyan-600/20 active:scale-95 transition-all gap-2"
                                     onClick={() => updateStatus.mutate('arrived_at_destination')}
                                     disabled={updateStatus.isPending}
                                 >
@@ -435,7 +435,7 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                             )}
                             {shipment.status === 'arrived_at_destination' && (
                                 <Button
-                                    className="w-full rounded-2xl h-12 font-black text-[10px] uppercase tracking-widest bg-green-600 hover:bg-green-700 text-white shadow-xl shadow-green-600/20 active:scale-95 transition-all gap-2"
+                                    className="w-full rounded-xl h-12 font-black text-[10px] uppercase tracking-widest bg-green-600 hover:bg-green-700 text-white shadow-xl shadow-green-600/20 active:scale-95 transition-all gap-2"
                                     onClick={() => updateStatus.mutate('delivered')}
                                     disabled={updateStatus.isPending}
                                 >
@@ -446,7 +446,7 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                             <Button
                                 variant="ghost"
                                 onClick={() => onOpenChange(false)}
-                                className="w-full rounded-2xl h-12 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:bg-black/5"
+                                className="w-full rounded-xl h-12 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:bg-black/5"
                             >
                                 Close Details
                             </Button>
@@ -457,3 +457,4 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
         </Dialog>
     );
 }
+

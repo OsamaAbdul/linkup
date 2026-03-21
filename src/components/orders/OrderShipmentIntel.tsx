@@ -113,8 +113,8 @@ export function OrderShipmentIntel({ shipment }: OrderShipmentIntelProps) {
 
     if (!shipment) {
         return (
-            <div className="bg-muted/30 p-8 rounded-[1.5rem] border border-dashed border-black/5 text-center">
-                <p className="text-xs font-bold text-muted-foreground lowercase tracking-tight italic opacity-60">Waiting for logistics network assignment...</p>
+            <div className="bg-muted/30 p-5 rounded-xl border border-dashed border-black/5 text-center">
+                <p className="text-[11px] font-bold text-muted-foreground lowercase tracking-tight italic opacity-60">Waiting for logistics network assignment...</p>
             </div>
         );
     }
@@ -122,42 +122,42 @@ export function OrderShipmentIntel({ shipment }: OrderShipmentIntelProps) {
     const buyerCoordsState = isSharing ? riderCoords : null; // placeholder for actual buyer coords
 
     return (
-        <div className="grid md:grid-cols-2 gap-4">
-            <div className="bg-card p-6 rounded-[1.5rem] border border-border/50 shadow-sm space-y-4">
+        <div className="grid md:grid-cols-2 gap-3">
+            <div className="bg-card p-4 rounded-xl border border-border/50 shadow-sm space-y-3">
                 <div className="flex justify-between items-center">
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Logistics Identifier</p>
-                    <Badge variant="outline" className="font-mono text-[11px] border-border/50 bg-muted/30">{shipment.tracking_code}</Badge>
+                    <p className="text-[9px] font-black text-muted-foreground uppercase tracking-wider">Logistics Identifier</p>
+                    <Badge variant="outline" className="font-mono text-[10px] border-border/50 bg-muted/30">{shipment.tracking_code}</Badge>
                 </div>
 
                 {riderProfile && (
-                    <div className="flex items-center gap-4">
-                        <Avatar className="h-12 w-12 rounded-[1rem] border-2 border-primary/10">
+                    <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10 rounded-lg border-2 border-primary/10">
                             <AvatarImage src={riderProfile.avatar_url || ""} />
-                            <AvatarFallback className="bg-primary/5 text-primary text-sm font-black">
+                            <AvatarFallback className="bg-primary/5 text-primary text-xs font-black">
                                 {riderProfile.display_name?.[0]?.toUpperCase() || "R"}
                             </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
-                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Authenticated Rider</p>
-                            <p className="text-sm font-black text-foreground">{riderProfile.display_name || "Agent Assigned"}</p>
+                            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Authenticated Rider</p>
+                            <p className="text-[13px] font-black text-foreground">{riderProfile.display_name || "Agent Assigned"}</p>
                             {riderProfile.phone && (
-                                <p className="text-[11px] text-muted-foreground font-medium">{riderProfile.phone}</p>
+                                <p className="text-[10px] text-muted-foreground font-medium">{riderProfile.phone}</p>
                             )}
                         </div>
-                        <Button size="sm" className="rounded-full h-8 text-[10px] font-black px-4 bg-muted hover:bg-muted/80 text-foreground transition-colors">Call</Button>
+                        <Button size="sm" className="rounded-full h-7 text-[9px] font-black px-3 bg-muted hover:bg-muted/80 text-foreground transition-colors">Call</Button>
                     </div>
                 )}
             </div>
 
             <div className={cn(
-                "p-6 rounded-[1.5rem] border shadow-sm flex flex-col justify-between transition-all duration-500 relative overflow-hidden",
+                "p-4 rounded-xl border shadow-sm flex flex-col justify-between transition-all duration-500 relative overflow-hidden",
                 riderCoords ? "border-primary shadow-lg shadow-primary/20" : "bg-primary/[0.02] border-primary/5"
             )}>
                 {riderCoords ? (
                     <div className="relative">
-                        <div className="absolute top-2 left-2 z-[1000] flex items-center gap-1.5 bg-background/90 backdrop-blur-sm px-2.5 py-1 rounded-lg border border-border/50">
-                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                            <span className="text-[9px] font-black uppercase tracking-widest text-foreground">Live</span>
+                        <div className="absolute top-1.5 left-1.5 z-[1000] flex items-center gap-1 bg-background/90 backdrop-blur-sm px-2 py-0.5 rounded-md border border-border/50">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                            <span className="text-[8px] font-black uppercase tracking-widest text-foreground">Live</span>
                         </div>
                         <LiveTrackingMap riderCoords={riderCoords} buyerCoords={buyerCoordsState} />
                     </div>
@@ -176,20 +176,20 @@ export function OrderShipmentIntel({ shipment }: OrderShipmentIntelProps) {
 
             {/* Buyer Live Sharing Policy */}
             <div className={cn(
-                "col-span-1 md:col-span-2 p-6 rounded-[1.5rem] border flex items-center justify-between transition-all duration-300",
+                "col-span-1 md:col-span-2 p-4 rounded-xl border flex items-center justify-between transition-all duration-300",
                 isSharing ? "bg-green-50/50 border-green-200" : "bg-muted/10 border-black/[0.03]"
             )}>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                     <div className={cn(
-                        "w-12 h-12 rounded-2xl flex items-center justify-center transition-colors",
+                        "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
                         isSharing ? "bg-green-100 text-green-600" : "bg-black/5 text-muted-foreground"
                     )}>
-                        <LocateFixed size={20} strokeWidth={3} className={isSharing ? "animate-pulse" : ""} />
+                        <LocateFixed size={18} strokeWidth={3} className={isSharing ? "animate-pulse" : ""} />
                     </div>
                     <div>
-                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Mutual Visibility</p>
-                        <p className="text-sm font-black text-foreground">Share Live Position</p>
-                        <p className="text-[11px] font-medium text-muted-foreground opacity-60">Enable real-time tracking for your logistics partner.</p>
+                        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Mutual Visibility</p>
+                        <p className="text-[13px] font-black text-foreground">Share Live Position</p>
+                        <p className="text-[10px] font-medium text-muted-foreground opacity-60">Enable real-time tracking for your logistics partner.</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3 bg-white p-2 px-4 rounded-xl border border-black/5 shadow-sm">

@@ -72,6 +72,10 @@ serve(async (req: Request) => {
       payment_status,
       seller_id,
       promoter_id,
+      pickup_lat,
+      pickup_lng,
+      delivery_lat,
+      delivery_lng,
     } = body;
 
     console.log(
@@ -84,13 +88,61 @@ serve(async (req: Request) => {
     const orderSellerId = seller_id || items[0]?.seller_id;
     if (!orderSellerId) throw new Error("No seller_id provided");
 
-    // --- Create Order directly (no RPC needed) ---
+    // --- Fetch Seller Coordinates for Distance Calculation ---
+    let final_pickup_lat = pickup_lat;
+    let final_pickup_lng = pickup_lng;
+
+    if (!final_pickup_lat || !final_pickup_lng) {
+      const { data: sellerProfile } = await adminClient
+        .from("profiles")
+        .select("latitude, longitude")
+        .eq("user_id", orderSellerId)
+        .single();
+      
+      if (sellerProfile) {
+        final_pickup_lat = sellerProfile.latitude;
+        final_pickup_lng = sellerProfile.longitude;
+      }
+    }
+
+    // --- Enrich Items & Decrement inventory ---
+    const enrichedItems = [];
+    for (const item of items) {
+      if (item.product_id && item.quantity) {
+        const { data: prod } = await adminClient
+          .from("products")
+          .select("inventory, title, images")
+          .eq("id", item.product_id)
+          .single();
+
+        if (prod) {
+          enrichedItems.push({
+            ...item,
+            title: item.title || prod.title,
+            image: item.image || prod.images?.[0] || ""
+          });
+
+          await adminClient
+            .from("products")
+            .update({
+              inventory: Math.max(0, (prod.inventory || 0) - item.quantity),
+            })
+            .eq("id", item.product_id);
+        } else {
+          enrichedItems.push(item);
+        }
+      } else {
+        enrichedItems.push(item);
+      }
+    }
+
+    // --- Create Order ---
     const { data: order, error: orderError } = await adminClient
       .from("orders")
       .insert({
         buyer_id: user.id,
         seller_id: orderSellerId,
-        items: items,
+        items: enrichedItems,
         total: total || 0,
         shipping_info: shipping_address || pickup_address || null,
         status: "pending",
@@ -98,6 +150,11 @@ serve(async (req: Request) => {
         payment_method: payment_method || null,
         payment_ref: payment_ref || null,
         payment_status: payment_status || null,
+        pickup_lat: final_pickup_lat || null,
+        pickup_lng: final_pickup_lng || null,
+        delivery_lat: delivery_lat || null,
+        delivery_lng: delivery_lng || null,
+        settlement_status: "none",
       })
       .select("id")
       .single();
@@ -105,6 +162,19 @@ serve(async (req: Request) => {
     if (orderError) {
       console.error("ORDER_INSERT_FAIL:", orderError);
       throw new Error(`Failed to create order: ${orderError.message}`);
+    }
+
+    // --- Conversion Tracking (New Engine) ---
+    if (promoter_id) {
+       await adminClient
+        .from("referrals")
+        .update({ 
+          converted_at: new Date().toISOString(), 
+          order_id: order.id 
+        })
+        .eq("promoter_id", promoter_id)
+        .eq("visitor_id", user.id) // Assuming visitor_id maps to user_id after login
+        .is("converted_at", null);
     }
 
     console.log("Order created:", order.id);
@@ -119,6 +189,7 @@ serve(async (req: Request) => {
       delivery_address: deliveryAddress,
       pickup_address: pickupAddress,
       delivery_fee: delivery_fee || 0,
+      zone_id: zone_id || null,
     });
 
     if (shipmentError) {
@@ -126,26 +197,6 @@ serve(async (req: Request) => {
       // Best-effort rollback to avoid orphaned orders
       await adminClient.from("orders").delete().eq("id", order.id);
       throw new Error(`Failed to create shipment: ${shipmentError.message}`);
-    }
-
-    // --- Decrement inventory ---
-    for (const item of items) {
-      if (item.product_id && item.quantity) {
-        const { data: prod } = await adminClient
-          .from("products")
-          .select("inventory")
-          .eq("id", item.product_id)
-          .single();
-
-        if (prod) {
-          await adminClient
-            .from("products")
-            .update({
-              inventory: Math.max(0, (prod.inventory || 0) - item.quantity),
-            })
-            .eq("id", item.product_id);
-        }
-      }
     }
 
     // --- Commission Logic ---

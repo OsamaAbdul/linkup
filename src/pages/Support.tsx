@@ -1,4 +1,4 @@
-import { AppLayout } from "@/components/layout/AppLayout";
+﻿import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -55,7 +55,7 @@ export default function Support() {
                 </div>
 
                 {/* FAQs */}
-                <div className="bg-white rounded-2xl border p-6 md:p-8">
+                <div className="bg-white rounded-xl border p-6 md:p-8">
                     <h2 className="text-2xl font-bold mb-6">Frequently Asked Questions</h2>
                     <Accordion type="single" collapsible className="w-full">
                         <AccordionItem value="item-1">
@@ -116,3 +116,4 @@ export default function Support() {
         </AppLayout>
     );
 }
+

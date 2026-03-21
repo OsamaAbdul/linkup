@@ -19,7 +19,7 @@ export default function Orders() {
 
     // Fetch orders
     const { data: rawOrders = [], isLoading, refetch } = useQuery({
-        queryKey: ["my-orders", user?.id],
+        queryKey: ["orders", user?.id],
         queryFn: async () => {
             if (!user) return [];
             const { data, error } = await supabase
@@ -44,6 +44,7 @@ export default function Orders() {
                 .order("created_at", { ascending: false });
 
             if (error) throw error;
+            console.log("these are your orders", data)
             return data;
         },
         enabled: !!user,
@@ -78,8 +79,8 @@ export default function Orders() {
         try {
             const audio = new Audio("/sounds/notification.mp3");
             audio.volume = 0.5;
-            audio.play().catch(() => {});
-        } catch {}
+            audio.play().catch(() => { });
+        } catch { }
     };
 
     // Realtime setup
@@ -91,7 +92,7 @@ export default function Orders() {
             .on(
                 'postgres_changes',
                 {
-                    event: 'UPDATE',
+                    event: '*', // Listen to all events (INSERT, UPDATE)
                     schema: 'public',
                     table: 'orders',
                     filter: `buyer_id=eq.${user.id}`
@@ -148,7 +149,7 @@ export default function Orders() {
         const title = jsonItem?.title || `Order #${order.id.slice(0, 8)}`;
         const image = jsonItem?.image || jsonItem?.images?.[0] || "";
         const price = order.total || 0;
-        const store = "Linkup Seller";
+        const store = "Linkup Partner";
 
         return {
             id: order.id,
@@ -191,7 +192,7 @@ export default function Orders() {
 
     return (
         <AppLayout>
-            <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-8 pb-24">
+            <div className="max-w-4xl mx-auto p-4 sm:p-8 space-y-4 sm:space-y-8 pb-24">
                 <OrdersHeader />
                 <OrdersTabs
                     orders={orders}

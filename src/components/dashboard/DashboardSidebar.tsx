@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+﻿import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import {
     LayoutDashboard, Plus, Package, ShoppingBag,
@@ -44,7 +44,7 @@ export function DashboardSidebar({ activeTab, setTab, pendingOrdersCount = 0, op
             <aside className="w-64 border-r bg-white/80 backdrop-blur-xl h-screen p-6 hidden md:block sticky top-0 z-30 overflow-y-auto no-scrollbar">
                 <div className="mb-10 space-y-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">
+                        <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">
                             <LayoutDashboard size={20} />
                         </div>
                         <h2 className="font-black text-xl tracking-tight">Seller Central</h2>
@@ -57,7 +57,7 @@ export function DashboardSidebar({ activeTab, setTab, pendingOrdersCount = 0, op
                             key={id}
                             onClick={() => setTab(id)}
                             className={cn(
-                                "w-full flex items-center justify-between px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 group",
+                                "w-full flex items-center justify-between px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 group",
                                 activeTab === id
                                     ? "bg-primary text-white shadow-xl shadow-primary/20 scale-[1.02]"
                                     : "text-muted-foreground hover:bg-black/[0.03]"
@@ -87,13 +87,13 @@ export function DashboardSidebar({ activeTab, setTab, pendingOrdersCount = 0, op
                 <div className="mt-auto pt-6 space-y-4">
                     <button
                         onClick={signOut}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 transition-all duration-300"
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 transition-all duration-300"
                     >
                         <LogOut size={18} />
                         Logout
                     </button>
 
-                    <div className="p-4 rounded-3xl bg-muted/30 border border-black/5">
+                    <div className="p-4 rounded-xl bg-muted/30 border border-black/5">
                         <p className="text-[9px] font-black text-muted-foreground/50 uppercase tracking-widest mb-1">System Status</p>
                         <div className="flex items-center gap-2">
                             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
@@ -134,7 +134,7 @@ export function DashboardSidebar({ activeTab, setTab, pendingOrdersCount = 0, op
                                     key={id}
                                     onClick={() => setTab(id)}
                                     className={cn(
-                                        "w-full flex items-center justify-between px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all duration-300",
+                                        "w-full flex items-center justify-between px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300",
                                         activeTab === id
                                             ? "bg-primary text-white shadow-xl shadow-primary/20"
                                             : "text-muted-foreground hover:bg-black/[0.03]"
@@ -152,7 +152,7 @@ export function DashboardSidebar({ activeTab, setTab, pendingOrdersCount = 0, op
                         <div className="mt-auto pt-6 space-y-4">
                             <button
                                 onClick={signOut}
-                                className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 transition-all duration-300"
+                                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 transition-all duration-300"
                             >
                                 <LogOut size={18} />
                                 Logout
@@ -163,13 +163,13 @@ export function DashboardSidebar({ activeTab, setTab, pendingOrdersCount = 0, op
             </div>
 
             {/* Mobile Bottom Nav (Keeping for quick access) */}
-            <div className="md:hidden fixed bottom-6 left-4 right-4 z-50 flex items-center justify-around bg-white/90 backdrop-blur-2xl border border-black/5 h-16 rounded-[2rem] shadow-up-2xl p-2 max-w-md mx-auto">
+            <div className="md:hidden fixed bottom-6 left-4 right-4 z-50 flex items-center justify-around bg-white/90 backdrop-blur-2xl border border-black/5 h-16 rounded-xl shadow-up-2xl p-2 max-w-md mx-auto">
                 {tabs.slice(0, 4).map(({ id, label, icon: Icon }) => (
                     <button
                         key={id}
                         onClick={() => setTab(id)}
                         className={cn(
-                            "flex-1 flex flex-col items-center justify-center gap-1 h-full rounded-2xl transition-all",
+                            "flex-1 flex flex-col items-center justify-center gap-1 h-full rounded-xl transition-all",
                             activeTab === id ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-muted-foreground"
                         )}
                     >
@@ -189,3 +189,4 @@ export function DashboardSidebar({ activeTab, setTab, pendingOrdersCount = 0, op
         </>
     );
 }
+

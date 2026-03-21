@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -61,7 +61,7 @@ export function ProductReportModal({ productId, sellerId, productTitle, trigger 
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="rounded-[2.5rem] max-w-md border-none shadow-2xl">
+            <DialogContent className="rounded-xl max-w-md border-none shadow-2xl">
                 <DialogHeader>
                     <DialogTitle className="text-2xl font-black">Report Product Anomalies</DialogTitle>
                     <DialogDescription className="font-medium">
@@ -74,7 +74,7 @@ export function ProductReportModal({ productId, sellerId, productTitle, trigger 
                         <input
                             id="title"
                             placeholder="e.g. Counterfeit, Incorrect Info, Prohibited Item"
-                            className="w-full h-12 bg-gray-50 border-none rounded-2xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary/20"
+                            className="w-full h-12 bg-gray-50 border-none rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary/20"
                             value={issueTitle}
                             onChange={(e) => setIssueTitle(e.target.value)}
                         />
@@ -82,10 +82,10 @@ export function ProductReportModal({ productId, sellerId, productTitle, trigger 
                     <div className="space-y-2">
                         <Label htmlFor="priority" className="text-xs font-black uppercase tracking-widest text-muted-foreground">Urgency</Label>
                         <Select value={issuePriority} onValueChange={setIssuePriority}>
-                            <SelectTrigger className="h-12 bg-gray-50 border-none rounded-2xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary/20">
+                            <SelectTrigger className="h-12 bg-gray-50 border-none rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary/20">
                                 <SelectValue placeholder="Select priority" />
                             </SelectTrigger>
-                            <SelectContent className="rounded-2xl border-none shadow-xl">
+                            <SelectContent className="rounded-xl border-none shadow-xl">
                                 <SelectItem value="low">Standard Report</SelectItem>
                                 <SelectItem value="high">High Concern</SelectItem>
                                 <SelectItem value="critical">Immediate Hazard</SelectItem>
@@ -97,7 +97,7 @@ export function ProductReportModal({ productId, sellerId, productTitle, trigger 
                         <Textarea
                             id="desc"
                             placeholder="Describe the issues with this listing..."
-                            className="min-h-[120px] bg-gray-50 border-none rounded-2xl p-4 text-sm font-medium focus:ring-2 focus:ring-primary/20"
+                            className="min-h-[120px] bg-gray-50 border-none rounded-xl p-4 text-sm font-medium focus:ring-2 focus:ring-primary/20"
                             value={issueDescription}
                             onChange={(e) => setIssueDescription(e.target.value)}
                         />
@@ -105,7 +105,7 @@ export function ProductReportModal({ productId, sellerId, productTitle, trigger 
                 </div>
                 <DialogFooter>
                     <Button
-                        className="w-full h-12 rounded-2xl font-black bg-primary shadow-xl shadow-primary/20 active:scale-95 transition-all"
+                        className="w-full h-12 rounded-xl font-black bg-primary shadow-xl shadow-primary/20 active:scale-95 transition-all"
                         onClick={() => reportIssueMutation.mutate()}
                         disabled={reportIssueMutation.isPending || !issueTitle || !issueDescription}
                     >
@@ -116,3 +116,4 @@ export function ProductReportModal({ productId, sellerId, productTitle, trigger 
         </Dialog>
     );
 }
+

@@ -1,4 +1,4 @@
-import { useAuth } from "@/contexts/AuthContext";
+﻿import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -39,7 +39,7 @@ export default function Messages() {
             <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-8 pb-32">
                 <header className="space-y-2">
                     <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                             <MessageSquare size={20} strokeWidth={3} />
                         </div>
                         <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Neural Channels</p>
@@ -50,7 +50,7 @@ export default function Messages() {
                 <div className="space-y-4">
                     {isLoading ? (
                         [1, 2, 3].map(i => (
-                            <div key={i} className="h-24 bg-muted/20 rounded-[2rem] animate-pulse" />
+                            <div key={i} className="h-24 bg-muted/20 rounded-xl animate-pulse" />
                         ))
                     ) : conversations.length === 0 ? (
                         <div className="text-center py-20 bg-muted/10 rounded-[3rem] border-2 border-dashed border-border/50">
@@ -74,10 +74,10 @@ export default function Messages() {
                                     >
                                         <Link
                                             to={`/chat/${conv.id}`}
-                                            className="group block p-4 bg-white border border-black/[0.03] shadow-lg shadow-black/[0.01] rounded-[2rem] hover:shadow-2xl hover:shadow-primary/5 transition-all hover:scale-[1.01] active:scale-[0.99]"
+                                            className="group block p-4 bg-white border border-black/[0.03] shadow-lg shadow-black/[0.01] rounded-xl hover:shadow-2xl hover:shadow-primary/5 transition-all hover:scale-[1.01] active:scale-[0.99]"
                                         >
                                             <div className="flex items-center gap-4">
-                                                <Avatar className="h-16 w-16 rounded-2xl border-2 border-transparent group-hover:border-primary/20 transition-all shadow-sm">
+                                                <Avatar className="h-16 w-16 rounded-xl border-2 border-transparent group-hover:border-primary/20 transition-all shadow-sm">
                                                     <AvatarImage src={otherUser?.avatar_url} />
                                                     <AvatarFallback className="bg-primary/5 text-primary font-black uppercase tracking-widest text-lg">
                                                         {otherUser?.display_name?.[0] || "?"}
@@ -122,3 +122,4 @@ export default function Messages() {
         </AppLayout>
     );
 }
+

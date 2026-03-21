@@ -32,7 +32,7 @@ const formReducer = (state: FormState, action: FormAction): FormState => {
 
 export default function Sell() {
   const { user } = useAuth();
-  const position = useGeolocation();
+  const { position } = useGeolocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -73,7 +73,7 @@ export default function Sell() {
     queryKey: ["profile", user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const { data, error } = await (supabase as any).from("profiles").select("city_id, zone_id").eq("user_id", user.id).single();
+      const { data, error } = await (supabase as any).from("profiles").select("city_id, zone_id").eq("user_id", user.id).maybeSingle();
       if (error) return null;
       return data as any;
     },
@@ -340,7 +340,11 @@ export default function Sell() {
                 <Select value={form.category} onValueChange={(v) => dispatch({ type: 'SET_FIELD', field: 'category', value: v })}>
                   <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                   <SelectContent>
-                    {dbCategories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    {dbCategories.map((c: any) => (
+                      <SelectItem key={typeof c === 'object' ? c.name : c} value={typeof c === 'object' ? c.name : c}>
+                        {typeof c === 'object' ? c.name : c}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               )}

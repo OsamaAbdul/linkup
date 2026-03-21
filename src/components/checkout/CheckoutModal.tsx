@@ -4,7 +4,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ShieldCheck, MapPin, Store, Truck, Banknote, CreditCard, Package } from "lucide-react";
+import { ShieldCheck, MapPin, Store, Truck, CreditCard, Package, Lock, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,7 +34,7 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
     const queryClient = useQueryClient();
 
     const [deliveryMethod, setDeliveryMethod] = useState("standard");
-    const [paymentMethod, setPaymentMethod] = useState("direct"); // "direct" | "pod"
+    const paymentMethod = "direct"; 
     const [receiverName, setReceiverName] = useState("");
     const [phone, setPhone] = useState("");
     const [cityId, setCityId] = useState("");
@@ -111,7 +111,14 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
 
             const payload = {
                 seller_id: product.seller_id,
-                items: [{ product_id: product.id, quantity: 1, price: product.price, seller_id: product.seller_id }],
+                items: [{ 
+                    product_id: product.id, 
+                    quantity: 1, 
+                    price: product.price, 
+                    seller_id: product.seller_id,
+                    title: product.title,
+                    image: product.images?.[0] || ""
+                }],
                 shipping_address: shippingAddress,
                 total: productPrice,
                 delivery_fee: deliveryFee,
@@ -141,7 +148,8 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
         onSuccess: (summary) => {
             setOrderSummary(summary);
             setIsSuccess(true);
-            toast.success(paymentMethod === "pod" ? "Order placed! Pay on delivery." : "Order placed successfully!");
+            toast.success("Order placed successfully!");
+            queryClient.invalidateQueries({ queryKey: ["orders"] });
             queryClient.invalidateQueries({ queryKey: ["products"] });
             queryClient.invalidateQueries({ queryKey: ["product", product.id] });
             setReceiverName(""); setPhone(""); setAddress(""); setNote("");
@@ -161,7 +169,7 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-md p-0 overflow-hidden gap-0 rounded-3xl bg-[#F8F9FB]">
+            <DialogContent className="max-w-md p-0 overflow-hidden gap-0 rounded-xl bg-[#F8F9FB]">
                 <DialogHeader className="p-4 bg-white border-b flex flex-row items-center justify-between sticky top-0 z-10">
                     <DialogTitle className="text-center w-full font-bold text-lg">Checkout</DialogTitle>
                 </DialogHeader>
@@ -174,12 +182,10 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
                                     <ShieldCheck size={32} className="animate-bounce" />
                                 </div>
                                 <h2 className="text-2xl font-black text-foreground">
-                                    {orderSummary?.paymentMethod === "pod" ? "Order Confirmed!" : "Payment Received!"}
+                                    Payment Received!
                                 </h2>
                                 <p className="text-sm text-muted-foreground">
-                                    {orderSummary?.paymentMethod === "pod"
-                                        ? "Pay the rider ₦" + grandTotal.toLocaleString() + " on delivery."
-                                        : "Your payment is secured in escrow until delivery."}
+                                    Your payment is secured in escrow until delivery.
                                 </p>
                             </div>
 
@@ -197,7 +203,7 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
                     ) : (
                         <>
                             {/* Product Summary */}
-                            <div className="flex gap-4 p-3 bg-white rounded-2xl border border-black/5">
+                            <div className="flex gap-4 p-3 bg-white rounded-xl border border-black/5">
                                 <div className="h-20 w-20 rounded-xl bg-muted overflow-hidden flex-shrink-0">
                                     {product.images?.[0] && <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover" />}
                                 </div>
@@ -321,47 +327,45 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
                             </div>
 
                             {/* Payment Method */}
-                            <div className="space-y-2">
+                            {/* Payment Method - Premium Paystack Only */}
+                            <div className="space-y-3">
                                 <h4 className="font-semibold text-sm">Payment Method</h4>
-                                <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}
-                                    className="gap-0 rounded-xl border overflow-hidden bg-white">
-                                    <div>
-                                        <RadioGroupItem value="direct" id="pm-direct" className="peer sr-only" />
-                                        <Label htmlFor="pm-direct" className={cn("flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 transition-colors", paymentMethod === "direct" && "bg-blue-50/70")}>
-                                            <div className="flex items-center gap-3">
-                                                <CreditCard size={15} className="text-primary shrink-0" />
-                                                <div>
-                                                    <p className="font-medium text-sm">Direct Payment</p>
-                                                    <p className="text-[11px] text-muted-foreground">Pay now — held in escrow until delivery</p>
-                                                </div>
-                                            </div>
-                                            <Badge className="bg-primary/10 text-primary border-none text-[10px] font-black">Recommended</Badge>
-                                        </Label>
+                                <div className="relative group overflow-hidden rounded-xl border border-[#09A5DB]/20 bg-white p-4 transition-all duration-300">
+                                    <div className="absolute top-0 right-0 p-2 opacity-10">
+                                        <CreditCard size={40} className="text-[#09A5DB]" />
                                     </div>
-                                    <div className="border-t">
-                                        <RadioGroupItem value="pod" id="pm-pod" className="peer sr-only" />
-                                        <Label htmlFor="pm-pod" className={cn("flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 transition-colors", paymentMethod === "pod" && "bg-blue-50/70")}>
-                                            <div className="flex items-center gap-3">
-                                                <Banknote size={15} className="text-green-600 shrink-0" />
-                                                <div>
-                                                    <p className="font-medium text-sm">Pay on Delivery</p>
-                                                    <p className="text-[11px] text-muted-foreground">Cash to rider upon receipt</p>
-                                                </div>
+                                    <div className="flex items-center gap-4">
+                                        <div className="bg-[#09A5DB]/5 p-2.5 rounded-xl">
+                                            <img 
+                                                src="https://checkout.paystack.com/assets/img/logo.svg" 
+                                                alt="Paystack" 
+                                                className="h-5 w-auto brightness-0"
+                                                onError={(e) => {
+                                                    e.currentTarget.style.display = 'none';
+                                                    e.currentTarget.parentElement!.insertAdjacentHTML('afterbegin', '<span class=\"font-black text-[#09A5DB] text-sm\">Paystack</span>');
+                                                }}
+                                            />
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2">
+                                                <p className="font-bold text-sm text-foreground">Direct Payment</p>
+                                                <Badge className="bg-[#09A5DB]/10 text-[#09A5DB] border-none text-[8px] font-black uppercase">Verified</Badge>
                                             </div>
-                                        </Label>
+                                            <p className="text-[10px] text-muted-foreground">Encrypted by Paystack</p>
+                                        </div>
                                     </div>
-                                </RadioGroup>
+                                </div>
                             </div>
 
                             {/* Order Summary Breakdown */}
-                            <div className="bg-white rounded-2xl border border-black/5 overflow-hidden">
+                            <div className="bg-white rounded-xl border border-black/5 overflow-hidden">
                                 <div className="px-4 py-3 border-b">
                                     <h4 className="font-semibold text-sm">Order Summary</h4>
                                 </div>
                                 <div className="px-4 py-3 space-y-2.5">
                                     <div className="flex justify-between text-sm">
                                         <span className="text-muted-foreground">Product price</span>
-                                        <span className="font-semibold">₦{productPrice.toLocaleString()}</span>
+                                        <span className="font-bold text-sm">₦{productPrice.toLocaleString()}</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
                                         <span className="text-muted-foreground flex items-center gap-1.5">
@@ -371,15 +375,15 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
                                             {deliveryFee === 0 ? "Free" : `₦${deliveryFee.toLocaleString()}`}
                                         </span>
                                     </div>
-                                    <div className="border-t pt-2.5 flex justify-between">
-                                        <span className="font-bold text-sm">Total</span>
-                                        <span className="font-black text-base text-primary">₦{grandTotal.toLocaleString()}</span>
+                                    <div className="border-t pt-2.5 flex justify-between items-center">
+                                        <div>
+                                            <span className="font-bold text-sm">Grand Total</span>
+                                            <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-muted-foreground">
+                                                <Lock size={10} /> Secure checkout
+                                            </div>
+                                        </div>
+                                        <span className="font-black text-xl text-primary">₦{grandTotal.toLocaleString()}</span>
                                     </div>
-                                    {paymentMethod === "pod" && (
-                                        <p className="text-[11px] text-amber-600 font-medium pt-1 flex items-center gap-1.5">
-                                            <Banknote size={12} /> Prepare ₦{grandTotal.toLocaleString()} cash for the rider
-                                        </p>
-                                    )}
                                 </div>
                             </div>
                         </>
@@ -392,14 +396,17 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
                         <Button variant="secondary" className="flex-1 rounded-xl bg-muted/80 hover:bg-muted"
                             onClick={onClose} disabled={checkoutMutation.isPending}>Back</Button>
                         <Button
-                            className="flex-[2] rounded-xl bg-primary hover:bg-primary/90 text-white font-bold gap-2"
+                            className="flex-[2] h-12 rounded-xl bg-primary hover:bg-primary/90 text-white font-black text-base shadow-lg shadow-primary/20 gap-2 transition-all active:scale-[0.98]"
                             onClick={handlePayment}
                             disabled={checkoutMutation.isPending}
                         >
-                            {checkoutMutation.isPending ? "Processing..." : (
-                                paymentMethod === "pod"
-                                    ? `Place Order (Pay on Delivery)`
-                                    : `Pay ₦${grandTotal.toLocaleString()}`
+                            {checkoutMutation.isPending ? (
+                                <>
+                                    <Loader2 className="animate-spin" size={18} />
+                                    <span>Securing...</span>
+                                </>
+                            ) : (
+                                `Confirm & Pay ₦${grandTotal.toLocaleString()}`
                             )}
                         </Button>
                     </div>
@@ -408,3 +415,4 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
         </Dialog>
     );
 }
+

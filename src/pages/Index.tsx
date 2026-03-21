@@ -34,7 +34,7 @@ import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
-// Icon map for categories — avoids importing entire lucide-react tree
+// Icon map for categories €” avoids importing entire lucide-react tree
 const CATEGORY_ICON_MAP: Record<string, React.ComponentType<any>> = {
   Grid, Heart, Sparkles, Shirt, Laptop, Home: HomeIcon, ShoppingBag, Apple, MapPin,
   Filter, Search, SlidersHorizontal, ChevronDown, X,
@@ -47,7 +47,7 @@ const TABS = ["All Products", "Health & Beauty", "Electronics", "Fashion", "Home
 export default function Index() {
   const { user, roles, loading: authLoading } = useAuth();
   const { addToCart } = useCart();
-  const position = useGeolocation();
+  const { position, loading: geoLoading, refresh: refreshGeo } = useGeolocation();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -122,7 +122,7 @@ export default function Index() {
   const PAGE_SIZE = 12;
 
   const { data: dbCategories = [] } = useQuery({
-    queryKey: ["product-categories"],
+    queryKey: ["product-categories-registry"],
     queryFn: async () => {
       const { data } = await (supabase as any).from("categories").select("name, icon").order("name");
       return (data as any[]) ?? [];
@@ -132,10 +132,38 @@ export default function Index() {
   const { data: zones = [] } = useQuery({
     queryKey: ["marketplace-zones"],
     queryFn: async () => {
-      const { data } = await supabase.from("delivery_zones").select("id, name, city_id, cities:city_id(name)").eq("is_active", true).order("name");
+      const { data } = await supabase.from("delivery_zones").select("id, name, city_id, latitude, longitude, cities:city_id(name)").eq("is_active", true).order("name");
       return (data as any[]) ?? [];
     },
   });
+
+  // Automatic Zone Matching
+  useEffect(() => {
+    if (position && zones.length > 0 && !selectedZone) {
+      let closestZone = null;
+      let minDistance = Infinity;
+
+      zones.forEach((zone: any) => {
+        if (zone.latitude && zone.longitude) {
+          const dist = haversineDistance(
+            position.latitude,
+            position.longitude,
+            zone.latitude,
+            zone.longitude
+          );
+          if (dist < minDistance) {
+            minDistance = dist;
+            closestZone = zone.id;
+          }
+        }
+      });
+
+      if (closestZone && minDistance < 10) { // Only auto-select if within 10km
+        setSelectedZone(closestZone);
+        toast.info(`Detected closest node: ${zones.find((z: any) => z.id === closestZone)?.name}`);
+      }
+    }
+  }, [position, zones, selectedZone]);
 
   const CATEGORY_TABS = [{ name: "All Products", icon: "Grid" }, ...dbCategories];
 
@@ -147,10 +175,32 @@ export default function Index() {
     },
     initialPageParam: 0,
     queryFn: async ({ pageParam = 0 }) => {
+      // Use RPC for "nearby" sorting if position is available
+      if (sortOption === "nearby" && position) {
+        const { data, error } = await (supabase as any).rpc("get_nearby_products", {
+          p_latitude: position.latitude,
+          p_longitude: position.longitude,
+          p_category: selectedTab,
+          p_min_price: priceRange[0],
+          p_max_price: priceRange[1],
+          p_search: searchQuery,
+          p_limit: PAGE_SIZE,
+          p_offset: pageParam * PAGE_SIZE
+        });
+        if (error) throw error;
+        // Map RPC results to match the expected structure
+        return (data as any[]).map((d: any) => ({
+          ...d,
+          cities: { name: d.city_name },
+          delivery_zones: { name: d.zone_name }
+        }));
+      }
+
       let q = (supabase as any)
         .from("products")
         .select(`
           id, title, price, images, category, inventory, likes_count, seller_id, 
+          latitude, longitude,
           cities:city_id(name),
           delivery_zones:zone_id(name)
         `)
@@ -282,167 +332,210 @@ export default function Index() {
 
   return (
     <AppLayout>
-      <div className="p-6 space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Marketplace Dashboard</h1>
-          <p className="text-muted-foreground text-sm">Welcome back! Here's what's trending.</p>
-        </div>
+      <div className="p-4 sm:p-8 lg:p-12 space-y-8 sm:space-y-12 max-w-7xl mx-auto">
+        {/* Header Section */}
+        {/* <div className="space-y-3">
+          <h1 className="text-5xl font-black text-foreground tracking-tight sm:text-6xl">Marketplace</h1>
+          <p className="text-muted-foreground font-medium text-xl opacity-70">Elevate your lifestyle with our curated daily picks.</p>
+        </div> */}
 
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search products, brands, or sellers..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-10 bg-card border-border/60 h-11"
-              aria-label="Search products"
-            />
+        {/* Command Center: Glassmorphism Search & Filters */}
+        <div className="flex flex-row gap-2 sm:gap-4 items-center">
+          <div className="relative flex-1 w-full group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-primary/30 to-primary/10 rounded-xl blur-xl opacity-0 group-focus-within:opacity-100 transition duration-1000" />
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4 sm:h-5 sm:w-5 group-focus-within:text-primary transition-colors" />
+              <Input
+                placeholder="Search products, brands..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="pl-10 sm:pl-12 bg-white/70 backdrop-blur-2xl border-border/30 h-11 sm:h-12 rounded-xl text-[13px] sm:text-sm font-medium shadow-sm transition-all focus:bg-white focus:ring-0 focus:border-primary/30"
+                aria-label="Search products"
+              />
+            </div>
           </div>
+
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" className="h-11 px-4 gap-2 bg-white text-muted-foreground hover:text-foreground">
+              <Button variant="outline" className="h-11 sm:h-12 px-3 sm:px-6 gap-2 bg-white/90 backdrop-blur-md border-border/30 rounded-xl font-black text-muted-foreground hover:text-foreground hover:bg-white shadow-sm transition-all active:scale-95 shrink-0 uppercase tracking-widest text-[8px] sm:text-[9px] w-auto">
                 <SlidersHorizontal size={16} />
-                Filters & Sort
+                <span className="hidden xs:inline">Filters</span>
               </Button>
             </SheetTrigger>
-            <SheetContent className="w-[300px] sm:w-[400px]">
-              <SheetHeader>
-                <SheetTitle>Filters</SheetTitle>
-                <SheetDescription>Refine your search results</SheetDescription>
-              </SheetHeader>
-              <div className="py-6 space-y-6">
-                <div className="space-y-3">
-                  <h3 className="text-sm font-medium">Sort By</h3>
-                  <RadioGroup value={sortOption} onValueChange={setSortOption}>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="newest" id="newest" />
-                      <Label htmlFor="newest">Newest Arrivals</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="price_asc" id="price_asc" />
-                      <Label htmlFor="price_asc">Price: Low to High</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="price_desc" id="price_desc" />
-                      <Label htmlFor="price_desc">Price: High to Low</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-                <Separator />
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <h3 className="text-sm font-medium">Price Range</h3>
-                    <span className="text-xs text-muted-foreground">₦{priceRange[0].toLocaleString()} - ₦{priceRange[1].toLocaleString()}+</span>
+            <SheetContent className="w-full sm:max-w-md rounded-l-2xl border-none shadow-2xl p-0 overflow-hidden">
+              <div className="h-full flex flex-col">
+                <SheetHeader className="p-6 pb-0">
+                  <SheetTitle className="text-xl font-black tracking-tighter">Refine Hub</SheetTitle>
+                  <SheetDescription className="text-sm font-medium">Precision filters for your perfect find.</SheetDescription>
+                </SheetHeader>
+
+                <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8 no-scrollbar">
+                  <div className="space-y-4">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+                      Sort Order
+                    </h3>
+                    <RadioGroup value={sortOption} onValueChange={setSortOption} className="gap-1.5">
+                      {["newest", "price_asc", "price_desc", "nearby"].map((val) => (
+                        <div key={val} className="flex items-center space-x-2.5 p-3 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer border border-transparent hover:border-border/50">
+                          <RadioGroupItem value={val} id={val} className="text-primary border-primary/30" />
+                          <Label htmlFor={val} className="font-bold flex-1 cursor-pointer capitalize text-xs">
+                            {val === "nearby" ? "Nearby (Proximity)" : val.replace("_", ": ").replace("asc", "Low to High").replace("desc", "High to Low")}
+                          </Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
                   </div>
-                  <Slider
-                    defaultValue={[0, 1000000]}
-                    max={1000000}
-                    step={5000}
-                    value={priceRange}
-                    onValueChange={setPriceRange}
-                    className="py-4"
-                  />
-                </div>
-                <Separator />
-                <div className="space-y-3">
-                  <h3 className="text-sm font-medium">Zone</h3>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => setSelectedZone("")}
-                      className={cn(
-                        "px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
-                        !selectedZone ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border hover:border-primary/50"
-                      )}
-                    >
-                      All Zones
-                    </button>
-                    {zones.map((z: any) => (
+
+                  <Separator className="opacity-30" />
+
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-end">
+                      <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                        Price Spectrum
+                      </h3>
+                      <span className="text-base font-black text-primary">₦{priceRange[1].toLocaleString()}+</span>
+                    </div>
+                    <Slider
+                      defaultValue={[0, 1000000]}
+                      max={1000000}
+                      step={5000}
+                      value={priceRange}
+                      onValueChange={setPriceRange}
+                      className="py-2"
+                    />
+                  </div>
+
+                  <Separator className="opacity-30" />
+
+                  <div className="space-y-4">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                      Regional Access
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
                       <button
-                        key={z.id}
-                        onClick={() => setSelectedZone(z.id)}
+                        onClick={() => setSelectedZone("")}
                         className={cn(
-                          "px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
-                          selectedZone === z.id ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border hover:border-primary/50"
+                          "px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all",
+                          !selectedZone ? "bg-primary text-white border-primary shadow-xl shadow-primary/20" : "bg-muted/30 text-muted-foreground border-transparent hover:border-primary/20"
                         )}
                       >
-                        {z.name}
+                        All Zones
                       </button>
-                    ))}
+                      {zones.map((z: any) => (
+                        <button
+                          key={z.id}
+                          onClick={() => setSelectedZone(z.id)}
+                          className={cn(
+                            "px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all",
+                            selectedZone === z.id ? "bg-primary text-white border-primary shadow-xl shadow-primary/20" : "bg-muted/30 text-muted-foreground border-transparent hover:border-primary/20"
+                          )}
+                        >
+                          {z.name}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
-                <Separator />
-                <Button variant="outline" className="w-full" onClick={() => {
-                  setSortOption("newest");
-                  setPriceRange([0, 1000000]);
-                  setSelectedZone("");
-                }}>
-                  Clear All Filters
-                </Button>
+
+                <div className="p-6 pt-0">
+                  <Button variant="ghost" className="w-full h-12 rounded-xl font-black uppercase text-[9px] tracking-[0.25em] text-muted-foreground hover:bg-destructive/5 hover:text-destructive transition-all" onClick={() => {
+                    setSortOption("newest");
+                    setPriceRange([0, 1000000]);
+                    setSelectedZone("");
+                  }}>
+                    Reset Parameters
+                  </Button>
+                </div>
               </div>
             </SheetContent>
           </Sheet>
         </div>
 
-        <div className="bg-card p-1 rounded-xl border inline-flex flex-wrap gap-1" role="tablist" aria-label="Product categories">
-          {CATEGORY_TABS.map(tab => {
-            const Icon = CATEGORY_ICON_MAP[tab.icon] || Grid;
-            const isActive = selectedTab === tab.name;
-            return (
-              <button
-                key={tab.name}
-                role="tab"
-                aria-selected={isActive}
-                onClick={() => setSelectedTab(tab.name)}
-                className={cn(
-                  "px-6 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 focus-visible:ring-2 focus-visible:ring-ring",
-                  isActive
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                )}
-              >
-                <Icon size={14} />
-                {tab.name}
-              </button>
-            );
-          })}
+        {/* Premium Category Navigation */}
+        <div className="relative pt-1">
+          <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-2 -mx-2 px-2">
+            {CATEGORY_TABS.map(tab => {
+              const Icon = CATEGORY_ICON_MAP[tab.icon] || Grid;
+              const isActive = selectedTab === tab.name;
+              return (
+                <button
+                  key={tab.name}
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => setSelectedTab(tab.name)}
+                  className={cn(
+                    "px-4 py-2.5 sm:px-6 sm:py-3 rounded-xl sm:rounded-xl text-[10px] sm:text-[11px] font-black transition-all flex items-center gap-2 sm:gap-3 shrink-0 group relative shadow-sm border",
+                    isActive
+                      ? "bg-primary border-primary text-white shadow-xl sm:shadow-2xl shadow-primary/30 -translate-y-0.5"
+                      : "bg-white border-border/40 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:shadow-md"
+                  )}
+                >
+                  <Icon size={14} className={cn("transition-transform group-hover:scale-125 duration-500", isActive && "text-white scale-110")} />
+                  <span className="tracking-tight">{tab.name}</span>
+                </button>
+              );
+            })}
+          </div>
+          {/* Subtle Fade Edge */}
+          <div className="absolute right-0 top-0 bottom-2 w-20 bg-gradient-to-l from-[#fafafa] to-transparent pointer-events-none" />
         </div>
 
-        {/* Zone Quick Filters */}
+        {/* Localized Marketplace Bar */}
         {zones.length > 0 && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-1">
-            <MapPin size={14} className="text-muted-foreground flex-shrink-0" />
-            <button
-              onClick={() => setSelectedZone("")}
-              className={cn(
-                "px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap border transition-colors flex-shrink-0",
-                !selectedZone ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border hover:border-primary/50"
+          <div className="flex items-center gap-4 py-2">
+            <div className="hidden sm:flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground border-r pr-6 mr-2">
+              <MapPin size={14} className="text-primary" />
+              Market Node
+              {position && (
+                <Badge variant="outline" className="h-5 px-1.5 text-[8px] border-success/30 bg-success/5 text-success animate-in fade-in zoom-in duration-500 ml-1">
+                  Live Precision
+                </Badge>
               )}
-            >
-              All Zones
-            </button>
-            {zones.map((z: any) => (
+            </div>
+            <div className="flex-1 flex items-center gap-3 overflow-x-auto no-scrollbar pb-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={refreshGeo}
+                disabled={geoLoading}
+                className="px-6 py-6 rounded-xl bg-white border-border/30 text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap transition-all shrink-0 gap-2 hover:bg-primary/5 hover:text-primary active:scale-95"
+              >
+                <MapPin size={14} className={cn(geoLoading && "animate-pulse")} />
+                {geoLoading ? "Detecting..." : "Detect Location"}
+              </Button>
+
               <button
-                key={z.id}
-                onClick={() => setSelectedZone(z.id)}
+                onClick={() => setSelectedZone("")}
                 className={cn(
-                  "px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap border transition-colors flex-shrink-0",
-                  selectedZone === z.id ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border hover:border-primary/50"
+                  "px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap transition-all shrink-0",
+                  !selectedZone ? "bg-primary text-white shadow-xl shadow-primary/20 scale-105" : "bg-white text-muted-foreground border border-border/30 hover:bg-muted/30"
                 )}
               >
-                {z.name}
+                Nationwide
               </button>
-            ))}
+              {zones.map((z: any) => (
+                <button
+                  key={z.id}
+                  onClick={() => setSelectedZone(z.id)}
+                  className={cn(
+                    "px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap transition-all shrink-0",
+                    selectedZone === z.id ? "bg-primary text-white shadow-xl shadow-primary/20 scale-105" : "bg-white text-muted-foreground border border-border/30 hover:bg-muted/30"
+                  )}
+                >
+                  {z.name}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
 
         {/* Product Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-6">
           {isLoading ? (
             Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="space-y-3">
-                <Skeleton className="h-48 w-full rounded-2xl" />
+                <Skeleton className="h-48 w-full rounded-xl" />
                 <Skeleton className="h-4 w-3/4" />
                 <Skeleton className="h-4 w-1/2" />
                 <Skeleton className="h-8 w-full rounded-lg" />
@@ -463,6 +556,9 @@ export default function Index() {
                 cityName={product.cities?.name}
                 zoneName={product.delivery_zones?.name}
                 stockQuantity={product.inventory ?? 0}
+                latitude={product.latitude}
+                longitude={product.longitude}
+                userLocation={position}
                 onLike={(id) => likeMutation.mutate(id)}
                 onBuyNow={() => handleBuyNow(product)}
                 onAddToCart={() => {
@@ -497,3 +593,4 @@ export default function Index() {
     </AppLayout>
   );
 }
+

@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { ChevronRight, ShieldCheck, MapPin, Store, Loader2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,7 +29,7 @@ export function BuyNowModal({ product, isOpen, onClose }: BuyNowModalProps) {
     const sellerName = product.profiles?.display_name || "Seller";
     const sellerInitial = sellerName[0]?.toUpperCase() ?? "S";
     const isComplete = profile?.onboarding_completed;
-    const deliveryAddress = (profile as any)?.address || "No address on file – update in profile";
+    const deliveryAddress = (profile as any)?.address || "No address on file — update in profile";
 
 
     const placeOrder = useMutation({
@@ -94,6 +95,7 @@ export function BuyNowModal({ product, isOpen, onClose }: BuyNowModalProps) {
             return functionData as any;
         },
         onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["orders"] });
             queryClient.invalidateQueries({ queryKey: ["products"] });
             queryClient.invalidateQueries({ queryKey: ["product"] });
             toast.success("Order placed successfully!");
@@ -108,7 +110,7 @@ export function BuyNowModal({ product, isOpen, onClose }: BuyNowModalProps) {
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-md p-0 overflow-hidden gap-0 rounded-3xl bg-[#F8F9FB]">
+            <DialogContent className="max-w-md p-0 overflow-hidden gap-0 rounded-xl bg-[#F8F9FB]">
                 <DialogHeader className="p-4 bg-white border-b flex flex-row items-center justify-between sticky top-0 z-10">
                     <DialogTitle className="text-center w-full font-bold text-lg">Buy Now</DialogTitle>
                 </DialogHeader>
@@ -121,11 +123,11 @@ export function BuyNowModal({ product, isOpen, onClose }: BuyNowModalProps) {
                         </div>
                         <div className="flex-1 space-y-1">
                             <h3 className="font-semibold text-foreground line-clamp-1">{product.title}</h3>
-                            <p className="font-bold text-lg">NGN {product.price.toLocaleString()}</p>
+                            <p className="font-bold text-lg">₦{product.price.toLocaleString()}</p>
                             <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                                 <span className="flex items-center gap-1"><Store size={12} className="text-blue-600" /> {sellerName}</span>
                                 {product.distance && (
-                                    <><span>•</span>
+                                    <><span>·</span>
                                         <span className="flex items-center gap-1"><MapPin size={12} /> {product.distance}</span></>
                                 )}
                             </div>
@@ -168,25 +170,43 @@ export function BuyNowModal({ product, isOpen, onClose }: BuyNowModalProps) {
                                             <p className="text-xs text-muted-foreground">Arrives in 1 - 3 days</p>
                                         </div>
                                     </div>
-                                    <span className="font-bold text-sm">NGN {deliveryFee}</span>
+                                    <span className="font-bold text-sm">₦{deliveryFee}</span>
                                 </Label>
                             </div>
                         </RadioGroup>
                     </div>
 
-                    {/* Payment Method */}
+                    {/* Payment Method - Premium Paystack Only */}
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
                             <h4 className="font-semibold text-sm">Payment Method</h4>
-                            <Button variant="link" className="h-auto p-0 text-primary text-xs font-semibold">Change</Button>
-                        </div>
-                        <div className="flex items-center justify-between p-3 bg-white border rounded-xl">
-                            <div className="flex items-center gap-2">
-                                <div className="font-bold text-blue-900 flex items-center gap-1">
-                                    <span className="text-lg">≣</span> Paystack
-                                </div>
+                            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                <ShieldCheck size={10} className="text-blue-500" /> Encrypted
                             </div>
-                            <ChevronRight size={16} className="text-muted-foreground" />
+                        </div>
+                        <div className="relative group overflow-hidden rounded-xl border border-[#09A5DB]/20 bg-white p-3.5 transition-all">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-[#09A5DB]/5 p-2 rounded-lg">
+                                        <img 
+                                            src="https://checkout.paystack.com/assets/img/logo.svg" 
+                                            alt="Paystack" 
+                                            className="h-4 w-auto brightness-0"
+                                            onError={(e) => {
+                                                e.currentTarget.style.display = 'none';
+                                                e.currentTarget.parentElement!.insertAdjacentHTML('afterbegin', '<span class=\"font-black text-[#09A5DB] text-[10px]\">Paystack</span>');
+                                            }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-sm text-foreground">Direct Payment</p>
+                                        <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                            Via Paystack · Cards, USSD, Transfer
+                                        </p>
+                                    </div>
+                                </div>
+                                <Badge variant="outline" className="text-[9px] border-[#09A5DB]/30 text-[#09A5DB] font-bold">ACTIVE</Badge>
+                            </div>
                         </div>
                     </div>
 
@@ -194,15 +214,15 @@ export function BuyNowModal({ product, isOpen, onClose }: BuyNowModalProps) {
                     <div className="space-y-2 pt-2 pb-6">
                         <div className="flex justify-between text-sm">
                             <span className="text-muted-foreground">Subtotal</span>
-                            <span className="font-medium">NGN {product.price.toLocaleString()}</span>
+                            <span className="font-medium">₦{product.price.toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                             <span className="text-muted-foreground">Delivery Fee</span>
-                            <span className="font-medium">NGN {deliveryFee}</span>
+                            <span className="font-medium">₦{deliveryFee}</span>
                         </div>
                         <div className="flex justify-between text-base font-bold text-[#27ae60] pt-2 border-t mt-2">
                             <span>Total</span>
-                            <span>NGN {total.toLocaleString()}</span>
+                            <span>₦{total.toLocaleString()}</span>
                         </div>
                     </div>
                 </div>
@@ -216,10 +236,11 @@ export function BuyNowModal({ product, isOpen, onClose }: BuyNowModalProps) {
                         disabled={placeOrder.isPending}
                     >
                         {placeOrder.isPending ? <Loader2 className="animate-spin mr-2" size={18} /> : null}
-                        {placeOrder.isPending ? "Configuring..." : `Pay NGN ${total.toLocaleString()}`}
+                        {placeOrder.isPending ? "Configuring..." : `Pay ₦${total.toLocaleString()}`}
                     </Button>
                 </div>
             </DialogContent>
         </Dialog>
     );
 }
+

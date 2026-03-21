@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -71,7 +71,7 @@ export function IssuesTab() {
                     </div>
                 ) : (
                     issues?.map((issue: any) => (
-                        <Card key={issue.id} className="border-none shadow-sm rounded-[2.5rem] bg-white hover:shadow-xl transition-all duration-500 overflow-hidden group">
+                        <Card key={issue.id} className="border-none shadow-sm rounded-xl bg-white hover:shadow-xl transition-all duration-500 overflow-hidden group">
                             <CardContent className="p-0 flex flex-col md:flex-row">
                                 <div className={cn(
                                     "w-full md:w-2 py-8 md:py-0",
@@ -103,7 +103,7 @@ export function IssuesTab() {
                                         </Badge>
                                     </div>
 
-                                    <div className="bg-gray-50/50 p-6 rounded-3xl border border-black/[0.03]">
+                                    <div className="bg-gray-50/50 p-6 rounded-xl border border-black/[0.03]">
                                         <p className="text-sm font-medium leading-relaxed text-foreground/80">{issue.description}</p>
                                     </div>
 
@@ -142,10 +142,10 @@ export function IssuesTab() {
                                     </div>
 
                                     <div className="flex gap-4 pt-2">
-                                        <Button className="rounded-2xl h-12 px-8 font-black text-[11px] uppercase tracking-widest bg-primary shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex-1">
+                                        <Button className="rounded-xl h-12 px-8 font-black text-[11px] uppercase tracking-widest bg-primary shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex-1">
                                             Contact Admin Support
                                         </Button>
-                                        <Button variant="outline" className="rounded-2xl h-12 px-8 font-black text-[11px] uppercase tracking-widest border-2 flex-1">
+                                        <Button variant="outline" className="rounded-xl h-12 px-8 font-black text-[11px] uppercase tracking-widest border-2 flex-1">
                                             View Details
                                         </Button>
                                     </div>
@@ -158,3 +158,4 @@ export function IssuesTab() {
         </div>
     );
 }
+

@@ -44,7 +44,7 @@ export function WalletTab() {
         enabled: !!wallet?.id,
     });
 
-    // Completed shipments for this seller — shows order-level settlement history
+    // Completed shipments for this seller €” shows order-level settlement history
     const { data: completedShipments = [] } = useQuery({
         queryKey: ["seller-completed-shipments", user?.id],
         queryFn: async () => {
@@ -94,50 +94,50 @@ export function WalletTab() {
         .reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
 
     return (
-        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="space-y-2">
-                <p className="text-[10px] font-black text-primary/60 uppercase tracking-[0.2em] mb-1">Liquidity Hub</p>
-                <h1 className="text-3xl md:text-5xl font-black text-foreground tracking-tight">Financial Treasury</h1>
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div>
+                <p className="text-[9px] font-black text-primary/60 uppercase tracking-[0.2em] mb-1">Liquidity Hub</p>
+                <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight">Financial Treasury</h1>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-3 gap-4">
                 {/* Main balance card */}
-                <Card className="md:col-span-2 rounded-[3rem] bg-gradient-to-br from-primary via-primary to-primary-foreground border-none text-white p-10 relative overflow-hidden shadow-2xl shadow-primary/30">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20" />
-                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-black/10 rounded-full blur-2xl -ml-10 -mb-10" />
-                    <div className="relative space-y-10">
+                <Card className="md:col-span-2 rounded-xl bg-gradient-to-br from-primary via-primary to-primary-foreground border-none text-white p-6 relative overflow-hidden shadow-2xl shadow-primary/30">
+                    <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16" />
+                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full blur-2xl -ml-8 -mb-8" />
+                    <div className="relative space-y-6">
                         <div className="flex justify-between items-start">
-                            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center">
-                                <Wallet size={28} strokeWidth={3} />
+                            <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+                                <Wallet size={22} strokeWidth={3} />
                             </div>
-                            <Badge className="bg-white/20 hover:bg-white/30 text-white border-none rounded-full px-4 text-[10px] font-black uppercase tracking-widest">Master Safe</Badge>
+                            <Badge className="bg-white/20 hover:bg-white/30 text-white border-none rounded-full px-3 text-[9px] font-black uppercase tracking-widest">Master Safe</Badge>
                         </div>
-                        <div className="space-y-2">
-                            <p className="text-xs font-black uppercase tracking-[0.2em] text-white/60">Available Balance</p>
-                            <h2 className="text-6xl font-black tracking-tighter">
-                                <span className="text-2xl mr-1 opacity-50 font-bold">₦</span>
+                        <div className="space-y-1">
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60">Available Balance</p>
+                            <h2 className="text-4xl font-black tracking-tighter">
+                                <span className="text-xl mr-1 opacity-50 font-bold">₦</span>
                                 {(wallet?.balance ?? 0).toLocaleString()}
                             </h2>
-                            <p className="text-xs text-white/50 font-medium">Total settled: ₦{totalSettled.toLocaleString()}</p>
+                            <p className="text-[10px] text-white/50 font-medium">Total settled: ₦{totalSettled.toLocaleString()}</p>
                         </div>
                     </div>
                 </Card>
 
-                <div className="space-y-4">
-                    <div className="p-8 rounded-[2.5rem] bg-white border border-black/5 shadow-xl shadow-black/[0.02] hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500">
-                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">This Month</p>
-                        <p className="text-3xl font-black text-foreground tracking-tight">₦{monthlySettled.toLocaleString()}</p>
-                        <div className="flex items-center gap-2 text-green-500 mt-2">
-                            <TrendingUp size={16} strokeWidth={3} />
-                            <span className="text-[10px] font-black uppercase tracking-widest">{settlementTransactions.length} orders</span>
+                <div className="space-y-3">
+                    <div className="p-5 rounded-xl bg-white border border-black/5 shadow-xl shadow-black/[0.02] hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500">
+                        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">This Month</p>
+                        <p className="text-2xl font-black text-foreground tracking-tight">₦{monthlySettled.toLocaleString()}</p>
+                        <div className="flex items-center gap-1.5 text-green-500 mt-1.5">
+                            <TrendingUp size={14} strokeWidth={3} />
+                            <span className="text-[9px] font-black uppercase tracking-widest">{settlementTransactions.length} orders</span>
                         </div>
                     </div>
-                    <div className="p-8 rounded-[2.5rem] bg-white border border-black/5 shadow-xl shadow-black/[0.02] hover:shadow-2xl hover:shadow-amber-500/5 transition-all duration-500">
-                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Escrow (Pending)</p>
-                        <p className="text-3xl font-black text-foreground tracking-tight">₦{escrowBalance.toLocaleString()}</p>
-                        <div className="flex items-center gap-2 text-amber-500 mt-2">
-                            <Clock size={16} strokeWidth={3} />
-                            <span className="text-[10px] font-black uppercase tracking-widest">Awaiting Buyer</span>
+                    <div className="p-5 rounded-xl bg-white border border-black/5 shadow-xl shadow-black/[0.02] hover:shadow-2xl hover:shadow-amber-500/5 transition-all duration-500">
+                        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Escrow (Pending)</p>
+                        <p className="text-2xl font-black text-foreground tracking-tight">₦{escrowBalance.toLocaleString()}</p>
+                        <div className="flex items-center gap-1.5 text-amber-500 mt-1.5">
+                            <Clock size={14} strokeWidth={3} />
+                            <span className="text-[9px] font-black uppercase tracking-widest">Awaiting Buyer</span>
                         </div>
                     </div>
                 </div>
@@ -149,7 +149,7 @@ export function WalletTab() {
                     <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">
                         <PackageCheck size={12} className="inline mr-2" />Settled Orders
                     </h3>
-                    <Card className="border-none shadow-xl rounded-[2.5rem] overflow-hidden">
+                    <Card className="border-none shadow-xl rounded-xl overflow-hidden">
                         <Table>
                             <TableHeader className="bg-muted/30">
                                 <TableRow className="border-none hover:bg-transparent">
@@ -179,27 +179,27 @@ export function WalletTab() {
 
             {/* Transaction history */}
             {transactions.length > 0 && (
-                <div className="space-y-6">
-                    <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">Transaction History</h3>
-                    <div className="grid gap-3">
+                <div className="space-y-4">
+                    <h3 className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.3em]">Transaction History</h3>
+                    <div className="grid gap-2">
                         {transactions.map((t: any) => (
-                            <div key={t.id} className="group flex items-center justify-between p-6 bg-white border border-black/[0.03] rounded-3xl hover:shadow-xl hover:shadow-black/[0.02] transition-all duration-300">
-                                <div className="flex items-center gap-5">
-                                    <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner",
+                            <div key={t.id} className="group flex items-center justify-between p-4 bg-white border border-black/[0.03] rounded-xl hover:shadow-xl hover:shadow-black/[0.02] transition-all duration-300">
+                                <div className="flex items-center gap-4">
+                                    <div className={cn("w-11 h-11 rounded-xl flex items-center justify-center shadow-inner",
                                         t.amount > 0 ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600")}>
-                                        <TrendingUp size={20} strokeWidth={3} className={cn(t.amount < 0 && "rotate-180")} />
+                                        <TrendingUp size={18} strokeWidth={3} className={cn(t.amount < 0 && "rotate-180")} />
                                     </div>
                                     <div>
-                                        <p className="text-sm font-black text-foreground uppercase tracking-tight">{String(t.type).replace(/_/g, " ")}</p>
-                                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                                            <Calendar size={12} />
+                                        <p className="text-[13px] font-black text-foreground uppercase tracking-tight">{String(t.type).replace(/_/g, " ")}</p>
+                                        <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                                            <Calendar size={10} />
                                             {new Date(t.created_at).toLocaleDateString()}
                                             {t.reference && <span className="opacity-50 font-mono normal-case">· {t.reference}</span>}
                                         </p>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <span className={cn("text-xl font-black tracking-tighter", t.amount > 0 ? "text-green-600" : "text-red-500")}>
+                                    <span className={cn("text-lg font-black tracking-tighter", t.amount > 0 ? "text-green-600" : "text-red-500")}>
                                         {t.amount > 0 ? "+" : "-"} ₦{Math.abs(t.amount).toLocaleString()}
                                     </span>
                                 </div>
@@ -210,7 +210,7 @@ export function WalletTab() {
             )}
 
             {transactions.length === 0 && completedShipments.length === 0 && (
-                <div className="py-20 text-center border-2 border-dashed border-black/5 rounded-[2rem] text-muted-foreground text-sm font-medium">
+                <div className="py-20 text-center border-2 border-dashed border-black/5 rounded-xl text-muted-foreground text-sm font-medium">
                     <Wallet size={36} strokeWidth={1} className="mx-auto mb-3 opacity-20" />
                     No transactions yet. Revenue will appear here when buyers confirm receipt.
                 </div>
@@ -218,3 +218,4 @@ export function WalletTab() {
         </div>
     );
 }
+

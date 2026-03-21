@@ -39,16 +39,16 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
     queryFn: async () => {
       let query = supabase
         .from("orders")
-        .select("id, total, status, payment_status, payment_ref, payment_method, created_at, buyer_id, seller_id, items")
+        .select("id, total, status, payment_status, payment_ref, payment_method, created_at, buyer_id, seller_id, items, settlement_status")
         .order("created_at", { ascending: false });
 
       if (!isAdmin) {
         query = query.eq("seller_id", user!.id);
       }
 
-      const { data, error } = await query;
+      const { data, error } = await (query as any);
       if (error) throw error;
-      return data ?? [];
+      return (data as any[]) ?? [];
     },
     enabled: !!user,
   });
@@ -134,7 +134,7 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
 
   if (isLoading) {
     return (
-      <div className="p-12 text-center text-muted-foreground font-bold bg-background rounded-[2.5rem]">
+      <div className="p-12 text-center text-muted-foreground font-bold bg-background rounded-xl">
         <Loader2 className="animate-spin mx-auto mb-2" size={24} />
         Loading payment data...
       </div>
@@ -156,7 +156,7 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
           { label: "Pending", value: stats.pending, icon: AlertTriangle, color: "text-amber-600" },
           { label: "Failed", value: stats.failed, icon: XCircle, color: "text-red-600" },
         ].map((s) => (
-          <Card key={s.label} className="rounded-[2rem] border-none shadow-sm bg-background p-6">
+          <Card key={s.label} className="rounded-xl border-none shadow-sm bg-background p-6">
             <div className="flex items-center gap-3 mb-2">
               <s.icon size={18} className={s.color} />
               <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{s.label}</span>
@@ -174,7 +174,7 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
             placeholder="Search by Order ID or Payment Ref..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-11 rounded-2xl h-12 border-muted/30 bg-background font-medium"
+            className="pl-11 rounded-xl h-12 border-muted/30 bg-background font-medium"
           />
         </div>
         <div className="flex gap-2">
@@ -193,7 +193,7 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
       </div>
 
       {/* Orders Table */}
-      <Card className="border-none shadow-sm rounded-[2.5rem] bg-background overflow-hidden">
+      <Card className="border-none shadow-sm rounded-xl bg-background overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -204,6 +204,7 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
                 <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Method</th>
                 <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Payment Ref</th>
                 <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Payment Status</th>
+                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Settlement</th>
                 <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right">Actions</th>
               </tr>
             </thead>
@@ -238,6 +239,16 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
                         {(o.payment_status || "pending").replace(/_/g, " ")}
                       </Badge>
                     </td>
+                    <td className="px-6 py-5">
+                      <Badge variant="outline" className={cn(
+                        "rounded-full px-3 py-0.5 text-[9px] font-black uppercase tracking-widest",
+                        o.settlement_status === 'settled' ? "border-emerald-200 text-emerald-700 bg-emerald-50" :
+                        o.settlement_status === 'pending' ? "border-amber-200 text-amber-700 bg-amber-50" :
+                        "border-muted text-muted-foreground"
+                      )}>
+                        {o.settlement_status || 'none'}
+                      </Badge>
+                    </td>
                     <td className="px-6 py-5 text-right">
                       <Button
                         variant="ghost"
@@ -258,7 +269,7 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
 
       {/* Detail / Reconcile Dialog */}
       <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
-        <DialogContent className="max-w-lg rounded-[2.5rem] border-none shadow-2xl overflow-hidden p-0 bg-background">
+        <DialogContent className="max-w-lg rounded-xl border-none shadow-2xl overflow-hidden p-0 bg-background">
           <div className="bg-primary/5 p-8 border-b border-muted/20">
             <DialogHeader>
               <div className="flex items-center justify-between mb-2">
@@ -280,24 +291,24 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
           {selectedOrder && (
             <div className="px-8 pb-8 space-y-6 pt-6">
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-muted/5 p-4 rounded-2xl border border-muted/20">
+                <div className="bg-muted/5 p-4 rounded-xl border border-muted/20">
                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Amount</p>
                   <p className="text-xl font-black text-foreground">₦{(selectedOrder.total || 0).toLocaleString()}</p>
                 </div>
-                <div className="bg-muted/5 p-4 rounded-2xl border border-muted/20">
+                <div className="bg-muted/5 p-4 rounded-xl border border-muted/20">
                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Method</p>
                   <p className="text-xl font-black text-foreground capitalize">{selectedOrder.payment_method || "direct"}</p>
                 </div>
               </div>
 
-              <div className="bg-muted/5 p-4 rounded-2xl border border-muted/20">
+              <div className="bg-muted/5 p-4 rounded-xl border border-muted/20">
                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Payment Reference</p>
                 <p className="font-mono text-sm font-bold text-foreground break-all">
                   {selectedOrder.payment_ref || <span className="italic text-muted-foreground">No reference recorded</span>}
                 </p>
               </div>
 
-              <div className="bg-muted/5 p-4 rounded-2xl border border-muted/20">
+              <div className="bg-muted/5 p-4 rounded-xl border border-muted/20">
                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Current Status</p>
                 <Badge className={cn(
                   "rounded-full px-4 py-1 text-xs font-black uppercase tracking-widest border-none shadow-sm",
@@ -314,7 +325,7 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
                 {/* Re-verify via Paystack */}
                 {selectedOrder.payment_ref && selectedOrder.payment_status !== "paid" && (
                   <Button
-                    className="w-full rounded-2xl h-12 font-black text-xs uppercase tracking-widest gap-2 shadow-lg shadow-primary/20"
+                    className="w-full rounded-xl h-12 font-black text-xs uppercase tracking-widest gap-2 shadow-lg shadow-primary/20"
                     onClick={() =>
                       verifyMutation.mutate({
                         orderId: selectedOrder.id,
@@ -337,7 +348,7 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
                 {selectedOrder.payment_status !== "paid" && (
                   <Button
                     variant="outline"
-                    className="w-full rounded-2xl h-12 font-black text-xs uppercase tracking-widest gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                    className="w-full rounded-xl h-12 font-black text-xs uppercase tracking-widest gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
                     onClick={() =>
                       manualReconcileMutation.mutate({ orderId: selectedOrder.id, newStatus: "paid" })
                     }
@@ -351,7 +362,7 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
                 {selectedOrder.payment_status !== "failed" && (
                   <Button
                     variant="outline"
-                    className="w-full rounded-2xl h-12 font-black text-xs uppercase tracking-widest gap-2 border-red-200 text-red-700 hover:bg-red-50"
+                    className="w-full rounded-xl h-12 font-black text-xs uppercase tracking-widest gap-2 border-red-200 text-red-700 hover:bg-red-50"
                     onClick={() =>
                       manualReconcileMutation.mutate({ orderId: selectedOrder.id, newStatus: "failed" })
                     }
@@ -369,3 +380,4 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
     </div>
   );
 }
+

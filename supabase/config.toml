@@ -1,9 +1,12 @@
-project_id = "qotvokbtzjekhtclgvyd"
+project_id = "oljhcvpwulxifdxmcerc"
 
 [functions.create-order]
 verify_jwt = false
 
 [functions.paystack-public-key]
+verify_jwt = false
+
+[functions.paystack-webhook]
 verify_jwt = false
 
 [functions.verify-paystack]

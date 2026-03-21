@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -52,7 +52,7 @@ export default function AdminSystemHistory() {
         window.print();
     };
 
-    if (logsLoading) return <div className="p-12 text-center text-muted-foreground font-bold bg-white rounded-[2.5rem]">Audit Logs & History Loading...</div>;
+    if (logsLoading) return <div className="p-12 text-center text-muted-foreground font-bold bg-white rounded-xl">Audit Logs & History Loading...</div>;
 
     const actionTypes = Array.from(new Set(logs?.map(l => l.action) || []));
 
@@ -67,13 +67,13 @@ export default function AdminSystemHistory() {
                             <input
                                 type="text"
                                 placeholder="Search anything..."
-                                className="w-full h-11 bg-white border-none rounded-2xl pl-12 pr-4 text-sm font-medium shadow-sm focus:ring-2 focus:ring-primary/20 transition-all"
+                                className="w-full h-11 bg-white border-none rounded-xl pl-12 pr-4 text-sm font-medium shadow-sm focus:ring-2 focus:ring-primary/20 transition-all"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </div>
                         <select
-                            className="h-11 px-4 rounded-2xl border-none shadow-sm bg-white text-sm font-bold min-w-[180px] focus:ring-2 focus:ring-primary/20 transition-all"
+                            className="h-11 px-4 rounded-xl border-none shadow-sm bg-white text-sm font-bold min-w-[180px] focus:ring-2 focus:ring-primary/20 transition-all"
                             value={actionFilter}
                             onChange={(e) => setActionFilter(e.target.value)}
                         >
@@ -84,12 +84,12 @@ export default function AdminSystemHistory() {
                         </select>
                     </div>
                 </div>
-                <Button className="rounded-2xl font-black bg-primary h-11 px-8 shadow-xl shadow-primary/20" onClick={handlePrint}>
+                <Button className="rounded-xl font-black bg-primary h-11 px-8 shadow-xl shadow-primary/20" onClick={handlePrint}>
                     <Printer size={18} className="mr-2" /> Print System Report
                 </Button>
             </div>
 
-            <Card className="border-none shadow-sm rounded-[2.5rem] bg-white overflow-hidden print:shadow-none print:rounded-none">
+            <Card className="border-none shadow-sm rounded-xl bg-white overflow-hidden print:shadow-none print:rounded-none">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
@@ -145,3 +145,4 @@ export default function AdminSystemHistory() {
         </div>
     );
 }
+

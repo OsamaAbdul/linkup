@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 
@@ -17,7 +17,7 @@ export const PickupPointInput: React.FC<PickupPointInputProps> = ({ value, onCha
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder="Specify where the agent should pick up the product"
-                className="rounded-2xl border-primary/10 focus:border-primary/30 bg-primary/[0.02]"
+                className="rounded-xl border-primary/10 focus:border-primary/30 bg-primary/[0.02]"
             />
             <p className="text-[9px] text-muted-foreground font-medium italic">
                 This address will only be visible to you and the assigned agent.
@@ -25,3 +25,4 @@ export const PickupPointInput: React.FC<PickupPointInputProps> = ({ value, onCha
         </div>
     );
 };
+

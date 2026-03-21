@@ -1,4 +1,4 @@
-import { m } from "framer-motion";
+﻿import { m } from "framer-motion";
 
 interface AuthHeaderProps {
   isLogin: boolean;
@@ -14,8 +14,8 @@ export const AuthHeader = ({ isLogin }: AuthHeaderProps) => {
         className="flex flex-col items-center"
       >
         <div className="mb-6 relative">
-          <div className="absolute -inset-2 rounded-2xl bg-primary/10 blur-xl" />
-          <div className="relative rounded-2xl border border-border/60 bg-card p-1.5 shadow-lg shadow-primary/5">
+          <div className="absolute -inset-2 rounded-xl bg-primary/10 blur-xl" />
+          <div className="relative rounded-xl border border-border/60 bg-card p-1.5 shadow-lg shadow-primary/5">
             <img
               src="/src/assets/logo.jpeg"
               alt="Linkup Logo"
@@ -36,3 +36,4 @@ export const AuthHeader = ({ isLogin }: AuthHeaderProps) => {
     </div>
   );
 };
+

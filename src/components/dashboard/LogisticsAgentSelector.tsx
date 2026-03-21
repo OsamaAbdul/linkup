@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -196,7 +196,7 @@ export function LogisticsAgentSelector({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[500px] w-[95vw] h-[85vh] max-h-[85vh] rounded-[2.5rem] p-0 overflow-hidden border-none shadow-[0_32px_128px_-16px_rgba(0,0,0,0.3)] bg-background/95 backdrop-blur-3xl flex flex-col">
+            <DialogContent className="sm:max-w-[500px] w-[95vw] h-[85vh] max-h-[85vh] rounded-xl p-0 overflow-hidden border-none shadow-[0_32px_128px_-16px_rgba(0,0,0,0.3)] bg-background/95 backdrop-blur-3xl flex flex-col">
                 {/* Visual Accent */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
@@ -205,7 +205,7 @@ export function LogisticsAgentSelector({
                         <motion.div
                             initial={{ scale: 0.8, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
-                            className="w-14 h-14 rounded-3xl bg-primary shadow-[0_8px_24px_-4px_rgba(var(--primary),0.3)] flex items-center justify-center text-white shrink-0"
+                            className="w-14 h-14 rounded-xl bg-primary shadow-[0_8px_24px_-4px_rgba(var(--primary),0.3)] flex items-center justify-center text-white shrink-0"
                         >
                             <Truck size={28} strokeWidth={2.5} />
                         </motion.div>
@@ -247,14 +247,14 @@ export function LogisticsAgentSelector({
                     <Button
                         variant="ghost"
                         onClick={() => onOpenChange(false)}
-                        className="w-full sm:w-auto rounded-2xl h-14 px-8 text-xs font-bold uppercase tracking-widest text-muted-foreground hover:bg-muted/50 transition-all font-mono"
+                        className="w-full sm:w-auto rounded-xl h-14 px-8 text-xs font-bold uppercase tracking-widest text-muted-foreground hover:bg-muted/50 transition-all font-mono"
                     >
                         Decline
                     </Button>
                     <Button
                         onClick={handleConfirm}
                         disabled={!selectedAgentId || isAssigning}
-                        className="w-full sm:w-auto rounded-2xl h-14 px-12 text-xs font-black uppercase tracking-[0.2em] shadow-[0_12px_32px_-8px_rgba(var(--primary),0.3)] bg-primary hover:shadow-[0_16px_40px_-10px_rgba(var(--primary),0.4)] active:scale-95 transition-all text-white disabled:opacity-50 disabled:shadow-none font-mono"
+                        className="w-full sm:w-auto rounded-xl h-14 px-12 text-xs font-black uppercase tracking-[0.2em] shadow-[0_12px_32px_-8px_rgba(var(--primary),0.3)] bg-primary hover:shadow-[0_16px_40px_-10px_rgba(var(--primary),0.4)] active:scale-95 transition-all text-white disabled:opacity-50 disabled:shadow-none font-mono"
                     >
                         {isAssigning ? (
                             <Loader2 className="animate-spin mr-3" size={18} strokeWidth={3} />
@@ -268,3 +268,4 @@ export function LogisticsAgentSelector({
         </Dialog>
     );
 }
+

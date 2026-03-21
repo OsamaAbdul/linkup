@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -89,7 +89,7 @@ export default function AdminUserManagement() {
         setCurrentPage(1); // Reset to first page on search
     };
 
-    if (usersLoading) return <div className="p-12 text-center text-muted-foreground font-bold bg-white rounded-[2.5rem]">User Management Suite Loading...</div>;
+    if (usersLoading) return <div className="p-12 text-center text-muted-foreground font-bold bg-white rounded-xl">User Management Suite Loading...</div>;
 
     return (
         <div className="space-y-6">
@@ -106,7 +106,7 @@ export default function AdminUserManagement() {
                             <input
                                 type="text"
                                 placeholder="Universal search..."
-                                className="w-full h-11 bg-white border-none rounded-2xl pl-12 pr-4 text-sm font-medium shadow-sm focus:ring-2 focus:ring-primary/20 transition-all"
+                                className="w-full h-11 bg-white border-none rounded-xl pl-12 pr-4 text-sm font-medium shadow-sm focus:ring-2 focus:ring-primary/20 transition-all"
                                 value={searchQuery}
                                 onChange={handleSearchChange}
                             />
@@ -120,7 +120,7 @@ export default function AdminUserManagement() {
                 </div>
             </div>
 
-            <Card className="border-none shadow-sm rounded-[2.5rem] bg-white overflow-hidden">
+            <Card className="border-none shadow-sm rounded-xl bg-white overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
@@ -169,7 +169,7 @@ export default function AdminUserManagement() {
                                         <td className="px-8 py-6">
                                             <div>
                                                 <p className="font-bold text-sm">{stats.count} Orders</p>
-                                                <p className="text-[10px] text-muted-foreground font-black uppercase">₦{stats.totalSpent.toLocaleString()} Spent</p>
+                                                <p className="text-[10px] text-muted-foreground font-black uppercase">‚¦{stats.totalSpent.toLocaleString()} Spent</p>
                                             </div>
                                         </td>
                                         <td className="px-8 py-6 text-xs font-medium text-muted-foreground">
@@ -199,7 +199,7 @@ export default function AdminUserManagement() {
             </Card>
 
             {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-6 bg-white p-4 rounded-3xl border border-gray-50 shadow-sm">
+                <div className="flex items-center justify-between mt-6 bg-white p-4 rounded-xl border border-gray-50 shadow-sm">
                     <div className="text-xs font-bold text-muted-foreground px-4">
                         Page {currentPage} of {totalPages}
                     </div>
@@ -253,3 +253,4 @@ export default function AdminUserManagement() {
         </div>
     );
 }
+

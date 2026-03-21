@@ -17,7 +17,7 @@ import { toast } from "sonner";
 export default function SearchPage() {
   const { user } = useAuth();
   const { addToCart } = useCart();
-  const position = useGeolocation();
+  const { position } = useGeolocation();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [queryInput, setQueryInput] = useState("");
@@ -159,41 +159,39 @@ export default function SearchPage() {
         </div>
         <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
           {allCategories.map((c) => (
-            <Badge key={c} variant={selectedCategory === c ? "default" : "outline"}
-              className="cursor-pointer whitespace-nowrap" onClick={() => setSelectedCategory(c)}>
-              {c}
+            <Badge key={typeof c === 'object' ? c.name : c} variant={selectedCategory === (typeof c === 'object' ? c.name : c) ? "default" : "outline"}
+              className="cursor-pointer whitespace-nowrap" onClick={() => setSelectedCategory(typeof c === 'object' ? c.name : c)}>
+              {typeof c === 'object' ? c.name : c}
             </Badge>
           ))}
         </div>
         <div className="grid grid-cols-2 gap-3">
-          {products.map((product: any, i: number) => {
-            const dist = position && product.latitude && product.longitude
-              ? formatDistance(haversineDistance(position.latitude, position.longitude, product.latitude, product.longitude))
-              : undefined;
-            return (
-              <ProductCard key={product.id} id={product.id} title={product.title} price={product.price}
-                image={product.images?.[0]} sellerName={product.profiles?.display_name}
-                likeCount={product.likes_count || 0} isLiked={likes.includes(product.id)}
-                stockQuantity={product.inventory ?? 0}
-                onLike={(id) => likeMutation.mutate(id)}
-                onBuyNow={async (productId) => {
-                  try {
-                    await addToCart(productId, 1);
-                    navigate("/cart");
-                  } catch {
-                    toast.error("Could not add item to cart");
-                  }
-                }}
-                onAddToCart={(productId) => {
-                  if ((product.inventory ?? 0) <= 0) {
-                    toast.error("This item is out of stock");
-                    return;
-                  }
-                  addToCart(productId, 1);
-                }}
-                index={i} />
-            );
-          })}
+          {products.map((product: any, i: number) => (
+            <ProductCard key={product.id} id={product.id} title={product.title} price={product.price}
+              image={product.images?.[0]} sellerName={product.profiles?.display_name}
+              likeCount={product.likes_count || 0} isLiked={likes.includes(product.id)}
+              stockQuantity={product.inventory ?? 0}
+              latitude={product.latitude}
+              longitude={product.longitude}
+              userLocation={position}
+              onLike={(id) => likeMutation.mutate(id)}
+              onBuyNow={async (productId) => {
+                try {
+                  await addToCart(productId, 1);
+                  navigate("/cart");
+                } catch {
+                  toast.error("Could not add item to cart");
+                }
+              }}
+              onAddToCart={(productId) => {
+                if ((product.inventory ?? 0) <= 0) {
+                  toast.error("This item is out of stock");
+                  return;
+                }
+                addToCart(productId, 1);
+              }}
+              index={i} />
+          ))}
           {products.length === 0 && !isLoading && (
             <p className="col-span-2 text-center py-8 text-muted-foreground">No products found</p>
           )}

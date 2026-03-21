@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+﻿import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,21 +23,21 @@ export function EditProductModal({ product, setProduct, onClose, onSave }: EditP
                     <div className="space-y-6">
                         <div className="space-y-3">
                             <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Title Assignment</Label>
-                            <Input className="rounded-2xl h-14 border-black/5 bg-muted/20 font-bold px-6" value={product.title} onChange={(e) => setProduct({ ...product, title: e.target.value })} />
+                            <Input className="rounded-xl h-14 border-black/5 bg-muted/20 font-bold px-6" value={product.title} onChange={(e) => setProduct({ ...product, title: e.target.value })} />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-3">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Market Price (₦)</Label>
-                                <Input type="number" className="rounded-2xl h-14 border-black/5 bg-muted/20 font-bold px-6" value={product.price} onChange={(e) => setProduct({ ...product, price: parseFloat(e.target.value) })} />
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Market Price (‚¦)</Label>
+                                <Input type="number" className="rounded-xl h-14 border-black/5 bg-muted/20 font-bold px-6" value={product.price} onChange={(e) => setProduct({ ...product, price: parseFloat(e.target.value) })} />
                             </div>
                             <div className="space-y-3">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Registry Stock</Label>
-                                <Input type="number" className="rounded-2xl h-14 border-black/5 bg-muted/20 font-bold px-6" value={product.inventory} onChange={(e) => setProduct({ ...product, inventory: parseInt(e.target.value) })} />
+                                <Input type="number" className="rounded-xl h-14 border-black/5 bg-muted/20 font-bold px-6" value={product.inventory} onChange={(e) => setProduct({ ...product, inventory: parseInt(e.target.value) })} />
                             </div>
                         </div>
                         <div className="space-y-3">
                             <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Specification Log</Label>
-                            <Textarea className="rounded-2xl min-h-[120px] border-black/5 bg-muted/20 font-medium px-6 py-4" value={product.description || ""} onChange={(e) => setProduct({ ...product, description: e.target.value })} />
+                            <Textarea className="rounded-xl min-h-[120px] border-black/5 bg-muted/20 font-medium px-6 py-4" value={product.description || ""} onChange={(e) => setProduct({ ...product, description: e.target.value })} />
                         </div>
                     </div>
                 )}
@@ -49,3 +49,4 @@ export function EditProductModal({ product, setProduct, onClose, onSave }: EditP
         </Dialog>
     );
 }
+

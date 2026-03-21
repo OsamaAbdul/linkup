@@ -1,5 +1,5 @@
-import { Button } from "@/components/ui/button";
-import { LayoutDashboard, ShoppingBag, Wallet, Settings, Bell, LogOut, Menu, X } from "lucide-react";
+﻿import { Button } from "@/components/ui/button";
+import { LayoutDashboard, ShoppingBag, Wallet, Settings, Bell, LogOut, Menu, X, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
@@ -15,6 +15,7 @@ interface LogisticsHeaderProps {
     isOnline: boolean;
     isMobileMenuOpen?: boolean;
     onMenuToggle?: () => void;
+    kycStatus?: string;
 }
 
 export function LogisticsHeader({ 
@@ -23,7 +24,8 @@ export function LogisticsHeader({
     balance, 
     isOnline,
     isMobileMenuOpen,
-    onMenuToggle
+    onMenuToggle,
+    kycStatus
 }: LogisticsHeaderProps) {
     const { user, signOut } = useAuth();
     const queryClient = useQueryClient();
@@ -76,11 +78,14 @@ export function LogisticsHeader({
                     <div className="w-10 h-10 rounded-xl bg-blue-600 lg:hidden flex items-center justify-center text-white shrink-0 shadow-lg shadow-blue-600/20">
                         <span className="font-black text-xl">L</span>
                     </div>
-                    <span className="font-black text-xl tracking-tight hidden md:block uppercase tracking-[-0.04em]">Linkup<span className="text-blue-600">.</span></span>
+                    <span className="font-black text-xl tracking-tight hidden md:block uppercase tracking-[-0.04em]">
+                        {activeTab === "verification" ? "Verification" : "Linkup"}
+                        <span className="text-blue-600">.</span>
+                    </span>
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <div className="hidden sm:flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-black/[0.05] shadow-sm transition-all hover:border-black/[0.1] group/stats">
+                    <div className="hidden sm:flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-black/[0.05] shadow-sm transition-all hover:border-black/[0.1] group/stats">
                         <div className="flex flex-col items-start leading-tight">
                             <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest group-hover/stats:text-blue-600 transition-colors">Network Status</span>
                             <span className={cn(
@@ -97,13 +102,22 @@ export function LogisticsHeader({
                         />
                     </div>
 
-                    <div className="bg-[#F0F2F5]/50 px-4 py-2.5 rounded-2xl flex flex-col items-end border border-transparent hover:border-black/5 transition-all">
+                    {kycStatus === 'verified' && (
+                        <div className="hidden lg:flex items-center gap-2 bg-blue-50/50 px-3 py-1.5 rounded-xl border border-blue-500/10">
+                            <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                                <ShieldCheck size={12} strokeWidth={3} />
+                            </div>
+                            <span className="text-[10px] font-black text-blue-700 uppercase tracking-widest">Verified</span>
+                        </div>
+                    )}
+
+                    <div className="bg-[#F0F2F5]/50 px-4 py-2.5 rounded-xl flex flex-col items-end border border-transparent hover:border-black/5 transition-all">
                         <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Balance</span>
-                        <span className="text-sm font-black text-foreground">₦{balance.toLocaleString()}</span>
+                        <span className="text-sm font-black text-foreground">‚¦ {balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon" className="rounded-2xl relative bg-gray-50/50 hover:bg-gray-100 transition-all border border-transparent hover:border-black/5">
+                        <Button variant="ghost" size="icon" className="rounded-xl relative bg-gray-50/50 hover:bg-gray-100 transition-all border border-transparent hover:border-black/5">
                             <Bell size={18} className="text-foreground" />
                             <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-blue-500 rounded-full border-2 border-white" />
                         </Button>
@@ -113,4 +127,5 @@ export function LogisticsHeader({
         </header>
     );
 }
+
 

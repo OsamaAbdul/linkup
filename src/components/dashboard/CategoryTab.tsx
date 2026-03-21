@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+﻿import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,11 +45,11 @@ export function CategoryTab({
                                 placeholder="e.g. Premium Electronics"
                                 value={newCategoryName}
                                 onChange={(e) => setNewCategoryName(e.target.value)}
-                                className="rounded-2xl h-14 border-black/5 bg-muted/20 focus-visible:ring-primary font-bold px-6"
+                                className="rounded-xl h-14 border-black/5 bg-muted/20 focus-visible:ring-primary font-bold px-6"
                             />
                         </div>
                         <Button
-                            className="w-full rounded-2xl h-14 font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
+                            className="w-full rounded-xl h-14 font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
                             onClick={() => newCategoryName.trim() && addCategoryMutation.mutate(newCategoryName.trim())}
                         >
                             Authenticate Node
@@ -59,7 +59,7 @@ export function CategoryTab({
 
                 <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 h-fit">
                     {dbCategories.map((c) => (
-                        <div key={c.id} className="group flex items-center justify-between p-6 bg-white border border-black/[0.03] rounded-3xl hover:shadow-xl hover:shadow-black/[0.02] transition-all duration-300">
+                        <div key={c.id} className="group flex items-center justify-between p-6 bg-white border border-black/[0.03] rounded-xl hover:shadow-xl hover:shadow-black/[0.02] transition-all duration-300">
                             <div className="flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-xl bg-muted/30 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-500">
                                     {renderIcon(c.icon)}
@@ -81,3 +81,4 @@ export function CategoryTab({
         </div>
     );
 }
+

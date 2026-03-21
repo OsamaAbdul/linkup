@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+﻿import { ReactNode, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import Logo from "@/assets/logo.jpeg";
+import Logo from "@/assets/logo.png";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -50,7 +50,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         <div className="flex flex-col h-full bg-white">
             <div className="p-8">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">
+                    <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">
                         <ShieldCheck size={24} />
                     </div>
                     <div>
@@ -70,7 +70,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                                 to={item.path}
                                 onClick={() => setIsMobileOpen(false)}
                                 className={cn(
-                                    "flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-200 group text-sm font-bold",
+                                    "flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 group text-sm font-bold",
                                     isActive
                                         ? "bg-primary text-white shadow-xl shadow-primary/20"
                                         : "text-muted-foreground hover:bg-gray-50 hover:text-foreground"
@@ -91,7 +91,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
             <div className="p-6 border-t mt-auto">
                 <button
-                    className="w-full flex items-center gap-3 px-4 py-3 text-muted-foreground hover:text-destructive hover:bg-destructive/5 rounded-2xl transition-all font-bold"
+                    className="w-full flex items-center gap-3 px-4 py-3 text-muted-foreground hover:text-destructive hover:bg-destructive/5 rounded-xl transition-all font-bold"
                     onClick={async () => {
                         await signOut();
                         navigate("/admin-auth");
@@ -134,7 +134,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <Button variant="ghost" size="icon" className="rounded-2xl bg-gray-100/50 relative">
+                        <Button variant="ghost" size="icon" className="rounded-xl bg-gray-100/50 relative">
                             <Bell size={20} />
                             {openIssuesCount > 0 && (
                                 <span className="absolute top-2.5 right-2.5 w-4 h-4 bg-red-500 rounded-full border-2 border-white text-[8px] font-black text-white flex items-center justify-center">
@@ -142,7 +142,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                                 </span>
                             )}
                         </Button>
-                        <div className="h-10 w-10 rounded-2xl bg-gray-100 flex items-center justify-center text-primary border border-gray-200 overflow-hidden">
+                        <div className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center text-primary border border-gray-200 overflow-hidden">
                             <img src={Logo} alt="Admin" className="w-full h-full object-cover" />
                         </div>
                     </div>
@@ -157,3 +157,4 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         </div>
     );
 }
+

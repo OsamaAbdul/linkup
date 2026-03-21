@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+﻿import { useState, useRef } from "react";
 import { 
     LayoutDashboard, 
     ShoppingBag, 
@@ -9,7 +9,8 @@ import {
     ChevronRight,
     Camera,
     Loader2,
-    CheckCircle2
+    CheckCircle2,
+    ShieldCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -26,9 +27,18 @@ interface LogisticsSidebarProps {
     setIsCollapsed: (collapsed: boolean) => void;
     isOpen?: boolean;
     setIsOpen?: (open: boolean) => void;
+    kycStatus?: string;
 }
 
-export function LogisticsSidebar({ activeTab, setActiveTab, isCollapsed, setIsCollapsed, isOpen, setIsOpen }: LogisticsSidebarProps) {
+export function LogisticsSidebar({ 
+    activeTab, 
+    setActiveTab, 
+    isCollapsed, 
+    setIsCollapsed, 
+    isOpen, 
+    setIsOpen,
+    kycStatus = "none"
+}: LogisticsSidebarProps) {
     const { user, profile, refreshProfile, signOut } = useAuth();
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -37,6 +47,7 @@ export function LogisticsSidebar({ activeTab, setActiveTab, isCollapsed, setIsCo
         { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
         { id: "orders", label: "Orders", icon: ShoppingBag },
         { id: "earnings", label: "Earnings", icon: Wallet },
+        { id: "verification", label: "Verification", icon: ShieldCheck },
         { id: "settings", label: "Settings", icon: Settings },
     ];
 
@@ -168,10 +179,19 @@ export function LogisticsSidebar({ activeTab, setActiveTab, isCollapsed, setIsCo
                                 className="text-center space-y-1"
                             >
                                 <div className="flex items-center justify-center gap-1.5">
-                                    <h3 className="font-black text-foreground tracking-tight line-clamp-1">{profile?.display_name || "Logistics Agent"}</h3>
-                                    <CheckCircle2 size={14} className="text-blue-500 fill-blue-500/10" />
+                                    <h3 className="font-black text-foreground tracking-tight line-clamp-1 capitalize">{profile?.display_name || "Agent"}</h3>
+                                    {kycStatus === 'verified' && (
+                                        <CheckCircle2 size={14} className="text-blue-500 fill-blue-500/10" />
+                                    )}
                                 </div>
-                                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">Verified Partner</p>
+                                <p className={cn(
+                                    "text-[10px] font-black uppercase tracking-[0.2em]",
+                                    kycStatus === 'verified' ? "text-blue-600" : 
+                                    kycStatus === 'pending' ? "text-amber-500" : "text-muted-foreground"
+                                )}>
+                                    {kycStatus === 'verified' ? "Verified Partner" : 
+                                     kycStatus === 'pending' ? "Pending Review" : "Unverified Agent"}
+                                </p>
                             </motion.div>
                         )}
                     </div>
@@ -183,7 +203,7 @@ export function LogisticsSidebar({ activeTab, setActiveTab, isCollapsed, setIsCo
                                 key={tab.id}
                                 onClick={() => handleTabClick(tab.id)}
                                 className={cn(
-                                    "w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-200 group/nav",
+                                    "w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 group/nav",
                                     activeTab === tab.id 
                                         ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" 
                                         : "text-muted-foreground hover:bg-gray-50 hover:text-foreground"
@@ -216,7 +236,7 @@ export function LogisticsSidebar({ activeTab, setActiveTab, isCollapsed, setIsCo
                             variant="ghost"
                             onClick={signOut}
                             className={cn(
-                                "w-full justify-start gap-3 rounded-2xl h-12 text-red-600 hover:bg-red-50 hover:text-red-700 transition-all font-bold",
+                                "w-full justify-start gap-3 rounded-xl h-12 text-red-600 hover:bg-red-50 hover:text-red-700 transition-all font-bold",
                                 isCollapsed && !isOpen && "px-0 justify-center"
                             )}
                         >
@@ -229,3 +249,4 @@ export function LogisticsSidebar({ activeTab, setActiveTab, isCollapsed, setIsCo
         </AnimatePresence>
     );
 }
+

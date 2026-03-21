@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import Logo from "@/assets/logo.jpeg";
+import Logo from "@/assets/logo.png";
 
 export function SidebarContent() {
     const location = useLocation();
@@ -72,7 +72,7 @@ export function SidebarContent() {
         );
 
         const className = cn(
-            "flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group text-sm font-medium w-full text-left",
+            "flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all duration-200 group text-sm font-medium w-full text-left",
             isActive
                 ? "bg-primary/10 text-primary"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -95,11 +95,11 @@ export function SidebarContent() {
 
     return (
         <div className="flex flex-col h-full bg-white">
-            <div className="flex items-center gap-3 px-6 py-5">
-                <img src={Logo} alt="Linkup" className="h-8 w-8 rounded-full object-cover" />
+            <div className="flex items-center gap-2.5 px-5 py-4">
+                <img src={Logo} alt="Linkup" className="h-12 w-12 rounded-full object-cover" />
                 <div>
-                    <h1 className="text-xl font-bold text-foreground leading-none">Linkup</h1>
-                    <span className="text-[10px] text-muted-foreground tracking-widest uppercase">Global</span>
+                    <h1 className="text-lg font-black text-foreground leading-none tracking-tight">Linkup</h1>
+                    <span className="text-[9px] text-muted-foreground tracking-[0.2em] font-black uppercase opacity-60">Global</span>
                 </div>
             </div>
 
@@ -197,7 +197,7 @@ export function SidebarContent() {
 
 export function Sidebar() {
     return (
-        <aside className="hidden md:flex flex-col w-64 h-[calc(100vh-2rem)] sticky top-4 bg-white rounded-2xl border shadow-sm z-50 overflow-hidden">
+        <aside className="hidden md:flex flex-col w-64 h-[calc(100vh-2rem)] sticky top-4 bg-white rounded-xl border border-black/[0.03] shadow-sm z-50 overflow-hidden">
             <SidebarContent />
         </aside>
     );

@@ -15,6 +15,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/contexts/CartContext";
+import { RoleSwitcher } from "./RoleSwitcher";
+import Logo from "@/assets/logo.png";
 
 export function Header() {
   const { user, profile, signOut } = useAuth();
@@ -36,38 +38,30 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 glass border-b-[0.5px] border-white/10">
-      <div className="flex items-center justify-between h-16 px-4 md:px-10 max-w-[1700px] mx-auto">
-        {/* Logo Section */}
-        <div className="flex items-center gap-4 md:gap-12">
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="bg-primary/20 p-1.5 md:p-2 rounded-xl md:rounded-2xl group-hover:rotate-12 transition-all duration-300">
-              <MapPin size={22} className="text-primary md:hidden" />
-              <MapPin size={28} className="text-primary hidden md:block" />
+      <div className="flex items-center justify-between h-14 sm:h-16 px-4 sm:px-6 md:px-10 max-w-[1700px] mx-auto">
+        <div className="flex items-center gap-3 sm:gap-6 md:gap-10">
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <div className="relative h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 overflow-hidden rounded-xl border border-black/[0.03] shadow-sm transform group-hover:scale-105 transition-all duration-300">
+              <img src={Logo} alt="Linkup Logo" className="w-full h-full object-cover" />
             </div>
-            <span className="text-xl md:text-2xl font-heading font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-foreground to-foreground/60">
-              LinkUp
-            </span>
+            <div className="flex flex-col">
+              <span className="text-base sm:text-lg md:text-xl font-heading font-black tracking-tighter text-foreground leading-none">
+                Linkup
+              </span>
+              <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-60 leading-none mt-0.5">Global</span>
+            </div>
           </Link>
 
-          {/* Search - Desktop Only */}
-          <div className="hidden md:block w-[400px]">
-            <div className="relative group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4 transition-colors group-focus-within:text-primary" />
-              <Input
-                placeholder="Search for anything..."
-                className="pl-11 bg-muted/30 border-none rounded-2xl h-11 focus-visible:ring-2 focus-visible:ring-primary/20 transition-all font-medium"
-              />
-            </div>
-          </div>
+          {user && <RoleSwitcher />}
+
+
         </div>
 
         {/* Action Section */}
         <div className="flex items-center gap-2 md:gap-6">
           <div className="flex items-center gap-1 md:gap-3">
             {/* Messages - Desktop Only */}
-            <Button variant="ghost" size="icon" className="hidden md:flex relative group rounded-xl hover:bg-primary/5">
-              <MessageSquare size={20} className="text-foreground/70 group-hover:text-primary transition-colors" />
-            </Button>
+
 
             {/* Notifications */}
             <Link to="/notifications" className="relative">
@@ -118,7 +112,7 @@ export function Header() {
                   </div>
                 </div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 glass border-white/10 rounded-2xl p-2 mt-4 shadow-2xl">
+              <DropdownMenuContent align="end" className="w-64 glass border-white/10 rounded-xl p-2 mt-4 shadow-2xl">
                 <DropdownMenuLabel className="font-heading font-bold text-lg px-2 pt-2">Account</DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-white/5 my-2" />
                 <Link to="/profile">
@@ -158,4 +152,5 @@ export function Header() {
     </header>
   );
 }
+
 

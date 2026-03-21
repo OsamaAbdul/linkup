@@ -1,6 +1,6 @@
 # Linkup Marketplace
 
-A premium, full-stack marketplace and logistics platform designed for high-performance e-commerce and delivery operations. Built with a modern tech stack and a focus on visual excellence.
+A premium, full-stack marketplace and logistics platform designed for high-performance e-commerce and delivery operations. Built with a modern tech stack and a focus on visual excellence
 
 ## Key Features
 
@@ -9,7 +9,7 @@ A premium, full-stack marketplace and logistics platform designed for high-perfo
 - **Seamless Checkout**: Integrated cart management and secure checkout flow.
 - **Wishlist & Reach**: Social-ready product sharing and personal wishlists.
 
-### Logistics & Operations
+### Logistics & Operation
 - **Real-time Tracking**: Interactive maps for live order tracking and logistics management.
 - **Mission Center**: Dedicated logistics dashboard for dispatchers and delivery partners.
 - **Intel Dashboard**: Advanced shipment intelligence and status monitoring.

@@ -1,4 +1,5 @@
 ﻿import { m } from "framer-motion";
+import logo from "@/assets/logo.png";
 
 interface AuthHeaderProps {
   isLogin: boolean;
@@ -17,7 +18,7 @@ export const AuthHeader = ({ isLogin }: AuthHeaderProps) => {
           <div className="absolute -inset-2 rounded-xl bg-primary/10 blur-xl" />
           <div className="relative rounded-xl border border-border/60 bg-card p-1.5 shadow-lg shadow-primary/5">
             <img
-              src="/src/assets/logo.jpeg"
+              src={logo}
               alt="Linkup Logo"
               className="h-16 w-16 rounded-xl object-cover"
             />

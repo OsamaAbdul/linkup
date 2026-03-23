@@ -62,6 +62,22 @@ export function LogisticsEarnings() {
         enabled: !!user,
     });
 
+    // Real transaction history from wallet
+    const { data: riderTransactions = [] } = useQuery({
+        queryKey: ["rider-transactions", wallet?.id],
+        queryFn: async () => {
+            if (!wallet?.id) return [];
+            const { data, error } = await (supabase as any)
+                .from("wallet_transactions")
+                .select("*")
+                .eq("wallet_id", wallet.id)
+                .order("created_at", { ascending: false });
+            if (error) throw error;
+            return data || [];
+        },
+        enabled: !!wallet?.id,
+    });
+
     // Withdrawal requests history
     const { data: withdrawalRequests = [] } = useQuery({
         queryKey: ["rider-withdrawals", user?.id],
@@ -97,24 +113,20 @@ export function LogisticsEarnings() {
         return () => { supabase.removeChannel(ch); };
     }, [user, queryClient]);
 
-    // Each completed delivery = ₦1,500 flat fee
-    // delivery_fee is set by the RPC on the shipment row; fallback to 1500
-    const FLAT_DELIVERY_FEE = 1500;
-    const computedEarnings = completedShipments.map((s: any) => ({
-        ...s,
-        computed_fee: s.delivery_fee && s.delivery_fee > 0 ? s.delivery_fee : FLAT_DELIVERY_FEE,
-    }));
-
-    const totalEarnings = computedEarnings.reduce((acc: number, s: any) => acc + s.computed_fee, 0);
+    // Metrics come from REAL transaction records
+    const deliveryFees = riderTransactions.filter((t: any) => t.type === 'delivery_fee');
+    const totalEarnings = deliveryFees.reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
+    
     const today = new Date().toDateString();
-    const todayEarnings = computedEarnings
-        .filter((s: any) => new Date(s.orders?.updated_at ?? s.created_at).toDateString() === today)
-        .reduce((acc: number, s: any) => acc + s.computed_fee, 0);
+    const todayEarnings = deliveryFees
+        .filter((t: any) => new Date(t.created_at).toDateString() === today)
+        .reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
+        
     const thisWeekStart = new Date();
     thisWeekStart.setDate(thisWeekStart.getDate() - thisWeekStart.getDay());
-    const weekEarnings = computedEarnings
-        .filter((s: any) => new Date(s.orders?.updated_at ?? s.created_at) >= thisWeekStart)
-        .reduce((acc: number, s: any) => acc + s.computed_fee, 0);
+    const weekEarnings = deliveryFees
+        .filter((t: any) => new Date(t.created_at) >= thisWeekStart)
+        .reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
 
     const todayWithdrawn = withdrawalRequests
         .filter((w: any) => new Date(w.requested_at).toDateString() === today && w.status !== "rejected")
@@ -219,32 +231,34 @@ export function LogisticsEarnings() {
                 <h2 className="text-xl font-black tracking-tight flex items-center gap-2">
                     <Package size={18} strokeWidth={2.5} /> Completed Deliveries
                 </h2>
-                {computedEarnings.length === 0 ? (
+                {deliveryFees.length === 0 ? (
                     <div className="py-14 text-center border-2 border-dashed border-black/5 rounded-xl text-muted-foreground text-sm font-medium">
                         <TrendingUp size={32} strokeWidth={1} className="mx-auto mb-3 opacity-20" />
-                        No completed deliveries yet.
+                        No earnings history found.
                     </div>
                 ) : (
                     <Card className="border-none shadow-xl shadow-black/[0.02] rounded-xl overflow-hidden">
                         <Table>
                             <TableHeader className="bg-muted/30">
                                 <TableRow className="border-none hover:bg-transparent">
-                                    <TableHead className="font-black text-[10px] uppercase tracking-widest h-14 pl-8">Order</TableHead>
-                                    <TableHead className="font-black text-[10px] uppercase tracking-widest h-14">Zone</TableHead>
+                                    <TableHead className="font-black text-[10px] uppercase tracking-widest h-14 pl-8">Type</TableHead>
+                                    <TableHead className="font-black text-[10px] uppercase tracking-widest h-14">Details</TableHead>
                                     <TableHead className="font-black text-[10px] uppercase tracking-widest h-14">Date</TableHead>
-                                    <TableHead className="font-black text-[10px] uppercase tracking-widest h-14">Order Value</TableHead>
-                                    <TableHead className="font-black text-[10px] uppercase tracking-widest h-14 pr-8 text-right">Your Fee (₦1,500 flat)</TableHead>
+                                    <TableHead className="font-black text-[10px] uppercase tracking-widest h-14 pr-8 text-right">Amount</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {computedEarnings.map((s: any) => (
-                                    <TableRow key={s.id} className="border-black/[0.03]">
-                                        <TableCell className="font-mono text-xs pl-8 text-muted-foreground">#{s.order_id?.slice(0, 8)}</TableCell>
-                                        <TableCell className="text-xs font-bold">{s.zone?.split(" (")[0] || "—"}</TableCell>
-                                        <TableCell className="text-xs font-medium">{new Date(s.orders?.updated_at ?? s.created_at).toLocaleDateString()}</TableCell>
-                                        <TableCell className="text-sm font-bold">{(s.orders?.total ?? 0).toLocaleString()}</TableCell>
+                                {deliveryFees.map((t: any) => (
+                                    <TableRow key={t.id} className="border-black/[0.03]">
+                                        <TableCell className="pl-8">
+                                            <Badge variant="outline" className="font-black text-[9px] uppercase tracking-widest border-green-200 text-green-700 bg-green-50">
+                                                Delivery Fee
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-xs font-bold">{t.reference || "Order Fee"}</TableCell>
+                                        <TableCell className="text-xs font-medium">{new Date(t.created_at).toLocaleDateString()}</TableCell>
                                         <TableCell className="text-right pr-8">
-                                            <span className="text-sm font-black text-green-600">+₦{s.computed_fee.toLocaleString()}</span>
+                                            <span className="text-sm font-black text-green-600">+₦{(t.amount || 0).toLocaleString()}</span>
                                         </TableCell>
                                     </TableRow>
                                 ))}

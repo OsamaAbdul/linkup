@@ -1,35 +1,35 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/shared/components/ui/toaster";
+import { Toaster as Sonner } from "@/shared/components/ui/sonner";
+import { TooltipProvider } from "@/shared/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { CartProvider } from "@/contexts/CartContext";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import ProductDetail from "./pages/ProductDetail";
-import Cart from "./pages/Cart";
-import Checkout from "./pages/Checkout";
-import Sell from "./pages/Sell";
-import SearchPage from "./pages/Search";
-import Profile from "./pages/Profile";
-import SellerVerification from "./pages/SellerVerification";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminAuth from "./pages/admin/AdminAuth";
-import { AdminRoute } from "./components/auth/AdminRoute";
-import { AdminLayout } from "./components/admin/AdminLayout";
-import Notifications from "./pages/Notifications";
-import Dashboard from "./pages/Dashboard";
-import NotFound from "./pages/NotFound";
-import Wishlist from "./pages/Wishlist";
-import Orders from "./pages/Orders";
-import Support from "./pages/Support";
-import Onboarding from "./pages/Onboarding";
-import Logistics from "./pages/Logistics";
-import LogisticsDashboard from "./pages/LogisticsDashboard";
-import Messages from "./pages/Messages";
-import Chat from "./pages/Chat";
-import PromoterDashboard from "./pages/PromoterDashboard";
+import { AuthProvider } from "@/features/auth/context/AuthContext";
+import { CartProvider } from "@/features/commerce/context/CartContext";
+import Index from "@/features/commerce/pages/Index";
+import Auth from "@/features/auth/pages/Auth";
+import ProductDetail from "@/features/commerce/pages/ProductDetail";
+import Cart from "@/features/commerce/pages/Cart";
+import Checkout from "@/features/commerce/pages/Checkout";
+import Sell from "@/features/commerce/pages/Sell";
+import SearchPage from "@/features/commerce/pages/Search";
+import Profile from "./features/dashboard/pages/Profile";
+import SellerVerification from "@/features/auth/pages/SellerVerification";
+import AdminDashboard from "@/features/admin/pages/AdminDashboard";
+import AdminAuth from "@/features/admin/pages/AdminAuth";
+import { AdminRoute } from "@/features/auth/components/AdminRoute";
+import { AdminLayout } from "@/features/admin/components/AdminLayout";
+import Notifications from "@/features/dashboard/pages/Notifications";
+import Dashboard from "@/features/dashboard/pages/Dashboard";
+import NotFound from "./features/dashboard/pages/NotFound";
+import Wishlist from "@/features/commerce/pages/Wishlist";
+import Orders from "@/features/commerce/pages/Orders";
+import Support from "@/features/dashboard/pages/Support";
+import Onboarding from "@/features/auth/pages/Onboarding";
+import Logistics from "@/features/logistics/pages/Logistics";
+import LogisticsDashboard from "@/features/logistics/pages/LogisticsDashboard";
+import Messages from "@/features/dashboard/pages/Messages";
+import Chat from "@/features/dashboard/pages/Chat";
+import PromoterDashboard from "@/features/promoter/pages/PromoterDashboard";
 
 import { persistQueryClient } from "@tanstack/react-query-persist-client";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
@@ -97,6 +97,8 @@ const App = () => (
                           <Route path="history" element={<AdminDashboard activeSection="history" />} />
                           <Route path="kyc" element={<AdminDashboard activeSection="kyc" />} />
                           <Route path="payments" element={<AdminDashboard activeSection="payments" />} />
+                          <Route path="logistics" element={<AdminDashboard activeSection="logistics" />} />
+                          <Route path="fees" element={<AdminDashboard activeSection="fees" />} />
                         </Routes>
                       </AdminLayout>
                     </AdminRoute>

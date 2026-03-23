@@ -326,21 +326,21 @@ export type Database = {
           created_at: string
           id: string
           sender_id: string
-          text: string
+          content: string
         }
         Insert: {
           conversation_id: string
           created_at?: string
           id?: string
           sender_id: string
-          text: string
+          content: string
         }
         Update: {
           conversation_id?: string
           created_at?: string
           id?: string
           sender_id?: string
-          text?: string
+          content?: string
         }
         Relationships: [
           {
@@ -394,6 +394,9 @@ export type Database = {
           status: string
           total: number
           updated_at: string
+          broadcast_zone: string | null
+          city_id: string | null
+          zone_id: string | null
         }
         Insert: {
           buyer_id: string
@@ -409,6 +412,9 @@ export type Database = {
           status?: string
           total?: number
           updated_at?: string
+          broadcast_zone?: string | null
+          city_id?: string | null
+          zone_id?: string | null
         }
         Update: {
           buyer_id?: string
@@ -424,6 +430,9 @@ export type Database = {
           status?: string
           total?: number
           updated_at?: string
+          broadcast_zone?: string | null
+          city_id?: string | null
+          zone_id?: string | null
         }
         Relationships: []
       }
@@ -744,6 +753,11 @@ export type Database = {
           rider_longitude: number | null
           status: string
           updated_at: string
+          pickup_time: string | null
+          zone: string | null
+          zone_id: string | null
+          city_id: string | null
+          seller_id: string | null
         }
         Insert: {
           buyer_latitude?: number | null
@@ -760,6 +774,11 @@ export type Database = {
           rider_longitude?: number | null
           status?: string
           updated_at?: string
+          pickup_time?: string | null
+          zone?: string | null
+          zone_id?: string | null
+          city_id?: string | null
+          seller_id?: string | null
         }
         Update: {
           buyer_latitude?: number | null
@@ -776,6 +795,11 @@ export type Database = {
           rider_longitude?: number | null
           status?: string
           updated_at?: string
+          pickup_time?: string | null
+          zone?: string | null
+          zone_id?: string | null
+          city_id?: string | null
+          seller_id?: string | null
         }
         Relationships: [
           {

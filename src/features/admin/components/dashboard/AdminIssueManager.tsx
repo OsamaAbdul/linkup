@@ -18,12 +18,10 @@ export default function AdminIssueManager() {
                 .from("issues")
                 .select(`
                     *,
-                    reporter:profiles!issues_user_id_fkey(id, display_name),
-                    seller:profiles!issues_seller_id_fkey(id, display_name),
+                    reporter:profiles!user_id(id, display_name),
+                    seller:profiles!seller_id(id, display_name),
                     products(title, images),
-                    orders(shipping_address),
-                    seller_info:seller_verifications!issues_seller_id_fkey(phone_number),
-                    logistics_info:logistics_verifications!issues_user_id_fkey(phone_number)
+                    orders(shipping_address)
                 `)
                 .order("created_at", { ascending: false });
             if (error) throw error;
@@ -143,15 +141,7 @@ export default function AdminIssueManager() {
                                     <div className="flex items-center justify-between">
                                         <p className="text-xs font-bold text-foreground">{issue.reporter?.display_name || "Nexus Client"}</p>
                                         <div className="flex gap-2">
-                                            {(issue.orders?.shipping_address as any)?.phone || issue.logistics_info?.phone_number ? (
-                                                <a
-                                                    href={`tel:${(issue.orders?.shipping_address as any)?.phone || issue.logistics_info?.phone_number}`}
-                                                    className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
-                                                    title="Call Reporter"
-                                                >
-                                                    <Smartphone size={10} strokeWidth={3} />
-                                                </a>
-                                            ) : null}
+                                            {/* Phone numbers require separate fetching or manual handling for now */}
                                         </div>
                                     </div>
                                 </div>
@@ -160,11 +150,7 @@ export default function AdminIssueManager() {
                                     <div className="flex items-center justify-between">
                                         <p className="text-xs font-bold text-foreground">{issue.seller?.display_name || "Merchant Node"}</p>
                                         <div className="flex gap-2">
-                                            {issue.seller_info?.phone_number && (
-                                                <a href={`tel:${issue.seller_info.phone_number}`} className="p-1.5 rounded-lg bg-primary/5 text-primary hover:bg-primary/10 transition-colors">
-                                                    <Smartphone size={10} strokeWidth={3} />
-                                                </a>
-                                            )}
+                                            {/* Phone numbers require separate fetching or manual handling for now */}
                                         </div>
                                     </div>
                                 </div>
@@ -190,8 +176,7 @@ export default function AdminIssueManager() {
                                     variant="outline"
                                     className="rounded-xl h-12 font-black text-[11px] uppercase tracking-widest border-2 hover:bg-black hover:text-white transition-colors"
                                     onClick={() => {
-                                        const contact = issue.seller_info?.phone_number || issue.logistics_info?.phone_number || "No contact info";
-                                        toast.info(`Rapid Intel: Contact [ ${contact} ]`);
+                                        toast.info(`Rapid Intel tracking established for Issue #${issue.id.slice(0,8)}`);
                                     }}
                                 >
                                     Intel

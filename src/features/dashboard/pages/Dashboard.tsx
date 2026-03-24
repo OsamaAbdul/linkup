@@ -330,15 +330,37 @@ export default function Dashboard() {
     onError: (err: any) => toast.error(err.message),
   });
 
-  const sellerAnalytics = analytics as any;
-  const revenue = sellerAnalytics?.total_revenue || 0;
-  const totalOrders = sellerAnalytics?.total_orders || 0;
+  const { data: totals } = useQuery({
+    queryKey: ["seller-totals", user?.id],
+    queryFn: async () => {
+      if (!user) return { revenue: 0, count: 0, chartData: [] };
+      const { data, error } = await supabase
+        .from("orders")
+        .select("total, created_at")
+        .eq("seller_id", user.id)
+        .order("created_at", { ascending: true });
+      
+      if (error) return { revenue: 0, count: 0, chartData: [] };
+      
+      const totalRevenue = data.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+      
+      const chartValues = Object.entries(data.reduce((acc: Record<string, number>, o) => {
+        const date = new Date(o.created_at).toLocaleDateString();
+        acc[date] = (acc[date] || 0) + 1;
+        return acc;
+      }, {})).map(([date, count]) => ({ date, orders: count }));
 
-  const chartData = Object.entries(orders.reduce((acc: Record<string, number>, o) => {
-    const date = new Date(o.created_at).toLocaleDateString();
-    acc[date] = (acc[date] || 0) + 1;
-    return acc;
-  }, {})).map(([date, count]) => ({ date, orders: count }));
+      return { revenue: totalRevenue, count: data.length, chartData: chartValues };
+    },
+    enabled: !!user,
+  });
+
+  const revenue = totals?.revenue || 0;
+  const netRevenue = transactions
+    .filter(t => t.type === 'settlement')
+    .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  const totalOrders = totals?.count || 0;
+  const chartData = totals?.chartData || [];
 
   if (loading) return <div className="min-h-screen flex items-center justify-center text-primary font-black uppercase tracking-[0.2em] text-xs animate-pulse font-mono">Loading Secure Node...</div>;
   if (!user) return <Navigate to="/auth" replace />;
@@ -349,7 +371,7 @@ export default function Dashboard() {
         <DashboardSidebar activeTab={tab} setTab={setTab} pendingOrdersCount={pendingOrdersCount} openIssuesCount={openIssuesCount} />
 
 
-        <main className="flex-1 p-6 md:p-10 pt-24 md:pt-10 pb-32 md:pb-10 max-w-6xl mx-auto space-y-10">
+        <main className="flex-1 min-w-0 w-full p-6 lg:p-10 pt-24 lg:pt-10 pb-32 lg:pb-10 max-w-6xl mx-auto space-y-10">
           {tab === "products" && (
             <InventoryTab
               products={products}
@@ -384,6 +406,7 @@ export default function Dashboard() {
           {tab === "analytics" && (
             <AnalyticsTab
               revenue={revenue}
+              netRevenue={netRevenue}
               totalOrders={totalOrders}
               chartData={chartData}
             />

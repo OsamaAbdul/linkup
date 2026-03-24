@@ -193,25 +193,25 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
       </div>
 
       {/* Orders Table */}
-      <Card className="border-none shadow-sm rounded-xl bg-background overflow-hidden">
-        <div className="overflow-x-auto">
+      <Card className="border-none shadow-sm rounded-xl bg-background overflow-hidden max-w-full">
+        <div className="overflow-x-auto no-scrollbar">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-muted/20 bg-muted/5">
-                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Order ID</th>
-                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Date</th>
-                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Amount</th>
-                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Method</th>
-                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Payment Ref</th>
-                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Payment Status</th>
-                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Settlement</th>
-                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right">Actions</th>
+                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest min-w-[100px]">Order ID</th>
+                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest min-w-[100px]">Date</th>
+                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest min-w-[100px]">Amount</th>
+                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest min-w-[100px]">Method</th>
+                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest min-w-[150px]">Payment Ref</th>
+                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest min-w-[120px]">Status</th>
+                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest min-w-[100px]">Settlement</th>
+                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right min-w-[80px]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-muted/10">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-16 text-center text-muted-foreground font-bold">
+                  <td colSpan={8} className="px-6 py-16 text-center text-muted-foreground font-bold">
                     No orders match your criteria
                   </td>
                 </tr>
@@ -224,16 +224,16 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
                     </td>
                     <td className="px-6 py-5 font-black text-sm">₦{(o.total || 0).toLocaleString()}</td>
                     <td className="px-6 py-5">
-                      <Badge variant="outline" className="rounded-full text-[9px] font-black uppercase tracking-widest border-muted/30">
+                      <Badge variant="outline" className="rounded-full text-[9px] font-black uppercase tracking-widest border-muted/30 whitespace-nowrap">
                         {o.payment_method || "direct"}
                       </Badge>
                     </td>
-                    <td className="px-6 py-5 font-mono text-[11px] text-muted-foreground">
+                    <td className="px-6 py-5 font-mono text-[11px] text-muted-foreground truncate max-w-[150px]">
                       {o.payment_ref || <span className="italic opacity-50">none</span>}
                     </td>
                     <td className="px-6 py-5">
                       <Badge className={cn(
-                        "rounded-full px-3 py-0.5 text-[9px] font-black uppercase tracking-widest border-none shadow-sm",
+                        "rounded-full px-3 py-0.5 text-[9px] font-black uppercase tracking-widest border-none shadow-sm whitespace-nowrap",
                         statusColors[o.payment_status || "pending"] || "bg-muted text-muted-foreground"
                       )}>
                         {(o.payment_status || "pending").replace(/_/g, " ")}
@@ -241,7 +241,7 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
                     </td>
                     <td className="px-6 py-5">
                       <Badge variant="outline" className={cn(
-                        "rounded-full px-3 py-0.5 text-[9px] font-black uppercase tracking-widest",
+                        "rounded-full px-3 py-0.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap",
                         o.settlement_status === 'settled' ? "border-emerald-200 text-emerald-700 bg-emerald-50" :
                         o.settlement_status === 'pending' ? "border-amber-200 text-amber-700 bg-amber-50" :
                         "border-muted text-muted-foreground"

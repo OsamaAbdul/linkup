@@ -18,7 +18,7 @@ export function IssuesTab() {
         queryFn: async () => {
             const { data, error } = await supabase
                 .from("issues" as any)
-                .select("*, profiles!issues_user_id_fkey(display_name), products(title)")
+                .select("*, reporter:profiles!user_id(display_name), products(title)")
                 .eq("seller_id", user?.id)
                 .order("created_at", { ascending: false });
             if (error) throw error;
@@ -79,7 +79,7 @@ export function IssuesTab() {
                                         issue.priority === 'high' ? 'bg-orange-500' : 'bg-blue-500'
                                 )} />
 
-                                <div className="flex-1 p-8 space-y-6">
+                                <div className="flex-1 p-4 sm:p-8 space-y-6">
                                     <div className="flex justify-between items-start">
                                         <div className="space-y-1">
                                             <div className="flex items-center gap-3">
@@ -103,7 +103,7 @@ export function IssuesTab() {
                                         </Badge>
                                     </div>
 
-                                    <div className="bg-gray-50/50 p-6 rounded-xl border border-black/[0.03]">
+                                    <div className="bg-gray-50/50 p-4 sm:p-6 rounded-xl border border-black/[0.03]">
                                         <p className="text-sm font-medium leading-relaxed text-foreground/80">{issue.description}</p>
                                     </div>
 
@@ -114,7 +114,7 @@ export function IssuesTab() {
                                             </div>
                                             <div>
                                                 <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Reporter</p>
-                                                <p className="text-xs font-bold">{issue.profiles?.display_name || "Nexus Agent"}</p>
+                                                <p className="text-xs font-bold">{issue.reporter?.display_name || "Nexus Agent"}</p>
                                             </div>
                                         </div>
 

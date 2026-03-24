@@ -28,19 +28,23 @@ export function CategoryTab({
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="space-y-2">
-                <p className="text-[10px] font-black text-primary/60 uppercase tracking-[0.2em] mb-1">Global Registry</p>
-                <h1 className="text-3xl md:text-5xl font-black text-foreground tracking-tight">Category Nodes</h1>
+                <p className="text-[10px] font-black text-primary/60 uppercase tracking-[0.2em] mb-1">
+                    All Categories
+                </p>
+                <h1 className="text-3xl md:text-5xl font-black text-foreground tracking-tight">
+                    Category List
+                </h1>
             </div>
 
             <div className="grid lg:grid-cols-3 gap-10">
                 <Card className="lg:col-span-1 border-none rounded-[3rem] bg-white p-10 shadow-2xl shadow-black/[0.02]">
                     <CardHeader className="p-0 mb-8">
-                        <CardTitle className="text-xl font-black tracking-tight">Add Registry Node</CardTitle>
+                        <CardTitle className="text-xl font-black tracking-tight">Add Category</CardTitle>
                         <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-1">Expanding Marketplace Reach</p>
                     </CardHeader>
                     <CardContent className="p-0 space-y-6">
                         <div className="space-y-3">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Node Identifier</Label>
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Name of Category</Label>
                             <Input
                                 placeholder="e.g. Premium Electronics"
                                 value={newCategoryName}
@@ -52,7 +56,7 @@ export function CategoryTab({
                             className="w-full rounded-xl h-14 font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
                             onClick={() => newCategoryName.trim() && addCategoryMutation.mutate(newCategoryName.trim())}
                         >
-                            Authenticate Node
+                            Add Category
                         </Button>
                     </CardContent>
                 </Card>

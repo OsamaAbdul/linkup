@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
-import { Package, Plus, ShieldCheck, Activity, Smartphone, Edit, X, ArrowLeft, ChevronRight } from "lucide-react";
+import { Package, Plus, ShieldCheck, Activity, Smartphone, Edit, Trash, X, ArrowLeft, ChevronRight } from "lucide-react";
 import { MetricCard } from "./MetricCards";
 import { cn } from "@/lib/utils";
 
@@ -30,8 +30,8 @@ export function InventoryTab({
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                <div>
-                    <p className="text-[9px] font-black text-primary/60 uppercase tracking-[0.2em] mb-1">Inventory Control</p>
+                <div className="space-y-1">
+                    <p className="text-[9px] font-black text-primary/60 uppercase tracking-[0.2em]">Inventory Control</p>
                     <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight">Active Products</h1>
                 </div>
                 <Button
@@ -47,10 +47,10 @@ export function InventoryTab({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <MetricCard title="Total Inventory" value={totalProducts} icon={Package} trend="+2 new" />
                 <MetricCard title="Active Listings" value={products.length} icon={ShieldCheck} status="verified" />
-                <MetricCard title="Stock Health" value="98%" icon={Activity} color="text-green-500" />
+
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {products.map((p) => (
                     <Card key={p.id} className="rounded-xl border-black/[0.03] bg-white shadow-xl shadow-black/[0.02] hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500 overflow-hidden group">
                         <div className="h-44 bg-muted relative group">
@@ -72,7 +72,7 @@ export function InventoryTab({
                         <CardContent className="p-4">
                             <h3 className="text-base font-black text-foreground tracking-tight truncate group-hover:text-primary transition-colors" title={p.title}>{p.title}</h3>
                             <p className="text-xl font-black text-primary mt-1 flex items-center gap-1 tracking-tighter">
-                                <span className="text-sm opacity-60">‚¦</span>
+                                <span className="text-sm opacity-60">â‚¦</span>
                                 {p.price.toLocaleString()}
                             </p>
                         </CardContent>
@@ -83,7 +83,7 @@ export function InventoryTab({
                                 className="flex-1 rounded-xl h-10 bg-muted hover:bg-primary/5 hover:text-primary text-[9px] font-black uppercase tracking-widest transition-all"
                                 onClick={() => setEditingProduct(p)}
                             >
-                                <Edit size={12} className="mr-1.5" strokeWidth={3} /> Config
+                                <Edit size={12} className="mr-1.5" strokeWidth={3} /> Edit
                             </Button>
                             <Button
                                 variant="ghost"
@@ -95,7 +95,7 @@ export function InventoryTab({
                                     }
                                 }}
                             >
-                                <X size={14} strokeWidth={3} />
+                                <Trash size={14} strokeWidth={3} />
                             </Button>
                         </CardFooter>
                     </Card>

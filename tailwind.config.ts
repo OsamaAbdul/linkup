@@ -12,6 +12,7 @@ export default {
         sm: "2rem",
       },
       screens: {
+        "xs": "420px",
         "2xl": "1400px",
       },
     },

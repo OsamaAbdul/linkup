@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { TrendingUp, Calendar, CreditCard, Wallet, ArrowDownToLine, Loader2, CheckCircle, Package } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { PayoutRequestModal } from "@/features/dashboard/components/PayoutRequestModal";
+import { PayoutReceiptModal } from "@/features/dashboard/components/PayoutReceiptModal";
 
 const DAILY_LIMIT = 50000;
 
@@ -19,10 +21,8 @@ export function LogisticsEarnings() {
     const { user } = useAuth();
     const queryClient = useQueryClient();
     const [withdrawOpen, setWithdrawOpen] = useState(false);
-    const [amount, setAmount] = useState("");
-    const [bankName, setBankName] = useState("");
-    const [accountNumber, setAccountNumber] = useState("");
-    const [accountName, setAccountName] = useState("");
+    const [selectedPayout, setSelectedPayout] = useState<any>(null);
+    const [receiptOpen, setReceiptOpen] = useState(false);
 
     // Real wallet balance — keyed by user_id (rider wallet)
     const { data: wallet } = useQuery({
@@ -78,16 +78,15 @@ export function LogisticsEarnings() {
         enabled: !!wallet?.id,
     });
 
-    // Withdrawal requests history
-    const { data: withdrawalRequests = [] } = useQuery({
-        queryKey: ["rider-withdrawals", user?.id],
+    // Payout requests history (Unified system)
+    const { data: payoutRequests = [] } = useQuery({
+        queryKey: ["rider-payout-requests", user?.id],
         queryFn: async () => {
             const { data } = await (supabase as any)
-                .from("withdrawal_requests")
+                .from("payout_requests")
                 .select("*")
                 .eq("user_id", user?.id)
-                .order("requested_at", { ascending: false })
-                .limit(10);
+                .order("created_at", { ascending: false });
             return data || [];
         },
         enabled: !!user,
@@ -109,6 +108,8 @@ export function LogisticsEarnings() {
                         queryClient.invalidateQueries({ queryKey: ["rider-completed-shipments", user.id] });
                     }
                 })
+            .on("postgres_changes", { event: "*", schema: "public", table: "payout_requests" },
+                () => queryClient.invalidateQueries({ queryKey: ["rider-payout-requests", user.id] }))
             .subscribe();
         return () => { supabase.removeChannel(ch); };
     }, [user, queryClient]);
@@ -155,6 +156,11 @@ export function LogisticsEarnings() {
         },
         onError: (err: any) => toast.error(err.message || "Withdrawal request failed"),
     });
+
+    const handleViewReceipt = (payout: any) => {
+        setSelectedPayout(payout);
+        setReceiptOpen(true);
+    };
 
     const statusBadge = (status: string) => {
         const map: Record<string, string> = {
@@ -269,7 +275,7 @@ export function LogisticsEarnings() {
             </section>
 
             {/* Withdrawal History */}
-            {withdrawalRequests.length > 0 && (
+            {payoutRequests.length > 0 && (
                 <section className="space-y-4">
                     <h2 className="text-xl font-black tracking-tight">Withdrawal History</h2>
                     <Card className="border-none shadow-xl shadow-black/[0.02] rounded-xl overflow-hidden">
@@ -277,18 +283,34 @@ export function LogisticsEarnings() {
                             <TableHeader className="bg-muted/30">
                                 <TableRow className="border-none hover:bg-transparent">
                                     <TableHead className="font-black text-[10px] uppercase tracking-widest h-14 pl-8">Date</TableHead>
-                                    <TableHead className="font-black text-[10px] uppercase tracking-widest h-14">Bank</TableHead>
+                                    <TableHead className="font-black text-[10px] uppercase tracking-widest h-14">Bank Details</TableHead>
                                     <TableHead className="font-black text-[10px] uppercase tracking-widest h-14">Amount</TableHead>
-                                    <TableHead className="font-black text-[10px] uppercase tracking-widest h-14 pr-8 text-right">Status</TableHead>
+                                    <TableHead className="font-black text-[10px] uppercase tracking-widest h-14 text-center">Status</TableHead>
+                                    <TableHead className="font-black text-[10px] uppercase tracking-widest h-14 pr-8 text-right">Action</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {withdrawalRequests.map((w: any) => (
-                                    <TableRow key={w.id} className="border-black/[0.03]">
-                                        <TableCell className="font-medium text-xs pl-8">{new Date(w.requested_at).toLocaleDateString()}</TableCell>
-                                        <TableCell className="text-xs font-bold">{w.bank_name} · {w.account_number}</TableCell>
-                                        <TableCell className="text-sm font-black text-primary">‚¦{w.amount?.toLocaleString()}</TableCell>
-                                        <TableCell className="text-right pr-8">{statusBadge(w.status)}</TableCell>
+                                {payoutRequests.map((p: any) => (
+                                    <TableRow key={p.id} className="border-black/[0.03]">
+                                        <TableCell className="font-medium text-xs pl-8">{format(new Date(p.created_at), "MMM d, yyyy")}</TableCell>
+                                        <TableCell>
+                                            <p className="text-xs font-bold">{p.bank_name}</p>
+                                            <p className="text-[10px] text-muted-foreground">{p.account_number}</p>
+                                        </TableCell>
+                                        <TableCell>
+                                            <p className="text-sm font-black text-primary">₦{p.amount?.toLocaleString()}</p>
+                                            <p className="text-[10px] font-bold text-muted-foreground">Fee: ₦{p.fee_amount?.toLocaleString()}</p>
+                                        </TableCell>
+                                        <TableCell className="text-center">{statusBadge(p.status)}</TableCell>
+                                        <TableCell className="text-right pr-8">
+                                            <Button 
+                                                variant="ghost" size="sm" 
+                                                className="h-8 px-3 rounded-lg font-black text-[9px] uppercase tracking-widest hover:bg-primary/5 text-primary"
+                                                onClick={() => handleViewReceipt(p)}
+                                            >
+                                                Receipt
+                                            </Button>
+                                        </TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
@@ -297,57 +319,20 @@ export function LogisticsEarnings() {
                 </section>
             )}
 
-            {/* Withdrawal Dialog */}
-            <Dialog open={withdrawOpen} onOpenChange={setWithdrawOpen}>
-                <DialogContent className="rounded-xl p-0 border-none shadow-[0_32px_128px_-16px_rgba(0,0,0,0.25)] max-w-md overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-                    <DialogHeader className="p-8 pb-4">
-                        <div className="flex items-center gap-4 mb-2">
-                            <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-white">
-                                <ArrowDownToLine size={22} strokeWidth={2.5} />
-                            </div>
-                            <div>
-                                <DialogTitle className="text-xl font-black">Withdraw Earnings</DialogTitle>
-                                <DialogDescription className="text-xs font-medium text-muted-foreground">
-                                    Daily limit: ₦{remainingDailyLimit.toLocaleString()} remaining
-                                </DialogDescription>
-                            </div>
-                        </div>
-                    </DialogHeader>
-                    <div className="px-8 pb-4 space-y-5">
-                        <div>
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Amount (₦)</Label>
-                            <Input type="number" placeholder="Enter amount" value={amount} onChange={(e) => setAmount(e.target.value)}
-                                max={Math.min(wallet?.balance || 0, remainingDailyLimit)}
-                                className="mt-1.5 rounded-xl h-12 font-bold text-base border-black/10" />
-                            <p className="text-[10px] text-muted-foreground mt-1 pl-1">Balance: ₦{(wallet?.balance || 0).toLocaleString()} · Max today: ₦{remainingDailyLimit.toLocaleString()}</p>
-                        </div>
-                        <div>
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Bank Name</Label>
-                            <Input value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="e.g. Access Bank" className="mt-1.5 rounded-xl h-12 border-black/10" />
-                        </div>
-                        <div>
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Account Number</Label>
-                            <Input value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} placeholder="10-digit account number" maxLength={10} className="mt-1.5 rounded-xl h-12 border-black/10 font-mono" />
-                        </div>
-                        <div>
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Account Name</Label>
-                            <Input value={accountName} onChange={(e) => setAccountName(e.target.value)} placeholder="As on bank account" className="mt-1.5 rounded-xl h-12 border-black/10" />
-                        </div>
-                    </div>
-                    <DialogFooter className="p-8 pt-4 border-t border-black/5 flex gap-3">
-                        <Button variant="ghost" onClick={() => setWithdrawOpen(false)} className="flex-1 rounded-xl h-12 font-black text-xs uppercase tracking-widest">Cancel</Button>
-                        <Button
-                            onClick={() => requestWithdrawal.mutate()}
-                            disabled={!amount || !bankName || !accountNumber || !accountName || requestWithdrawal.isPending || parseFloat(amount) > (wallet?.balance || 0) || parseFloat(amount) > remainingDailyLimit}
-                            className="flex-1 rounded-xl h-12 font-black text-xs uppercase tracking-widest gap-2 bg-primary active:scale-95 transition-all"
-                        >
-                            {requestWithdrawal.isPending ? <Loader2 size={15} className="animate-spin" /> : <ArrowDownToLine size={15} strokeWidth={3} />}
-                            {requestWithdrawal.isPending ? "Submitting..." : "Request Withdrawal"}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            {/* Premium Payout Modals */}
+            <PayoutRequestModal 
+                isOpen={withdrawOpen} 
+                onClose={() => setWithdrawOpen(false)} 
+                wallet={wallet} 
+            />
+
+            {selectedPayout && (
+                <PayoutReceiptModal
+                    isOpen={receiptOpen}
+                    onClose={() => setReceiptOpen(false)}
+                    payout={selectedPayout}
+                />
+            )}
         </div>
     );
 }

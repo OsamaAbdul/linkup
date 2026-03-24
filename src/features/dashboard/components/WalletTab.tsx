@@ -6,12 +6,18 @@ import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
-import { Wallet, TrendingUp, Clock, Calendar, PackageCheck } from "lucide-react";
+import { Wallet, TrendingUp, Clock, Calendar, PackageCheck, ArrowDownToLine, Landmark } from "lucide-react";
 import { cn } from "@/lib/utils";
-
+import { PayoutRequestModal } from "./PayoutRequestModal";
+import { PayoutReceiptModal } from "./PayoutReceiptModal";
+import { useState } from "react";
+import { format } from "date-fns";
+import { Receipt } from "lucide-react";
 export function WalletTab() {
     const { user } = useAuth();
     const queryClient = useQueryClient();
+    const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
+    const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
 
     // Real wallet balance
     const { data: wallet } = useQuery({
@@ -67,6 +73,22 @@ export function WalletTab() {
         enabled: !!user,
     });
 
+    // Payout requests history
+    const { data: payoutRequests = [] } = useQuery({
+        queryKey: ["payout-requests", user?.id],
+        queryFn: async () => {
+            const { data, error } = await (supabase as any)
+                .from("payout_requests")
+                .select("*")
+                .eq("user_id", user?.id)
+                .order("created_at", { ascending: false });
+                
+            if (error) console.error("Payout history fetch error:", error);
+            return data ?? [];
+        },
+        enabled: !!user?.id
+    });
+
     // Real-time wallet updates
     useEffect(() => {
         if (!user || !wallet?.id) return;
@@ -80,6 +102,10 @@ export function WalletTab() {
                     queryClient.invalidateQueries({ queryKey: ["wallet-transactions", wallet.id] });
                     queryClient.invalidateQueries({ queryKey: ["seller-completed-shipments", user.id] });
                 })
+            .on("postgres_changes", { event: "*", schema: "public", table: "payout_requests", filter: `seller_id=eq.${user.id}` },
+                () => queryClient.invalidateQueries({ queryKey: ["payout-requests", user.id] }))
+            .on("postgres_changes", { event: "*", schema: "public", table: "system_settings" },
+                () => queryClient.invalidateQueries({ queryKey: ["payout-settings"] }))
             .subscribe();
         return () => { supabase.removeChannel(ch); };
     }, [user, wallet?.id, queryClient]);
@@ -112,13 +138,22 @@ export function WalletTab() {
                             </div>
                             <Badge className="bg-white/20 hover:bg-white/30 text-white border-none rounded-full px-3 text-[9px] font-black uppercase tracking-widest">Master Safe</Badge>
                         </div>
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60">Available Balance</p>
-                            <h2 className="text-4xl font-black tracking-tighter">
-                                <span className="text-xl mr-1 opacity-50 font-bold">₦</span>
-                                {(wallet?.balance ?? 0).toLocaleString()}
-                            </h2>
-                            <p className="text-[10px] text-white/50 font-medium">Total settled: ₦{totalSettled.toLocaleString()}</p>
+                        <div className="flex justify-between items-end">
+                            <div className="space-y-1">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60">Available Balance</p>
+                                <h2 className="text-4xl font-black tracking-tighter">
+                                    <span className="text-xl mr-1 opacity-50 font-bold">₦</span>
+                                    {(wallet?.balance ?? 0).toLocaleString()}
+                                </h2>
+                                <p className="text-[10px] text-white/50 font-medium">Total settled: ₦{totalSettled.toLocaleString()}</p>
+                            </div>
+                            <Button
+                                onClick={() => setIsPayoutModalOpen(true)}
+                                className="bg-white text-primary hover:bg-white/90 rounded-xl h-12 px-6 font-black text-[11px] uppercase tracking-widest shadow-xl shadow-black/10"
+                            >
+                                <ArrowDownToLine size={16} className="mr-2" />
+                                Withdraw Funds
+                            </Button>
                         </div>
                     </div>
                 </Card>
@@ -149,31 +184,97 @@ export function WalletTab() {
                     <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">
                         <PackageCheck size={12} className="inline mr-2" />Settled Orders
                     </h3>
-                    <Card className="border-none shadow-xl rounded-xl overflow-hidden">
-                        <Table>
-                            <TableHeader className="bg-muted/30">
-                                <TableRow className="border-none hover:bg-transparent">
-                                    <TableHead className="font-black text-[10px] uppercase tracking-widest h-14 pl-8">Order</TableHead>
-                                    <TableHead className="font-black text-[10px] uppercase tracking-widest h-14">Date</TableHead>
-                                    <TableHead className="font-black text-[10px] uppercase tracking-widest h-14">Order Total</TableHead>
-                                    <TableHead className="font-black text-[10px] uppercase tracking-widest h-14 pr-8 text-right">You Received (Full Price)</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {completedShipments.map((s: any) => {
-                                    const orderTotal = s.orders?.total ?? 0;
-                                    return (
-                                        <TableRow key={s.id} className="border-black/[0.03]">
-                                            <TableCell className="font-mono text-xs pl-8 text-muted-foreground">#{s.order_id?.slice(0, 8)}</TableCell>
-                                            <TableCell className="text-xs font-medium">{new Date(s.orders?.updated_at ?? s.created_at).toLocaleDateString()}</TableCell>
-                                            <TableCell className="text-sm font-bold">₦{orderTotal.toLocaleString()}</TableCell>
-                                            <TableCell className="text-right pr-8 text-sm font-black text-green-600">+₦{orderTotal.toLocaleString()}</TableCell>
-                                        </TableRow>
-                                    );
-                                })}
-                            </TableBody>
-                        </Table>
+                    <Card className="border-none shadow-xl rounded-xl overflow-hidden max-w-full">
+                        <div className="overflow-x-auto no-scrollbar">
+                            <Table>
+                                <TableHeader className="bg-muted/30">
+                                    <TableRow className="border-none hover:bg-transparent">
+                                        <TableHead className="font-black text-[10px] uppercase tracking-widest h-14 pl-8 min-w-[120px]">Order</TableHead>
+                                        <TableHead className="font-black text-[10px] uppercase tracking-widest h-14 min-w-[100px]">Date</TableHead>
+                                        <TableHead className="font-black text-[10px] uppercase tracking-widest h-14 min-w-[120px]">Customer Paid</TableHead>
+                                        <TableHead className="font-black text-[10px] uppercase tracking-widest h-14 pr-8 text-right min-w-[120px]">Your Payout</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {completedShipments.map((s: any) => {
+                                        const orderTotal = s.orders?.total ?? 0;
+                                        // Match with transaction if available (via metadata or reference fallback)
+                                        const tx = transactions.find((t: any) =>
+                                            t.type === 'settlement' &&
+                                            (t.metadata?.order_id === s.order_id || t.reference?.includes(s.order_id))
+                                        );
+                                        const payout = tx ? tx.amount : null;
+
+                                        return (
+                                            <TableRow key={s.id} className="border-black/[0.03]">
+                                                <TableCell className="font-mono text-xs pl-8 text-muted-foreground">#{s.order_id?.slice(0, 8)}</TableCell>
+                                                <TableCell className="text-xs font-medium">{new Date(s.orders?.updated_at ?? s.created_at).toLocaleDateString()}</TableCell>
+                                                <TableCell className="text-sm font-bold text-muted-foreground">₦{orderTotal.toLocaleString()}</TableCell>
+                                                <TableCell className="text-right pr-8">
+                                                    {payout !== null ? (
+                                                        <span className="text-sm font-black text-green-600">+₦{payout.toLocaleString()}</span>
+                                                    ) : (
+                                                        <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest border-amber-200 text-amber-700 bg-amber-50">Pending Settlement</Badge>
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </div>
                     </Card>
+                </div>
+            )}
+
+            {/* Payout Requests History */}
+            {payoutRequests.length > 0 && (
+                <div className="space-y-4">
+                    <h3 className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.3em]">Payout History</h3>
+                    <div className="grid gap-3">
+                        {payoutRequests.map((req: any) => (
+                            <div key={req.id} className="p-4 bg-white border border-black/[0.03] rounded-xl flex items-center justify-between group hover:shadow-xl hover:shadow-black/[0.02] transition-all duration-300">
+                                <div className="flex items-center gap-4">
+                                    <div className={cn(
+                                        "w-11 h-11 rounded-xl flex items-center justify-center",
+                                        req.status === 'completed' ? "bg-emerald-50 text-emerald-600" :
+                                            req.status === 'rejected' ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-600"
+                                    )}>
+                                        <Landmark size={18} strokeWidth={3} />
+                                    </div>
+                                    <div>
+                                        <p className="text-[13px] font-black text-foreground uppercase tracking-tight">Withdrawal Request</p>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <Badge variant="outline" className={cn(
+                                                "text-[8px] font-black uppercase px-2 py-0 border-none rounded-full",
+                                                req.status === 'completed' ? "bg-emerald-100 text-emerald-700" :
+                                                    req.status === 'rejected' ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
+                                            )}>
+                                                {req.status}
+                                            </Badge>
+                                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
+                                                {req.created_at ? format(new Date(req.created_at), "MMM d, yyyy") : 'Pending'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="text-right flex items-center gap-4">
+                                    <div>
+                                        <p className="text-lg font-black tracking-tighter text-foreground">₦{req.amount.toLocaleString()}</p>
+                                        <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Fee: ₦{req.fee_amount.toLocaleString()}</p>
+                                    </div>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 w-8 p-0 rounded-lg hover:bg-gray-100"
+                                        onClick={() => setSelectedReceipt(req)}
+                                    >
+                                        <Receipt size={14} className="text-muted-foreground" />
+                                    </Button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
 
@@ -209,12 +310,17 @@ export function WalletTab() {
                 </div>
             )}
 
-            {transactions.length === 0 && completedShipments.length === 0 && (
-                <div className="py-20 text-center border-2 border-dashed border-black/5 rounded-xl text-muted-foreground text-sm font-medium">
-                    <Wallet size={36} strokeWidth={1} className="mx-auto mb-3 opacity-20" />
-                    No transactions yet. Revenue will appear here when buyers confirm receipt.
-                </div>
-            )}
+            <PayoutRequestModal
+                isOpen={isPayoutModalOpen}
+                onClose={() => setIsPayoutModalOpen(false)}
+                wallet={wallet}
+            />
+
+            <PayoutReceiptModal
+                isOpen={!!selectedReceipt}
+                onClose={() => setSelectedReceipt(null)}
+                request={selectedReceipt}
+            />
         </div>
     );
 }

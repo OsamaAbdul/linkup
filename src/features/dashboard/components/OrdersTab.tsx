@@ -60,8 +60,8 @@ export function OrdersTab({ orders, updateOrderStatus, sellerZone, sellerZoneId,
                     return (
                         <Card key={o.id} className="rounded-xl border-black/[0.03] bg-white shadow-sm overflow-hidden group">
                             <div className="bg-muted/10 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-black/[0.03]">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-white border border-black/5 flex items-center justify-center text-primary shadow-sm font-mono text-[10px] font-black">
+                                <div className="flex items-center gap-3 sm:gap-4">
+                                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white border border-black/5 flex items-center justify-center text-primary shadow-sm font-mono text-[9px] sm:text-[10px] font-black shrink-0">
                                         #{o.id.slice(0, 4)}
                                     </div>
                                     <div className="space-y-0.5">
@@ -139,8 +139,8 @@ export function OrdersTab({ orders, updateOrderStatus, sellerZone, sellerZoneId,
                                                     </AvatarFallback>
                                                 </Avatar>
                                                 <div>
-                                                    <p className="text-base font-black text-foreground tracking-tight">{shipping.receiver_name || shipping.name}</p>
-                                                    <p className="text-[10px] font-bold text-primary uppercase tracking-widest">{shipping.phone}</p>
+                                                    <p className="text-sm sm:text-base font-black text-foreground tracking-tight">{shipping.receiver_name || shipping.name}</p>
+                                                    <p className="text-[9px] sm:text-[10px] font-bold text-primary uppercase tracking-widest">{shipping.phone}</p>
                                                 </div>
                                             </div>
                                             <div className="flex flex-col gap-2 pt-3 border-t border-black/5">

@@ -5,17 +5,20 @@ import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import {
-    Heart, Trash2, ShoppingCart, Store, ArrowRight, Loader2
+    Heart, Trash2, ShoppingCart, Store, ArrowRight, Loader2, Star, MapPin
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useCart } from "@/features/commerce/context/CartContext";
+import { useGeolocation } from "@/features/logistics/hooks/useGeolocation";
+import { haversineDistance, formatDistance } from "@/lib/haversine";
 
 export default function Wishlist() {
     const { user } = useAuth();
     const { addToCart } = useCart();
+    const { position } = useGeolocation();
     const queryClient = useQueryClient();
 
     const { data: wishlistItems = [], isLoading } = useQuery({
@@ -27,7 +30,37 @@ export default function Wishlist() {
                 .select("*, products(*, profiles(display_name))")
                 .eq("user_id", user.id)
                 .order("created_at", { ascending: false });
-            return data ?? [];
+
+            if (!data) return [];
+
+            // Real-time synchronization fallback: Aggregating ratings if database fields are lagging
+            const { data: allReviews } = await (supabase as any)
+                .from('product_reviews')
+                .select('product_id, rating');
+            
+            const statsMap = (allReviews || []).reduce((acc: any, r: any) => {
+                if (!acc[r.product_id]) acc[r.product_id] = { sum: 0, count: 0 };
+                acc[r.product_id].sum += r.rating;
+                acc[r.product_id].count += 1;
+                return acc;
+            }, {});
+
+            return data.map((item: any) => {
+                if (!item.products) return item;
+                const p = item.products;
+                const hasReviews = statsMap[p.id];
+                const derivedAvg = hasReviews ? statsMap[p.id].sum / statsMap[p.id].count : 0;
+                const derivedCount = hasReviews ? statsMap[p.id].count : 0;
+                
+                return {
+                    ...item,
+                    products: {
+                        ...p,
+                        avg_rating: (p.avg_rating || 0) > 0 ? p.avg_rating : derivedAvg,
+                        reviews_count: (p.reviews_count || 0) > 0 ? p.reviews_count : derivedCount
+                    }
+                };
+            });
         },
         enabled: !!user
     });
@@ -156,6 +189,25 @@ export default function Wishlist() {
                                             <div className="flex-1 p-3 sm:p-4 flex flex-row items-center justify-between gap-4">
                                                 <div className="min-w-0">
                                                     <h3 className="font-black text-[14px] sm:text-[15px] tracking-tight text-foreground line-clamp-1 group-hover:text-primary transition-colors">{product.title}</h3>
+                                                    <div className="flex items-center gap-1.5 px-2 py-0.5 bg-muted/30 rounded-full w-fit my-1">
+                                                        <div className="flex text-yellow-500">
+                                                            <Star size={10} fill={product.avg_rating > 0 ? "currentColor" : "none"} className={product.avg_rating > 0 ? "drop-shadow-[0_0_2px_rgba(251,191,36,0.3)]" : "text-muted-foreground/30"} />
+                                                        </div>
+                                                        <span className="text-[10px] text-foreground font-bold">
+                                                            {product.avg_rating > 0 ? product.avg_rating.toFixed(1) : "NEW"}
+                                                        </span>
+                                                        {position && product.latitude && product.longitude && (() => {
+                                                            const dist = haversineDistance(position.latitude, position.longitude, product.latitude, product.longitude);
+                                                            const minTime = Math.round(dist * 2.5 + 15);
+                                                            const maxTime = Math.round(dist * 4 + 25);
+                                                            return (
+                                                                <span className="text-[9px] text-muted-foreground font-medium ml-1 flex items-center gap-1 border-l pl-2 border-black/[0.05]">
+                                                                    <MapPin size={8} className="text-primary" />
+                                                                    {formatDistance(dist)} • {minTime}-{maxTime}mins
+                                                                </span>
+                                                            );
+                                                        })()}
+                                                    </div>
                                                     <div className="flex items-center gap-2 mt-0.5">
                                                         <span className="font-black text-base sm:text-lg tracking-tighter text-primary">₦{product.price?.toLocaleString()}</span>
                                                     </div>

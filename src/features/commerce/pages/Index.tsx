@@ -200,7 +200,7 @@ export default function Index() {
         .from("products")
         .select(`
           id, title, price, images, category, inventory, likes_count, seller_id, 
-          latitude, longitude,
+          latitude, longitude, avg_rating, reviews_count,
           cities:city_id(name),
           delivery_zones:zone_id(name)
         `)
@@ -234,7 +234,30 @@ export default function Index() {
 
       const { data, error } = await q;
       if (error) throw error;
-      return data;
+
+      // Real-time synchronization fallback: Aggregating ratings if database fields are lagging
+      const { data: allReviews } = await (supabase as any)
+        .from('product_reviews')
+        .select('product_id, rating');
+      
+      const statsMap = (allReviews || []).reduce((acc: any, r: any) => {
+        if (!acc[r.product_id]) acc[r.product_id] = { sum: 0, count: 0 };
+        acc[r.product_id].sum += r.rating;
+        acc[r.product_id].count += 1;
+        return acc;
+      }, {});
+
+      return data.map((p: any) => {
+        const hasReviews = statsMap[p.id];
+        const derivedAvg = hasReviews ? statsMap[p.id].sum / statsMap[p.id].count : 0;
+        const derivedCount = hasReviews ? statsMap[p.id].count : 0;
+        
+        return {
+          ...p,
+          avg_rating: (p.avg_rating || 0) > 0 ? p.avg_rating : derivedAvg,
+          reviews_count: (p.reviews_count || 0) > 0 ? p.reviews_count : derivedCount
+        };
+      });
     },
   });
 
@@ -571,6 +594,8 @@ export default function Index() {
                 index={i}
                 isPromoter={isPromoter}
                 promoterCode={promoterCode}
+                avgRating={product.avg_rating}
+                reviewsCount={product.reviews_count}
               />
             ))
           )}

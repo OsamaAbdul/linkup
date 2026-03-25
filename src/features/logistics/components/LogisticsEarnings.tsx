@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { PayoutRequestModal } from "@/features/dashboard/components/PayoutRequestModal";
 import { PayoutReceiptModal } from "@/features/dashboard/components/PayoutReceiptModal";
+import { format } from "date-fns";
 
 const DAILY_LIMIT = 50000;
 
@@ -23,6 +24,10 @@ export function LogisticsEarnings() {
     const [withdrawOpen, setWithdrawOpen] = useState(false);
     const [selectedPayout, setSelectedPayout] = useState<any>(null);
     const [receiptOpen, setReceiptOpen] = useState(false);
+    const [amount, setAmount] = useState("");
+    const [bankName, setBankName] = useState("");
+    const [accountNumber, setAccountNumber] = useState("");
+    const [accountName, setAccountName] = useState("");
 
     // Real wallet balance — keyed by user_id (rider wallet)
     const { data: wallet } = useQuery({
@@ -115,8 +120,16 @@ export function LogisticsEarnings() {
     }, [user, queryClient]);
 
     // Metrics come from REAL transaction records
-    const deliveryFees = riderTransactions.filter((t: any) => t.type === 'delivery_fee');
-    const totalEarnings = deliveryFees.reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
+    const deliveryFees = riderTransactions.filter((t: any) => t.type === 'delivery_fee' && t.status === 'success');
+    const pendingFees = riderTransactions.filter((t: any) => t.type === 'delivery_fee' && t.status === 'pending');
+    
+    // Total sum should include both success and pending for the "Total Earned" metric if users want to see everything,
+    // but the balance hero should only show available. 
+    // The user asked "credit both seller and the logistics dashboard" instantly.
+    // So I'll show the combined total in "Total Earned" but keep balance as available.
+    const totalEarnings = riderTransactions
+        .filter((t: any) => t.type === 'delivery_fee')
+        .reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
     
     const today = new Date().toDateString();
     const todayEarnings = deliveryFees
@@ -129,8 +142,8 @@ export function LogisticsEarnings() {
         .filter((t: any) => new Date(t.created_at) >= thisWeekStart)
         .reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
 
-    const todayWithdrawn = withdrawalRequests
-        .filter((w: any) => new Date(w.requested_at).toDateString() === today && w.status !== "rejected")
+    const todayWithdrawn = payoutRequests
+        .filter((w: any) => new Date(w.created_at).toDateString() === today && w.status !== "rejected")
         .reduce((acc: number, w: any) => acc + (w.amount || 0), 0);
     const remainingDailyLimit = Math.max(0, DAILY_LIMIT - todayWithdrawn);
 
@@ -254,17 +267,31 @@ export function LogisticsEarnings() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {deliveryFees.map((t: any) => (
+                                {riderTransactions.filter((t: any) => t.type === 'delivery_fee').map((t: any) => (
                                     <TableRow key={t.id} className="border-black/[0.03]">
                                         <TableCell className="pl-8">
-                                            <Badge variant="outline" className="font-black text-[9px] uppercase tracking-widest border-green-200 text-green-700 bg-green-50">
+                                            <Badge variant="outline" className={cn("font-black text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full", t.status === 'pending' ? "border-amber-200 text-amber-700 bg-amber-50" : "border-green-200 text-green-700 bg-green-50")}>
                                                 Delivery Fee
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-xs font-bold">{t.reference || "Order Fee"}</TableCell>
-                                        <TableCell className="text-xs font-medium">{new Date(t.created_at).toLocaleDateString()}</TableCell>
+                                        <TableCell className="text-xs font-medium">
+                                            {new Date(t.created_at).toLocaleDateString()}
+                                            {t.status === 'pending' && (
+                                                <Badge variant="outline" className="ml-2 text-[7px] font-black uppercase border-amber-200 text-amber-700 bg-amber-50 py-0 px-1.5 h-auto">On Hold</Badge>
+                                            )}
+                                        </TableCell>
                                         <TableCell className="text-right pr-8">
-                                            <span className="text-sm font-black text-green-600">+₦{(t.amount || 0).toLocaleString()}</span>
+                                            <div className="flex flex-col items-end gap-1">
+                                                <span className={cn("text-sm font-black", t.status === 'pending' ? "text-amber-600" : "text-green-600")}>
+                                                    {t.status === 'pending' ? "" : "+"}₦{(t.amount || 0).toLocaleString()}
+                                                </span>
+                                                {t.status === 'pending' && t.metadata?.reason && (
+                                                    <span className="text-[8px] text-muted-foreground font-medium italic leading-tight">
+                                                        {t.metadata.reason}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -292,7 +319,7 @@ export function LogisticsEarnings() {
                             <TableBody>
                                 {payoutRequests.map((p: any) => (
                                     <TableRow key={p.id} className="border-black/[0.03]">
-                                        <TableCell className="font-medium text-xs pl-8">{format(new Date(p.created_at), "MMM d, yyyy")}</TableCell>
+                                        <TableCell className="font-medium text-xs pl-8">{new Date(p.created_at).toLocaleDateString()}</TableCell>
                                         <TableCell>
                                             <p className="text-xs font-bold">{p.bank_name}</p>
                                             <p className="text-[10px] text-muted-foreground">{p.account_number}</p>
@@ -330,7 +357,7 @@ export function LogisticsEarnings() {
                 <PayoutReceiptModal
                     isOpen={receiptOpen}
                     onClose={() => setReceiptOpen(false)}
-                    payout={selectedPayout}
+                    request={selectedPayout}
                 />
             )}
         </div>

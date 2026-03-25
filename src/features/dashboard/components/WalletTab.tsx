@@ -110,7 +110,7 @@ export function WalletTab() {
         return () => { supabase.removeChannel(ch); };
     }, [user, wallet?.id, queryClient]);
 
-    const settlementTransactions = transactions.filter((t: any) => t.type === "settlement");
+    const settlementTransactions = transactions.filter((t: any) => t.type === "settlement" && t.status === "success");
     const totalSettled = settlementTransactions.reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
     const escrowBalance = wallet?.escrow_balance ?? 0;
     const thisMonth = new Date();
@@ -211,10 +211,17 @@ export function WalletTab() {
                                                 <TableCell className="text-xs font-medium">{new Date(s.orders?.updated_at ?? s.created_at).toLocaleDateString()}</TableCell>
                                                 <TableCell className="text-sm font-bold text-muted-foreground">₦{orderTotal.toLocaleString()}</TableCell>
                                                 <TableCell className="text-right pr-8">
-                                                    {payout !== null ? (
+                                                    {payout !== null && tx?.status === 'success' ? (
                                                         <span className="text-sm font-black text-green-600">+₦{payout.toLocaleString()}</span>
                                                     ) : (
-                                                        <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest border-amber-200 text-amber-700 bg-amber-50">Pending Settlement</Badge>
+                                                        <div className="flex flex-col items-end gap-1">
+                                                            <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest border-amber-200 text-amber-700 bg-amber-50">Pending Settlement</Badge>
+                                                            {tx?.metadata?.reason && (
+                                                                <span className="text-[8px] text-muted-foreground font-medium max-w-[100px] text-right leading-tight italic">
+                                                                    {tx.metadata.reason}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     )}
                                                 </TableCell>
                                             </TableRow>
@@ -296,7 +303,13 @@ export function WalletTab() {
                                             <Calendar size={10} />
                                             {new Date(t.created_at).toLocaleDateString()}
                                             {t.reference && <span className="opacity-50 font-mono normal-case">· {t.reference}</span>}
+                                            {t.status === 'pending' && (
+                                                <Badge variant="outline" className="ml-2 text-[7px] font-black uppercase border-amber-200 text-amber-700 bg-amber-50 py-0 px-1.5 h-auto">On Hold</Badge>
+                                            )}
                                         </p>
+                                        {t.status === 'pending' && t.metadata?.reason && (
+                                            <p className="text-[8px] text-amber-600 font-bold italic mt-1 leading-none">{t.metadata.reason}</p>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="text-right">

@@ -69,9 +69,9 @@ export default function SearchPage() {
       return allPages.length;
     },
     queryFn: async ({ pageParam = 0 }) => {
-      let q = supabase
+      let q = (supabase as any)
         .from("products")
-        .select("id, title, price, images, category, latitude, longitude, inventory, likes_count, seller_id")
+        .select("id, title, price, images, category, latitude, longitude, inventory, likes_count, seller_id, avg_rating, reviews_count")
         .gt("inventory", 0)
         .range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1);
 
@@ -79,7 +79,31 @@ export default function SearchPage() {
       if (selectedCategory !== "All") q = q.eq("category", selectedCategory);
 
       const { data } = await q.order("created_at", { ascending: false });
-      return data ?? [];
+      if (!data) return [];
+
+      // Real-time synchronization fallback: Aggregating ratings if database fields are lagging
+      const { data: allReviews } = await (supabase as any)
+        .from('product_reviews')
+        .select('product_id, rating');
+      
+      const statsMap = (allReviews || []).reduce((acc: any, r: any) => {
+        if (!acc[r.product_id]) acc[r.product_id] = { sum: 0, count: 0 };
+        acc[r.product_id].sum += r.rating;
+        acc[r.product_id].count += 1;
+        return acc;
+      }, {});
+
+      return data.map((p: any) => {
+        const hasReviews = statsMap[p.id];
+        const derivedAvg = hasReviews ? statsMap[p.id].sum / statsMap[p.id].count : 0;
+        const derivedCount = hasReviews ? statsMap[p.id].count : 0;
+        
+        return {
+          ...p,
+          avg_rating: (p.avg_rating || 0) > 0 ? p.avg_rating : derivedAvg,
+          reviews_count: (p.reviews_count || 0) > 0 ? p.reviews_count : derivedCount
+        };
+      });
     },
   });
 
@@ -190,6 +214,8 @@ export default function SearchPage() {
                 }
                 addToCart(productId, 1);
               }}
+              avgRating={product.avg_rating}
+              reviewsCount={product.reviews_count}
               index={i} />
           ))}
           {products.length === 0 && !isLoading && (

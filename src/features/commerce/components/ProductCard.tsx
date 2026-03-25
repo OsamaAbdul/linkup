@@ -20,6 +20,8 @@ interface ProductCardProps {
   cityName?: string;
   zoneName?: string;
   stockQuantity?: number;
+  avgRating?: number;
+  reviewsCount?: number;
   onLike: (id: string) => void;
   onBuyNow?: (id: string) => void;
   onAddToCart?: (id: string) => void;
@@ -32,7 +34,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({
-  id, title, price, oldPrice, image, sellerName, likeCount, isLiked, cityName, zoneName, stockQuantity, onLike, onBuyNow, onAddToCart, index = 0, isPromoter, promoterCode, latitude, longitude, userLocation
+  id, title, price, oldPrice, image, sellerName, likeCount, isLiked, cityName, zoneName, stockQuantity, avgRating = 0, reviewsCount = 0, onLike, onBuyNow, onAddToCart, index = 0, isPromoter, promoterCode, latitude, longitude, userLocation
 }: ProductCardProps) {
   const isOutOfStock = stockQuantity !== undefined && stockQuantity <= 0;
   const isLowStock = !isOutOfStock && stockQuantity !== undefined && stockQuantity <= 5;
@@ -71,6 +73,30 @@ export function ProductCard({
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-secondary/50 text-[10px]">No image</div>
+            )}
+
+            {/* Location & Delivery Time Overlay - Top Left */}
+            {(zoneName || userLocation) && (
+              <div className="absolute top-2 left-2 z-10">
+                <div className="glass px-2 py-1 rounded-lg flex items-center gap-1.5 shadow-lg border border-white/10">
+                  <MapPin size={10} className="text-primary fill-primary/20" />
+                  <div className="flex flex-col leading-none">
+                    <span className="text-[8px] font-black uppercase tracking-tight text-foreground truncate max-w-[80px]">
+                      {zoneName?.split('(')[0].trim() || cityName}
+                    </span>
+                    {userLocation && latitude && longitude && (() => {
+                      const dist = haversineDistance(userLocation.latitude, userLocation.longitude, latitude, longitude);
+                      const minTime = Math.round(dist * 2.5 + 15);
+                      const maxTime = Math.round(dist * 4 + 25);
+                      return (
+                        <span className="text-[7px] font-bold text-muted-foreground whitespace-nowrap">
+                          {formatDistance(dist)} • {minTime}-{maxTime}m
+                        </span>
+                      );
+                    })()}
+                  </div>
+                </div>
+              </div>
             )}
 
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -121,38 +147,26 @@ export function ProductCard({
               <h3 className="font-heading font-semibold text-base text-foreground line-clamp-1 group-hover:text-primary transition-colors duration-300">{title}</h3>
             </Link>
 
-            <div className="flex items-center justify-between gap-1">
-              <div className="flex items-center gap-1">
-                <div className="flex text-warning">
+            <div className="flex items-center justify-between gap-1 pt-0.5">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 bg-muted/30 rounded-full">
+                <div className="flex text-yellow-500">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={10} fill={i < 4 ? "currentColor" : "none"} className={i < 4 ? "" : "text-muted/40"} />
+                    <Star 
+                      key={i} 
+                      size={11} 
+                      fill={i < Math.floor(avgRating) ? "currentColor" : "none"} 
+                      className={cn("transition-colors", i < Math.floor(avgRating) ? "drop-shadow-[0_0_2px_rgba(251,191,36,0.5)]" : "text-muted-foreground/30")} 
+                    />
                   ))}
                 </div>
-                <span className="text-[10px] text-muted-foreground font-semibold">4.8</span>
+                <span className="text-[10px] text-foreground font-bold leading-none">
+                  {avgRating > 0 ? avgRating.toFixed(1) : "NEW"}
+                  {reviewsCount > 0 && <span className="text-muted-foreground font-normal ml-0.5">({reviewsCount})</span>}
+                </span>
               </div>
 
-              {zoneName ? (
-                <div className="flex items-center gap-1 text-muted-foreground">
-                  <MapPin size={9} className="text-primary" />
-                  <span className="text-[9px] font-medium uppercase tracking-tight">
-                    {zoneName.split('(')[0].trim()}
-                    {userLocation && latitude && longitude && (
-                      <span className="ml-1 opacity-70">
-                        • {formatDistance(haversineDistance(userLocation.latitude, userLocation.longitude, latitude, longitude))}
-                      </span>
-                    )}
-                  </span>
-                </div>
-              ) : cityName && (
-                <div className="flex items-center gap-1 text-muted-foreground">
-                  <MapPin size={9} className="text-primary" />
-                  <span className="text-[9px] font-medium uppercase tracking-tight">
-                    {cityName}
-                  </span>
-                </div>
-              )}
+              </div>
             </div>
-          </div>
 
           <div className="pt-1.5 border-t border-border/30 flex items-center justify-between">
             <div className="flex flex-col">

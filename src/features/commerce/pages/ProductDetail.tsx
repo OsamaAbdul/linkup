@@ -10,9 +10,10 @@ import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { Input } from "@/shared/components/ui/input";
 import { Skeleton } from "@/shared/components/ui/skeleton";
-import { Heart, ShoppingCart, Send, ArrowLeft, Share2, MapPin, ShieldCheck, Clock, MessageSquare } from "lucide-react";
+import { Heart, ShoppingCart, Send, ArrowLeft, Share2, MapPin, ShieldCheck, Clock, MessageSquare, Star } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
+import RatingSelector from "@/features/commerce/components/RatingSelector";
 import { useReferral } from "@/features/promoter/hooks/useReferral";
 import { cn } from "@/lib/utils";
 import { BuyNowModal } from "@/features/commerce/components/BuyNowModal";
@@ -27,6 +28,7 @@ export default function ProductDetail() {
   const { position } = useGeolocation();
   const queryClient = useQueryClient();
   const [commentText, setCommentText] = useState("");
+  const [rating, setRating] = useState(5);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isBuyNowOpen, setIsBuyNowOpen] = useState(false);
   useReferral();
@@ -34,11 +36,12 @@ export default function ProductDetail() {
   const { data: product, isLoading } = useQuery({
     queryKey: ["product", id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("products")
         .select(`
           id, title, price, images, description,
           latitude, longitude, inventory, seller_id, category,
+          avg_rating, reviews_count,
           profiles!products_seller_id_fkey(display_name, avatar_url, bio)
         `)
         .eq("id", id!)
@@ -68,14 +71,14 @@ export default function ProductDetail() {
     enabled: !!id,
   });
 
-  const { data: comments = [] } = useQuery({
-    queryKey: ["comments", id],
+  const { data: productReviews = [] } = useQuery({
+    queryKey: ["product-reviews", id],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("comments")
-        .select("*, profiles!comments_user_id_fkey(display_name, avatar_url)")
+      const { data } = await (supabase as any)
+        .from("product_reviews")
+        .select("*, profiles!product_reviews_user_id_fkey(display_name, avatar_url)")
         .eq("product_id", id!)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false });
       return data ?? [];
     },
     enabled: !!id,
@@ -85,8 +88,9 @@ export default function ProductDetail() {
     if (!id) return;
     const channel = supabase
       .channel(`product-detail-sync-${id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "comments", filter: `product_id=eq.${id}` }, () => {
-        queryClient.invalidateQueries({ queryKey: ["comments", id] });
+      .on("postgres_changes", { event: "*", schema: "public", table: "product_reviews", filter: `product_id=eq.${id}` }, () => {
+        queryClient.invalidateQueries({ queryKey: ["product-reviews", id] });
+        queryClient.invalidateQueries({ queryKey: ["product", id] });
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "products", filter: `id=eq.${id}` }, () => {
         queryClient.invalidateQueries({ queryKey: ["product", id] });
@@ -150,19 +154,34 @@ export default function ProductDetail() {
     },
   });
 
-  const commentMutation = useMutation({
+  const reviewMutation = useMutation({
     mutationFn: async () => {
       if (!user) {
         toggleAuth();
         return;
       }
-      await supabase.from("comments").insert({ user_id: user.id, product_id: id!, text: commentText });
+      const { error } = await (supabase as any)
+        .from("product_reviews")
+        .upsert({ 
+          user_id: user.id, 
+          product_id: id!, 
+          rating: rating, 
+          review_text: commentText 
+        }, { onConflict: 'user_id,product_id' });
+      if (error) throw error;
     },
     onSuccess: () => {
       setCommentText("");
-      queryClient.invalidateQueries({ queryKey: ["comments", id] });
+      setRating(5);
+      toast.success("Review submitted!");
+      queryClient.invalidateQueries({ queryKey: ["product", id] });
+      queryClient.invalidateQueries({ queryKey: ["product-reviews", id] });
     },
+    onError: (error) => {
+      toast.error(error.message || "Failed to submit review");
+    }
   });
+
 
   if (isLoading) return (
     <AppLayout hideBottomNav>
@@ -177,9 +196,11 @@ export default function ProductDetail() {
 
   if (!product) return <AppLayout hideBottomNav><div className="p-4 text-center">Product not found</div></AppLayout>;
 
-  const dist = position && product.latitude && product.longitude
-    ? formatDistance(haversineDistance(position.latitude, position.longitude, product.latitude, product.longitude))
+  const rawDist = position && product.latitude && product.longitude
+    ? haversineDistance(position.latitude, position.longitude, product.latitude, product.longitude)
     : null;
+  const dist = rawDist ? formatDistance(rawDist) : null;
+  const deliveryTime = rawDist ? `${Math.round(rawDist * 2.5 + 15)}-${Math.round(rawDist * 4 + 25)}mins` : null;
 
   const animationProps = {
     initial: { opacity: 0, y: 20 },
@@ -307,11 +328,40 @@ export default function ProductDetail() {
               )}
               {dist && (
                 <Badge variant="outline" className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs border-primary/20 bg-primary/5 text-primary">
-                  <MapPin size={12} /> {dist}
+                  <MapPin size={12} /> {dist} • {deliveryTime}
                 </Badge>
               )}
             </div>
             <h1 className="text-3xl lg:text-4xl font-black tracking-tight mb-1 text-foreground">{product.title}</h1>
+            
+            {(() => {
+              const derivedReviewsCount = productReviews.length;
+              const derivedAvgRating = derivedReviewsCount > 0 
+                ? productReviews.reduce((acc: number, r: any) => acc + r.rating, 0) / derivedReviewsCount 
+                : 0;
+              const displayRating = (product.avg_rating || 0) > 0 ? product.avg_rating : derivedAvgRating;
+              const displayCount = (product.reviews_count || 0) > 0 ? product.reviews_count : derivedReviewsCount;
+
+              return (
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="flex text-yellow-500">
+                    {[...Array(5)].map((_, i) => (
+                      <Star 
+                        key={i} 
+                        size={16} 
+                        fill={i < Math.floor(displayRating) ? "currentColor" : "none"} 
+                        className={cn("transition-colors", i < Math.floor(displayRating) ? "drop-shadow-[0_0_2px_rgba(251,191,36,0.5)]" : "text-muted-foreground/60")} 
+                      />
+                    ))}
+                  </div>
+                  <span className="text-sm font-bold">
+                    {displayRating > 0 ? displayRating.toFixed(1) : "New"}
+                    {displayCount > 0 && ` (${displayCount} ${displayCount === 1 ? 'review' : 'reviews'})`}
+                  </span>
+                </div>
+              );
+            })()}
+
             <div className="hidden lg:block">
               <p className="text-4xl font-black text-primary leading-tight">₦{product.price.toLocaleString()}</p>
               {(product as any).category && (
@@ -409,7 +459,7 @@ export default function ProductDetail() {
                 className="flex-1 flex items-center justify-center gap-2 h-12 lg:h-10 rounded-xl bg-surface border border-border text-foreground/70 hover:bg-muted transition-all text-sm font-bold shadow-sm"
               >
                 <MessageSquare size={18} />
-                Ask Seller
+                Ask Our Partner
               </button>
             </div>
           </m.div>
@@ -458,9 +508,7 @@ export default function ProductDetail() {
                   )}
                 </div>
               </div>
-              <Button variant="ghost" size="sm" className="rounded-xl hover:bg-primary/10 text-primary font-bold">
-                View Shop
-              </Button>
+
             </div>
           </m.div>
 
@@ -473,72 +521,82 @@ export default function ProductDetail() {
           </div>
 
 
-          {/* Comments Section */}
+          {/* Reviews Section */}
           <m.div {...animationProps} transition={{ delay: 0.4 }} className="space-y-6 pt-6 border-t border-border/50">
             <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-black tracking-tight">Community Feed</h3>
+              <h3 className="text-2xl font-black tracking-tight">Customer Reviews</h3>
               <span className="px-3 py-1 bg-muted rounded-full text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                {comments.length} Discussion{comments.length !== 1 ? 's' : ''}
+                {productReviews.length} Review{productReviews.length !== 1 ? 's' : ''}
               </span>
             </div>
 
-            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+            {/* Review Input */}
+            <div className="bg-muted/20 p-6 rounded-2xl border border-border/50 space-y-4">
+              <h4 className="font-bold text-sm uppercase tracking-widest text-muted-foreground">Rate this product</h4>
+              <RatingSelector rating={rating} setRating={setRating} />
+              <div className="relative group">
+                <Input
+                  placeholder={user ? "Share your experience with this product..." : "Sign in to leave a review..."}
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  onFocus={() => !user && toggleAuth()}
+                  className="h-12 pl-6 pr-14 rounded-xl bg-background border-border/50 group-focus-within:border-primary/50 transition-all shadow-inner"
+                />
+                <button
+                  aria-label="Submit review"
+                  className="absolute right-3 top-[0.5rem] p-2 bg-primary text-primary-foreground rounded-xl hover:scale-110 active:scale-95 transition-all shadow-lg shadow-primary/30 disabled:opacity-50"
+                  onClick={() => commentText.trim() && reviewMutation.mutate()}
+                  disabled={!commentText.trim() || reviewMutation.isPending}
+                >
+                  <Send size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
               <AnimatePresence initial={false}>
-                {comments.map((c: any, idx: number) => (
+                {productReviews.map((r: any, idx: number) => (
                   <m.div
-                    key={c.id}
+                    key={r.id}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: idx * 0.05 }}
-                    className="flex gap-4 group"
+                    className="flex gap-4 group pb-6 border-b border-border/30 last:border-0"
                   >
-                    <div className="h-10 w-10 rounded-lg bg-muted overflow-hidden flex-shrink-0 border-2 border-transparent group-hover:border-primary/20 transition-all">
-                      {c.profiles?.avatar_url ? (
-                        <img src={c.profiles.avatar_url} alt={c.profiles.display_name} className="w-full h-full object-cover" />
+                    <div className="h-10 w-10 rounded-lg bg-muted overflow-hidden flex-shrink-0">
+                      {r.profiles?.avatar_url ? (
+                        <img src={r.profiles.avatar_url} alt={r.profiles.display_name} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary font-bold text-xs">
-                          {c.profiles?.display_name?.[0]?.toUpperCase() ?? "?"}
+                          {r.profiles?.display_name?.[0]?.toUpperCase() ?? "?"}
                         </div>
                       )}
                     </div>
-                    <div className="flex-1 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-black text-foreground">{c.profiles?.display_name ?? "Anonymous"}</span>
-                        <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">{new Date(c.created_at).toLocaleDateString()}</span>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-black text-foreground">{r.profiles?.display_name ?? "Anonymous"}</span>
+                          <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">{new Date(r.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex text-yellow-500">
+                          {[...Array(5)].map((_, i) => (
+                            <Star key={i} size={10} fill={i < r.rating ? "currentColor" : "none"} className={i < r.rating ? "drop-shadow-[0_0_2px_rgba(251,191,36,0.3)]" : "text-muted-foreground/30"} />
+                          ))}
+                        </div>
                       </div>
-                      <div className="bg-muted/30 p-4 rounded-xl rounded-tl-none border border-border/20 group-hover:bg-muted/50 transition-colors">
-                        <p className="text-sm leading-relaxed text-foreground/90">{c.text}</p>
+                      <div className="bg-muted/30 p-4 rounded-xl border border-border/20 group-hover:bg-muted/50 transition-colors">
+                        <p className="text-sm leading-relaxed text-foreground/90">{r.review_text}</p>
                       </div>
                     </div>
                   </m.div>
                 ))}
               </AnimatePresence>
-              {comments.length === 0 && (
+              {productReviews.length === 0 && (
                 <div className="text-center py-12 bg-muted/10 rounded-xl border border-dashed border-border/50">
-                  <MessageSquare className="mx-auto text-muted-foreground/30 mb-3" size={32} />
-                  <p className="text-muted-foreground italic font-medium">Be the first to start the conversation.</p>
+                  <Star className="mx-auto text-muted-foreground/30 mb-3" size={32} />
+                  <p className="text-muted-foreground italic font-medium">No reviews yet. Be the first to rate this product!</p>
                 </div>
               )}
-            </div>
-
-            {/* Comment Input */}
-            <div className="relative group pt-2">
-              <Input
-                placeholder={user ? "Share your thoughts..." : "Sign in to join the discussion..."}
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                onFocus={() => !user && toggleAuth()}
-                onKeyDown={(e) => e.key === "Enter" && commentText.trim() && commentMutation.mutate()}
-                className="h-12 pl-6 pr-14 rounded-xl bg-muted/30 border-border/50 group-focus-within:bg-background group-focus-within:border-primary/50 transition-all shadow-inner"
-              />
-              <button
-                aria-label="Send comment"
-                className="absolute right-3 top-[1.2rem] p-2 bg-primary text-primary-foreground rounded-xl hover:scale-110 active:scale-95 transition-all shadow-lg shadow-primary/30 disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-ring"
-                onClick={() => commentText.trim() && commentMutation.mutate()}
-                disabled={!commentText.trim() || commentMutation.isPending}
-              >
-                <Send size={18} />
-              </button>
             </div>
           </m.div>
         </div>

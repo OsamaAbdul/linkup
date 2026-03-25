@@ -96,8 +96,8 @@ export default function AdminIssueManager() {
                 {issues?.length === 0 ? (
                     <div className="col-span-full p-20 text-center bg-white rounded-[3rem] border-2 border-dashed border-gray-100 shadow-sm">
                         <Check className="mx-auto h-16 w-16 text-emerald-500 opacity-20 mb-4" />
-                        <h3 className="font-black text-2xl mb-2">Security Zone</h3>
-                        <p className="text-muted-foreground font-medium text-lg">Platform 100% secured. No active threats reported.</p>
+                        <h3 className="font-black text-2xl mb-2">Zero issues submitted</h3>
+                        <p className="text-muted-foreground font-medium text-lg">All orders are completed and successful</p>
                     </div>
                 ) : issues?.map((issue: any) => (
                     <Card key={issue.id} className="border-none shadow-sm rounded-xl bg-white hover:shadow-2xl transition-all duration-500 group overflow-hidden">
@@ -176,7 +176,7 @@ export default function AdminIssueManager() {
                                     variant="outline"
                                     className="rounded-xl h-12 font-black text-[11px] uppercase tracking-widest border-2 hover:bg-black hover:text-white transition-colors"
                                     onClick={() => {
-                                        toast.info(`Rapid Intel tracking established for Issue #${issue.id.slice(0,8)}`);
+                                        toast.info(`Rapid Intel tracking established for Issue #${issue.id.slice(0, 8)}`);
                                     }}
                                 >
                                     Intel

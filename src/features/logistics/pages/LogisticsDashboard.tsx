@@ -70,7 +70,7 @@ export default function LogisticsDashboard() {
                 .select("status")
                 .eq("user_id", user?.id)
                 .maybeSingle();
-            return data?.status || "none";
+            return data?.status?.trim()?.toLowerCase() || "none";
         },
         enabled: !!user,
         refetchOnWindowFocus: true,

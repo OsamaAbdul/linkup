@@ -121,7 +121,7 @@ export function LogisticsHeader({
                         />
                     </div>
 
-                    {kycStatus === 'verified' && (
+                    {(kycStatus === 'verified' || kycStatus === 'approved') && (
                         <div className="hidden lg:flex items-center gap-2 bg-blue-50/50 px-3 py-1.5 rounded-xl border border-blue-500/10">
                             <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white">
                                 <ShieldCheck size={12} strokeWidth={3} />
@@ -140,7 +140,7 @@ export function LogisticsHeader({
                             <span className="text-[10px] font-black text-foreground tracking-tight capitalize line-clamp-1 max-w-[60px] sm:max-w-none">
                                 {profile?.display_name || "Agent"}
                             </span>
-                            {kycStatus === 'verified' && (
+                            {(kycStatus === 'verified' || kycStatus === 'approved') && (
                                 <span className="text-[7px] font-black text-blue-600 uppercase tracking-widest leading-none">Verified</span>
                             )}
                         </div>

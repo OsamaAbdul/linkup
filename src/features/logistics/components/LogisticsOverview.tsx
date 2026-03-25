@@ -112,7 +112,7 @@ export function LogisticsOverview({
         refetchInterval: 8000, // Poll every 8 seconds for new missions
     });
 
-    const isKycVerified = kycStatus === "verified";
+    const isKycVerified = kycStatus?.toLowerCase() === "verified" || kycStatus?.toLowerCase() === "approved";
 
     // ���� Real-time listener for both assigned shipments and broadcasts ����
     useEffect(() => {
@@ -341,8 +341,14 @@ export function LogisticsOverview({
                                             "rounded-xl h-12 px-8 font-black text-[10px] uppercase tracking-widest gap-2 active:scale-95 transition-all shrink-0 shadow-lg",
                                             isKycVerified ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/20" : "bg-muted text-muted-foreground shadow-none cursor-not-allowed"
                                         )}
-                                        onClick={() => claimMissionMutation.mutate(mission.id)}
-                                        disabled={claimMissionMutation.isPending || !isKycVerified}
+                                        onClick={() => {
+                                            if (isKycVerified) {
+                                                claimMissionMutation.mutate(mission.id);
+                                            } else if (kycStatus !== "pending") {
+                                                onVerificationClick?.();
+                                            }
+                                        }}
+                                        disabled={claimMissionMutation.isPending || (kycStatus === "pending" && !isKycVerified)}
                                     >
                                         {isKycVerified ? (
                                             <>
@@ -352,7 +358,7 @@ export function LogisticsOverview({
                                         ) : (
                                             <>
                                                 <Clock size={14} strokeWidth={3} />
-                                                {kycStatus === "pending" ? "Awaiting Verification" : "Profile Incomplete"}
+                                                {kycStatus === "pending" ? "Awaiting Verification" : "Complete Profile"}
                                             </>
                                         )}
                                     </Button>

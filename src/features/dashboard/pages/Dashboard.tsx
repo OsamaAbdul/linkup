@@ -16,6 +16,7 @@ import { CategoryTab } from "@/features/dashboard/components/CategoryTab";
 import { IssuesTab } from "@/features/dashboard/components/IssuesTab";
 import { EditProductModal } from "@/features/dashboard/components/EditProductModal";
 import { PaymentReconciliationTab } from "@/features/dashboard/components/PaymentReconciliationTab";
+import { ProfileTab } from "@/features/dashboard/components/ProfileTab";
 
 export default function Dashboard() {
   const { user, loading } = useAuth();
@@ -46,7 +47,7 @@ export default function Dashboard() {
   const totalProducts = productsData?.count || 0;
 
   const { data: ordersData } = useQuery({
-    queryKey: ["seller-orders", user?.id, ordersPage],
+    queryKey: ["seller-orders-v3", user?.id, ordersPage],
     queryFn: async () => {
       if (!user) return { data: [], count: 0 };
       const { data, count } = await (supabase as any)
@@ -78,19 +79,19 @@ export default function Dashboard() {
       if (!user) return null;
       const { data: profile } = await supabase
         .from("profiles")
-        .select("zone, city_id, zone_id")
+        .select("*")
         .eq("user_id", user.id)
         .maybeSingle();
 
       const { data: verification } = await (supabase as any)
         .from("seller_verifications")
-        .select("business_address")
+        .select("*")
         .eq("user_id", user.id)
         .maybeSingle();
 
       return {
-        ...(profile as any),
-        business_address: verification?.business_address
+        ...profile,
+        verification: verification
       };
     },
     enabled: !!user,
@@ -249,6 +250,41 @@ export default function Dashboard() {
     }
   });
 
+  const updateProfileMutation = useMutation({
+    mutationFn: async (formData: any) => {
+      if (!user) throw new Error("Not authenticated");
+
+      // 1. Update profiles table
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          display_name: formData.display_name,
+          phone: formData.phone
+        })
+        .eq("user_id", user.id);
+
+      if (profileError) throw profileError;
+
+      // 2. Update seller_verifications table
+      const { error: verificationError } = await (supabase as any)
+        .from("seller_verifications")
+        .update({
+          business_name: formData.business_name,
+          business_address: formData.business_address
+        })
+        .eq("user_id", user.id);
+
+      if (verificationError) throw verificationError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["seller-profile", user?.id] });
+      toast.success("Profile updated successfully");
+    },
+    onError: (error: any) => {
+      toast.error("Failed to update profile: " + (error.message || "Unknown error"));
+    }
+  });
+
   // Realtime subscription for orders, issues, and wallet
   useEffect(() => {
     if (!user) return;
@@ -257,7 +293,7 @@ export default function Dashboard() {
       .channel('seller-orders-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `seller_id=eq.${user.id}` },
         () => {
-          queryClient.invalidateQueries({ queryKey: ["seller-orders"] });
+          queryClient.invalidateQueries({ queryKey: ["seller-orders-v3"] });
           queryClient.invalidateQueries({ queryKey: ["pending-orders-count"] });
           queryClient.invalidateQueries({ queryKey: ["seller-analytics"] });
         })
@@ -425,6 +461,14 @@ export default function Dashboard() {
           {tab === "issues" && <IssuesTab />}
 
           {tab === "payments" && <PaymentReconciliationTab />}
+
+          {tab === "profile" && (
+            <ProfileTab 
+              profile={sellerProfile} 
+              onUpdate={(data) => updateProfileMutation.mutateAsync(data)}
+              isUpdating={updateProfileMutation.isPending}
+            />
+          )}
         </main>
       </div>
 

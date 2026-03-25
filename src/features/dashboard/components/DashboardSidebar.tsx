@@ -4,7 +4,7 @@ import { RoleSwitcher } from "@/shared/components/layout/RoleSwitcher";
 import {
     LayoutDashboard, Plus, Package, ShoppingBag,
     Wallet, BarChart3, TrendingUp, AlertCircle,
-    LogOut, Menu, CreditCard
+    LogOut, Menu, CreditCard, UserCircle
 } from "lucide-react";
 import {
     Sheet,
@@ -16,7 +16,7 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import { Link } from "react-router-dom";
 
-export type Tab = "products" | "list-product" | "orders" | "wallet" | "analytics" | "categories" | "issues" | "payments";
+export type Tab = "products" | "list-product" | "orders" | "wallet" | "analytics" | "categories" | "issues" | "payments" | "profile";
 
 interface DashboardSidebarProps {
     activeTab: Tab;
@@ -35,6 +35,7 @@ export const tabs = [
     { id: "analytics" as Tab, label: "Insights", icon: BarChart3 },
     { id: "categories" as Tab, label: "Category Settings", icon: TrendingUp },
     { id: "payments" as Tab, label: "Payments History", icon: CreditCard },
+    { id: "profile" as Tab, label: "Store Profile", icon: UserCircle },
 ];
 
 export function DashboardSidebar({ activeTab, setTab, pendingOrdersCount = 0, openIssuesCount = 0 }: DashboardSidebarProps) {

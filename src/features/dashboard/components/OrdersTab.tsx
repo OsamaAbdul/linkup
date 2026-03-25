@@ -18,6 +18,7 @@ interface OrdersTabProps {
 }
 
 export function OrdersTab({ orders, updateOrderStatus, sellerZone, sellerZoneId, sellerCityId, sellerAddress, broadcastOrder }: OrdersTabProps) {
+    console.log("this is the order being shipped", orders);
     const [selectorOpen, setSelectorOpen] = useState(false);
     const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
 
@@ -172,11 +173,11 @@ export function OrdersTab({ orders, updateOrderStatus, sellerZone, sellerZoneId,
                                                 <div className="flex items-center gap-3">
                                                     <Avatar className="h-10 w-10 rounded-xl border border-white">
                                                         <AvatarFallback className="bg-white text-primary text-xs font-black">
-                                                            {o.shipments[0].profiles?.display_name?.[0] || "R"}
+                                                            {(o.shipments[0].rider?.display_name || o.shipments[0].profiles?.display_name)?.[0] || "R"}
                                                         </AvatarFallback>
                                                     </Avatar>
                                                     <div className="min-w-0">
-                                                        <p className="font-bold text-[13px] text-foreground truncate">{o.shipments[0].profiles?.display_name || "Assigned Rider"}</p>
+                                                        <p className="font-bold text-[13px] text-foreground truncate">{(o.shipments[0].rider?.display_name || o.shipments[0].profiles?.display_name) || "Assigned Rider"}</p>
                                                         <div className="flex items-center gap-1.5 mt-0.5">
                                                             <span className="text-[9px] font-bold text-muted-foreground/60 uppercase">{o.shipments[0].zone?.split(' (')[0] || "Standard Zone"}</span>
                                                             <span className="w-0.5 h-0.5 rounded-full bg-primary/30" />

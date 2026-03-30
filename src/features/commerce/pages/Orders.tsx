@@ -144,7 +144,8 @@ export default function Orders() {
 
     const orders = rawOrders.map((order: any) => {
         const shipment = order.shipments?.[0];
-        const jsonItem = Array.isArray(order.items) ? order.items[0] : null;
+        const items = Array.isArray(order.items) ? order.items : [];
+        const jsonItem = items[0] || null;
 
         const title = jsonItem?.title || `Order #${order.id.slice(0, 8)}`;
         const image = jsonItem?.image || jsonItem?.images?.[0] || "";
@@ -159,10 +160,11 @@ export default function Orders() {
             store,
             status: order.status,
             displayStatus: formatStatus(order.status),
-            itemsCount: Array.isArray(order.items) ? order.items.length : 0,
+            itemsCount: items.length,
             deliveredBy: order.status === 'delivered' ? 'Linkup Logistics' : null,
             shipment,
-            sellerId: order.seller_id
+            sellerId: order.seller_id,
+            size: jsonItem?.size // Map first item's size
         };
     });
 
@@ -205,4 +207,3 @@ export default function Orders() {
         </AppLayout>
     );
 }
-

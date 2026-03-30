@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-platform-runtime, x-supabase-client-platform-runtime-version",
 };
 
 const COMMISSION_RATE = 0.05; // 5%
@@ -88,20 +88,35 @@ serve(async (req: Request) => {
     const orderSellerId = seller_id || items[0]?.seller_id;
     if (!orderSellerId) throw new Error("No seller_id provided");
 
-    // --- Fetch Seller Coordinates for Distance Calculation ---
+    // --- Fetch Seller details for Distance & Pickup ---
     let final_pickup_lat = pickup_lat;
     let final_pickup_lng = pickup_lng;
+    let seller_address_fallback = "";
 
-    if (!final_pickup_lat || !final_pickup_lng) {
+    if (!final_pickup_lat || !final_pickup_lng || !seller_address_fallback) {
       const { data: sellerProfile } = await adminClient
         .from("profiles")
-        .select("latitude, longitude")
-        .eq("user_id", orderSellerId)
+        .select("latitude, longitude, address")
+        .eq("id", orderSellerId)
         .single();
       
       if (sellerProfile) {
-        final_pickup_lat = sellerProfile.latitude;
-        final_pickup_lng = sellerProfile.longitude;
+        final_pickup_lat = final_pickup_lat || sellerProfile.latitude;
+        final_pickup_lng = final_pickup_lng || sellerProfile.longitude;
+        seller_address_fallback = seller_address_fallback || sellerProfile.address || "";
+      }
+
+      // Check seller_verifications if still missing
+      if (!seller_address_fallback) {
+        const { data: sellerVerif } = await adminClient
+          .from("seller_verifications")
+          .select("business_address")
+          .eq("user_id", orderSellerId)
+          .single();
+        
+        if (sellerVerif) {
+          seller_address_fallback = sellerVerif.business_address || "";
+        }
       }
     }
 
@@ -164,6 +179,25 @@ serve(async (req: Request) => {
       throw new Error(`Failed to create order: ${orderError.message}`);
     }
 
+    // --- Create Order Items (Relational Integrity) ---
+    const orderItemsPayload = enrichedItems.map((item) => ({
+      order_id: order.id,
+      product_id: item.product_id,
+      seller_id: item.seller_id || orderSellerId,
+      quantity: item.quantity,
+      price_at_purchase: item.price,
+      size: item.size || null,
+    }));
+
+    const { error: itemsError } = await adminClient
+      .from("order_items_new")
+      .insert(orderItemsPayload);
+
+    if (itemsError) {
+      console.error("ORDER_ITEMS_INSERT_FAIL:", itemsError);
+      // Non-blocking but logged
+    }
+
     // --- Conversion Tracking (New Engine) ---
     if (promoter_id) {
        await adminClient
@@ -181,15 +215,23 @@ serve(async (req: Request) => {
 
     // --- Create Shipment (fail loudly) ---
     const deliveryAddress = toTextAddress(shipping_address);
-    const pickupAddress = toTextAddress(pickup_address);
+    const pickupAddress = toTextAddress(pickup_address) || seller_address_fallback;
 
     const { error: shipmentError } = await adminClient.from("shipments").insert({
       order_id: order.id,
+      seller_id: orderSellerId,
       status: "pending",
       delivery_address: deliveryAddress,
       pickup_address: pickupAddress,
       delivery_fee: delivery_fee || 0,
       zone_id: zone_id || null,
+      city_id: city_id || null,
+      zone: zone || null,
+      broadcast_zone: zone || null,
+      pickup_latitude: final_pickup_lat || null,
+      pickup_longitude: final_pickup_lng || null,
+      buyer_latitude: delivery_lat || null,
+      buyer_longitude: delivery_lng || null,
     });
 
     if (shipmentError) {

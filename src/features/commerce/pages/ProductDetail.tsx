@@ -31,6 +31,7 @@ export default function ProductDetail() {
   const [rating, setRating] = useState(5);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isBuyNowOpen, setIsBuyNowOpen] = useState(false);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
   useReferral();
 
   const { data: product, isLoading } = useQuery({
@@ -41,7 +42,7 @@ export default function ProductDetail() {
         .select(`
           id, title, price, images, description,
           latitude, longitude, inventory, seller_id, category,
-          avg_rating, reviews_count,
+          avg_rating, reviews_count, sizes,
           profiles!products_seller_id_fkey(display_name, avatar_url, bio)
         `)
         .eq("id", id!)
@@ -220,6 +221,18 @@ export default function ProductDetail() {
     }
   };
 
+  const handleAddToCart = () => {
+    if (product.sizes && product.sizes.length > 0 && !selectedSize) {
+      toast.error("Please select a size first");
+      return;
+    }
+    if ((product.inventory || 0) <= 0) {
+      toast.error("Out of stock");
+      return;
+    }
+    addToCart(id!, 1, selectedSize || undefined);
+  };
+
   return (
     <AppLayout hideBottomNav>
       <div className="pb-32 bg-background lg:grid lg:grid-cols-2 lg:gap-12 lg:max-w-7xl lg:mx-auto lg:p-12">
@@ -321,11 +334,6 @@ export default function ProductDetail() {
               )}>
                 {(product.inventory || 0) > 0 ? `In Stock: ${product.inventory}` : "Out of Stock"}
               </Badge>
-              {(product.inventory || 0) > 0 && (product.inventory || 0) <= 5 && (
-                <Badge variant="secondary" className="bg-warning/10 text-warning border-none px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-                  Low Stock
-                </Badge>
-              )}
               {dist && (
                 <Badge variant="outline" className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs border-primary/20 bg-primary/5 text-primary">
                   <MapPin size={12} /> {dist} • {deliveryTime}
@@ -370,18 +378,35 @@ export default function ProductDetail() {
             </div>
           </m.div>
 
+          {/* Sizes Selection */}
+          {product.sizes && product.sizes.length > 0 && (
+            <m.div {...animationProps} transition={{ delay: 0.05 }} className="space-y-3">
+              <Label className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/80">Select Size</Label>
+              <div className="flex flex-wrap gap-2">
+                {product.sizes.map((size: string) => (
+                  <button
+                    key={size}
+                    onClick={() => setSelectedSize(size)}
+                    className={cn(
+                      "h-12 w-16 rounded-xl border-2 font-black text-xs transition-all",
+                      selectedSize === size
+                        ? "bg-primary border-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105"
+                        : "bg-surface border-border/50 text-foreground/70 hover:border-primary/50"
+                    )}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </m.div>
+          )}
+
           {/* Action Row */}
           <m.div {...animationProps} transition={{ delay: 0.1 }} className="lg:space-y-3 space-y-4">
             <div className="flex gap-3">
               <Button
                 className="flex-1 h-12 lg:h-11 rounded-xl text-base lg:text-sm font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
-                onClick={() => {
-                  if ((product.inventory || 0) <= 0) {
-                    toast.error("Out of stock");
-                    return;
-                  }
-                  addToCart(id!, 1);
-                }}
+                onClick={handleAddToCart}
                 disabled={(product.inventory || 0) <= 0}
               >
                 <ShoppingCart className="mr-2" size={20} /> Add to Cart
@@ -390,11 +415,15 @@ export default function ProductDetail() {
                 variant="outline"
                 className="flex-1 h-12 lg:h-11 rounded-xl text-base lg:text-sm font-black uppercase tracking-widest border-primary text-primary hover:bg-primary/5 transition-all"
                 onClick={() => {
+                  if (product.sizes && product.sizes.length > 0 && !selectedSize) {
+                    toast.error("Please select a size first");
+                    return;
+                  }
                   if ((product.inventory || 0) <= 0) {
                     toast.error("Out of stock");
                     return;
                   }
-                  addToCart(id!, 1);
+                  addToCart(id!, 1, selectedSize || undefined);
                   navigate("/checkout");
                 }}
                 disabled={(product.inventory || 0) <= 0}
@@ -611,11 +640,15 @@ export default function ProductDetail() {
             <Button
               className="bg-primary text-primary-foreground h-11 rounded-xl px-8 font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 flex-1"
               onClick={() => {
+                if (product.sizes && product.sizes.length > 0 && !selectedSize) {
+                  toast.error("Please select a size first");
+                  return;
+                }
                 if ((product.inventory || 0) <= 0) {
                   toast.error("This item is out of stock");
                   return;
                 }
-                addToCart(id!, 1);
+                addToCart(id!, 1, selectedSize || undefined);
                 navigate("/checkout");
               }}
             >
@@ -635,4 +668,3 @@ export default function ProductDetail() {
 }
 
 const Separator = ({ className }: { className?: string }) => <div className={cn("h-[1px] w-full bg-border", className)} />;
-

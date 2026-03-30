@@ -131,11 +131,6 @@ export function LogisticsKYC() {
       };
 
       const passportPath = await uploadFile(formData.passportFile, "passport");
-      
-      // Get public URL for the passport photo to use as avatar
-      const { data: { publicUrl: passportUrl } } = supabase.storage
-        .from("kyc-documents")
-        .getPublicUrl(passportPath);
       const idCardPath = await uploadFile(formData.idCardFile, "id_card");
 
       // 2. Insert/Update KYC
@@ -166,7 +161,6 @@ export function LogisticsKYC() {
           zone: formData.zone,
           city_id: formData.city_id,
           zone_id: formData.zone_id,
-          avatar_url: passportUrl
         })
         .eq("id", user!.id);
       if (profileError) throw profileError;

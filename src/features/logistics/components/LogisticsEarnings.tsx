@@ -12,8 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { TrendingUp, Calendar, CreditCard, Wallet, ArrowDownToLine, Loader2, CheckCircle, Package } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { PayoutRequestModal } from "@/features/dashboard/components/PayoutRequestModal";
-import { PayoutReceiptModal } from "@/features/dashboard/components/PayoutReceiptModal";
+import { PayoutRequestModal } from "@/features/seller/components/PayoutRequestModal";
+import { PayoutReceiptModal } from "@/features/seller/components/PayoutReceiptModal";
 import { format } from "date-fns";
 
 const DAILY_LIMIT = 50000;

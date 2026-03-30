@@ -10,26 +10,27 @@ import Auth from "@/features/auth/pages/Auth";
 import ProductDetail from "@/features/commerce/pages/ProductDetail";
 import Cart from "@/features/commerce/pages/Cart";
 import Checkout from "@/features/commerce/pages/Checkout";
-import Sell from "@/features/commerce/pages/Sell";
+import ListProduct from "@/features/seller/pages/ListProduct";
 import SearchPage from "@/features/commerce/pages/Search";
-import Profile from "./features/dashboard/pages/Profile";
-import SellerVerification from "@/features/auth/pages/SellerVerification";
+import Profile from "./features/user/pages/Profile";
+import SellerVerification from "@/features/seller/pages/SellerVerification";
 import AdminDashboard from "@/features/admin/pages/AdminDashboard";
 import AdminAuth from "@/features/admin/pages/AdminAuth";
 import { AdminRoute } from "@/features/auth/components/AdminRoute";
 import { AdminLayout } from "@/features/admin/components/AdminLayout";
-import Notifications from "@/features/dashboard/pages/Notifications";
-import Dashboard from "@/features/dashboard/pages/Dashboard";
-import NotFound from "./features/dashboard/pages/NotFound";
+import Notifications from "@/features/user/pages/Notifications";
+import Dashboard from "@/features/seller/pages/SellerDashboard";
+import NotFound from "./features/user/pages/NotFound";
 import Wishlist from "@/features/commerce/pages/Wishlist";
 import Orders from "@/features/commerce/pages/Orders";
-import Support from "@/features/dashboard/pages/Support";
+import Support from "@/features/user/pages/Support";
 import Onboarding from "@/features/auth/pages/Onboarding";
 import Logistics from "@/features/logistics/pages/Logistics";
 import LogisticsDashboard from "@/features/logistics/pages/LogisticsDashboard";
-import Messages from "@/features/dashboard/pages/Messages";
-import Chat from "@/features/dashboard/pages/Chat";
+import Messages from "@/features/user/pages/Messages";
+import Chat from "@/features/user/pages/Chat";
 import PromoterDashboard from "@/features/promoter/pages/PromoterDashboard";
+import ResetPassword from "@/features/auth/pages/ResetPassword";
 
 import { persistQueryClient } from "@tanstack/react-query-persist-client";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
@@ -65,10 +66,11 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/product/:id" element={<ProductDetail />} />
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/checkout" element={<Checkout />} />
-                <Route path="/sell" element={<Sell />} />
+                <Route path="/sell" element={<ListProduct />} />
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/notifications" element={<Notifications />} />

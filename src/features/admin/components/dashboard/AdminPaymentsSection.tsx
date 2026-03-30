@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { PaymentReconciliationTab } from "@/features/dashboard/components/PaymentReconciliationTab";
+import { PaymentReconciliationTab } from "@/features/seller/components/PaymentReconciliationTab";
 import { AdminPayoutManager } from "./AdminPayoutManager";
 import { Button } from "@/shared/components/ui/button";
 import { CreditCard, Landmark } from "lucide-react";

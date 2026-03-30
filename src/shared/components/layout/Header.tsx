@@ -127,12 +127,6 @@ export function Header() {
                     <span className="font-semibold">My Orders</span>
                   </DropdownMenuItem>
                 </Link>
-                <Link to="/wallet">
-                  <DropdownMenuItem className="cursor-pointer rounded-xl py-3 px-3 focus:bg-primary/5 focus:text-primary">
-                    <CreditCard className="mr-3 h-4 w-4" />
-                    <span className="font-semibold">Wallet Transactions</span>
-                  </DropdownMenuItem>
-                </Link>
                 <DropdownMenuSeparator className="bg-white/5 my-2" />
                 <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-white focus:bg-destructive cursor-pointer rounded-xl py-3 px-3">
                   <LogOut className="mr-3 h-4 w-4" />

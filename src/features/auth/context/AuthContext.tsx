@@ -67,11 +67,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!pError && profileData) setProfile(profileData as any);
       if (!rError && rolesData) {
         const fetchedRoles = rolesData.map((r: any) => r.role);
-        setRoles(fetchedRoles);
+        // Ensure "buyer" is always a base role for everyone
+        const uniqueRoles = Array.from(new Set([...fetchedRoles, "buyer"]));
+        setRoles(uniqueRoles);
 
         // Initialize active role
         const savedRole = localStorage.getItem("linkup_active_role");
-        if (savedRole && fetchedRoles.includes(savedRole)) {
+        if (savedRole && uniqueRoles.includes(savedRole)) {
           setActiveRoleState(savedRole);
         } else if (fetchedRoles.length > 0) {
           // Priority: seller > first role

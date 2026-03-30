@@ -20,7 +20,7 @@ export function AdminPayoutManager() {
     const { data: requests = [], isLoading } = useQuery({
         queryKey: ["admin-payout-requests"],
         queryFn: async () => {
-            const { data } = await (supabase as any)
+            const { data, error } = await supabase
                 .from("payout_requests")
                 .select(`
                     *,
@@ -30,7 +30,9 @@ export function AdminPayoutManager() {
                     )
                 `)
                 .order("created_at", { ascending: false });
-            return (data as any[]) ?? [];
+            
+            if (error) throw error;
+            return data ?? [];
         }
     });
 
@@ -39,8 +41,8 @@ export function AdminPayoutManager() {
         queryKey: ["payout-settings"],
         queryFn: async () => {
             const { data } = await supabase.from("system_settings").select("*");
-            const withdrawal_fee = data?.find(s => s.key === 'withdrawal_fee')?.value as { amount: number, type: string };
-            const payout_interval = data?.find(s => s.key === 'payout_interval_days')?.value as number;
+            const withdrawal_fee = data?.find(s => s.key === 'withdrawal_fee')?.value as any;
+            const payout_interval = data?.find(s => s.key === 'payout_interval_days')?.value as any;
             
             // Sync local inputs if not set
             if (withdrawal_fee && feeInput === "") setFeeInput(withdrawal_fee.amount.toString());

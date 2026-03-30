@@ -13,6 +13,7 @@ import Logo from "@/assets/logo.png";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetTrigger } from "@/shared/components/ui/sheet";
+import { RoleSwitcher } from "@/shared/components/layout/RoleSwitcher";
 
 interface AdminLayoutProps {
     children: ReactNode;
@@ -136,6 +137,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                     </div>
 
                     <div className="flex items-center gap-3">
+                        <div className="hidden sm:block">
+                            <RoleSwitcher />
+                        </div>
                         <Button variant="ghost" size="icon" className="rounded-xl bg-gray-100/50 relative">
                             <Bell size={20} />
                             {openIssuesCount > 0 && (

@@ -114,7 +114,9 @@ export function OrderShipmentIntel({ shipment }: OrderShipmentIntelProps) {
     if (!shipment) {
         return (
             <div className="bg-muted/30 p-5 rounded-xl border border-dashed border-black/5 text-center">
-                <p className="text-[11px] font-bold text-muted-foreground lowercase tracking-tight italic opacity-60">Waiting for logistics network assignment...</p>
+                <p className="text-[11px] font-bold text-red-600 lowercase tracking-tight italic">
+                    Waiting for agent to be assigned to this order..
+                </p>
             </div>
         );
     }

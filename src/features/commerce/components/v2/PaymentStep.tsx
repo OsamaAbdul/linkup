@@ -68,7 +68,14 @@ export function PaymentStep({
                     </div>
                     <div>
                       <p className="text-xs font-bold line-clamp-1 max-w-[150px]">{item.title}</p>
-                      <p className="text-[9px] text-muted-foreground font-medium">Qty: {item.quantity}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-[9px] text-muted-foreground font-medium">Qty: {item.quantity}</p>
+                        {item.size && (
+                          <Badge variant="outline" className="h-4 px-1.5 text-[7px] font-black border-primary/20 text-primary bg-primary/5 uppercase">
+                            Size: {item.size}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <p className="font-black text-xs text-foreground">₦{item.price.toLocaleString()}</p>
@@ -170,4 +177,3 @@ export function PaymentStep({
     </motion.div>
   );
 }
-

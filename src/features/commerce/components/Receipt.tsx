@@ -8,6 +8,7 @@ interface ReceiptItem {
     title: string;
     quantity: number;
     price: number;
+    size?: string;
 }
 
 interface ReceiptProps {
@@ -144,7 +145,10 @@ const Receipt: FC<ReceiptProps> = ({
                                     <tbody className="divide-y divide-black/5">
                                         {items.map((item, idx) => (
                                             <tr key={idx}>
-                                                <td className="py-1 truncate max-w-[80px]">{item.title}</td>
+                                                <td className="py-1 truncate max-w-[80px]">
+                                                    <div className="font-bold">{item.title}</div>
+                                                    {item.size && <div className="text-[7px] font-black text-primary uppercase">Size: {item.size}</div>}
+                                                </td>
                                                 <td className="text-center py-1">{item.quantity}x</td>
                                                 <td className="text-right py-1">₦{item.price.toLocaleString()}</td>
                                             </tr>

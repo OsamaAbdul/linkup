@@ -48,7 +48,7 @@ type PlaceOrderVars = {
 };
 
 export default function Checkout() {
-  const { user, profile, getToken } = useAuth();
+  const { user, profile, getToken, loading: authLoading } = useAuth();
   const { cartItems, clearCart } = useCart();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -76,7 +76,7 @@ export default function Checkout() {
   );
 
   // Fetch available cities
-  const { data: cities = [] } = useQuery({
+  const { data: cities = [], isPending: isCitiesPending } = useQuery({
     queryKey: ["cities"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
@@ -106,8 +106,45 @@ export default function Checkout() {
     enabled: !!shipping.city_id,
   });
 
-  // Auto-select Abuja on load if available
+  // Auto-select from localStorage, profile, or default to Abuja
   useEffect(() => {
+    // Wait for basic data to load
+    if (authLoading || isCitiesPending) return;
+
+    // Prevent overwriting if user has already started typing or if data is already set
+    if (shipping.city_id || shipping.address) return;
+
+    // Priority 1: localStorage (Device-specific memory)
+    const savedAddress = localStorage.getItem("linkup_last_shipping_address");
+    if (savedAddress) {
+      try {
+        const parsed = JSON.parse(savedAddress);
+        if (parsed && typeof parsed === "object") {
+          setShipping((prev) => ({
+            ...prev,
+            ...parsed
+          }));
+          return;
+        }
+      } catch (e) {
+        console.error("Failed to parse saved address from localStorage", e);
+      }
+    }
+
+    // Priority 2: User Profile (Account-wide master address)
+    if (profile?.address || profile?.city_id) {
+      setShipping((prev) => ({
+        ...prev,
+        name: profile.display_name || prev.name,
+        address: profile.address || prev.address,
+        city_id: profile.city_id || prev.city_id,
+        zone_id: profile.zone_id || prev.zone_id,
+        phone: profile.phone || prev.phone,
+      }));
+      return;
+    }
+
+    // Priority 3: Default to Abuja if no other source
     const abujaCity = cities.find((c: any) => c.name === "Abuja");
     if (abujaCity && !shipping.city_id) {
       setShipping((prev) => ({
@@ -116,7 +153,7 @@ export default function Checkout() {
         city_name: abujaCity.name,
       }));
     }
-  }, [cities, shipping.city_id]);
+  }, [cities, profile, authLoading, isCitiesPending, shipping.city_id, shipping.address]);
 
   // Calculate delivery fee
   const selectedZone = zones.find((z: any) => z.id === shipping.zone_id);
@@ -134,6 +171,7 @@ export default function Checkout() {
         items: cartItems.map((item: any) => ({
           product_id: item.product_id,
           quantity: item.quantity,
+          size: item.size,
           price: item.products?.price,
           seller_id: item.products?.seller_id,
           title: item.products?.title,
@@ -192,6 +230,7 @@ export default function Checkout() {
       items: cartItems.map((item: any) => ({
         product_id: item.product_id,
         quantity: item.quantity,
+        size: item.size,
         price: item.products?.price,
         seller_id: item.products?.seller_id,
         title: item.products?.title,
@@ -206,6 +245,9 @@ export default function Checkout() {
 
     setIsPaystackProcessing(true);
     try {
+      // Save shipping details for future checkout sessions on this device
+      localStorage.setItem("linkup_last_shipping_address", JSON.stringify(shipping));
+
       const { data: pkData } = await supabase.functions.invoke("paystack-public-key");
       const publicKey = (pkData as any)?.publicKey;
       if (!publicKey) throw new Error("Payment gateway offline");
@@ -296,6 +338,7 @@ export default function Checkout() {
                     title: i.products?.title,
                     price: i.products?.price,
                     quantity: i.quantity,
+                    size: i.size,
                     image: i.products?.images?.[0]
                 }))}
                 productTotal={productTotal}

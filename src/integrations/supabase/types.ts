@@ -21,6 +21,7 @@ export type Database = {
           product_id: string
           quantity: number
           user_id: string
+          size: string | null
         }
         Insert: {
           created_at?: string
@@ -28,6 +29,7 @@ export type Database = {
           product_id: string
           quantity?: number
           user_id: string
+          size?: string | null
         }
         Update: {
           created_at?: string
@@ -35,6 +37,7 @@ export type Database = {
           product_id?: string
           quantity?: number
           user_id?: string
+          size?: string | null
         }
         Relationships: [
           {
@@ -436,6 +439,66 @@ export type Database = {
         }
         Relationships: []
       }
+      payout_requests: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          bank_name: string
+          account_number: string
+          account_name: string
+          created_at: string
+          fee_amount: number
+          id: string
+          status: string
+          updated_at: string
+          user_id: string
+          wallet_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          bank_name: string
+          account_number: string
+          account_name: string
+          created_at?: string
+          fee_amount?: number
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          wallet_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          bank_name?: string
+          account_number?: string
+          account_name?: string
+          created_at?: string
+          fee_amount?: number
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payout_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payout_requests_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category: string | null
@@ -453,6 +516,7 @@ export type Database = {
           title: string
           updated_at: string
           zone_id: string | null
+          sizes: string[] | null
         }
         Insert: {
           category?: string | null
@@ -470,6 +534,7 @@ export type Database = {
           title: string
           updated_at?: string
           zone_id?: string | null
+          sizes?: string[] | null
         }
         Update: {
           category?: string | null
@@ -487,6 +552,7 @@ export type Database = {
           title?: string
           updated_at?: string
           zone_id?: string | null
+          sizes?: string[] | null
         }
         Relationships: [
           {
@@ -523,6 +589,7 @@ export type Database = {
           user_id: string
           zone: string | null
           zone_id: string | null
+          email: string | null
         }
         Insert: {
           address?: string | null
@@ -541,6 +608,7 @@ export type Database = {
           user_id: string
           zone?: string | null
           zone_id?: string | null
+          email?: string | null
         }
         Update: {
           address?: string | null
@@ -559,6 +627,7 @@ export type Database = {
           user_id?: string
           zone?: string | null
           zone_id?: string | null
+          email?: string | null
         }
         Relationships: [
           {
@@ -758,6 +827,8 @@ export type Database = {
           zone_id: string | null
           city_id: string | null
           seller_id: string | null
+          pickup_latitude: number | null
+          pickup_longitude: number | null
         }
         Insert: {
           buyer_latitude?: number | null
@@ -779,6 +850,8 @@ export type Database = {
           zone_id?: string | null
           city_id?: string | null
           seller_id?: string | null
+          pickup_latitude?: number | null
+          pickup_longitude?: number | null
         }
         Update: {
           buyer_latitude?: number | null
@@ -800,6 +873,8 @@ export type Database = {
           zone_id?: string | null
           city_id?: string | null
           seller_id?: string | null
+          pickup_latitude?: number | null
+          pickup_longitude?: number | null
         }
         Relationships: [
           {
@@ -810,6 +885,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      system_settings: {
+        Row: {
+          description: string | null
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          description?: string | null
+          key: string
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          description?: string | null
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -837,6 +933,8 @@ export type Database = {
           reference: string | null
           type: string
           wallet_id: string
+          status: string | null
+          metadata: Json | null
         }
         Insert: {
           amount: number
@@ -845,6 +943,8 @@ export type Database = {
           reference?: string | null
           type: string
           wallet_id: string
+          status?: string | null
+          metadata?: Json | null
         }
         Update: {
           amount?: number
@@ -853,6 +953,8 @@ export type Database = {
           reference?: string | null
           type?: string
           wallet_id?: string
+          status?: string | null
+          metadata?: Json | null
         }
         Relationships: [
           {
@@ -869,24 +971,93 @@ export type Database = {
           balance: number
           created_at: string
           id: string
-          seller_id: string
+          seller_id: string | null
           updated_at: string
+          escrow_balance: number
+          user_id: string | null
         }
         Insert: {
           balance?: number
           created_at?: string
           id?: string
-          seller_id: string
+          seller_id?: string | null
           updated_at?: string
+          escrow_balance?: number
+          user_id?: string | null
         }
         Update: {
           balance?: number
           created_at?: string
           id?: string
-          seller_id?: string
+          seller_id?: string | null
           updated_at?: string
+          escrow_balance?: number
+          user_id?: string | null
         }
         Relationships: []
+      }
+      withdrawal_requests: {
+        Row: {
+          account_name: string | null
+          account_number: string | null
+          admin_note: string | null
+          amount: number
+          bank_name: string | null
+          created_at: string
+          id: string
+          processed_at: string | null
+          requested_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          wallet_id: string
+        }
+        Insert: {
+          account_name?: string | null
+          account_number?: string | null
+          admin_note?: string | null
+          amount: number
+          bank_name?: string | null
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          requested_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          wallet_id: string
+        }
+        Update: {
+          account_name?: string | null
+          account_number?: string | null
+          admin_note?: string | null
+          amount?: number
+          bank_name?: string | null
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          requested_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "withdrawal_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "withdrawal_requests_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

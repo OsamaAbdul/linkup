@@ -6,6 +6,7 @@ import { m, AnimatePresence } from "framer-motion";
 
 interface AuthFormFieldsProps {
   isLogin: boolean;
+  isForgotPassword?: boolean;
   email: string;
   setEmail: (value: string) => void;
   password: string;
@@ -16,6 +17,7 @@ interface AuthFormFieldsProps {
 
 export const AuthFormFields = ({
   isLogin,
+  isForgotPassword = false,
   email,
   setEmail,
   password,
@@ -81,46 +83,48 @@ export const AuthFormFields = ({
         </div>
       </div>
 
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="password" className="text-sm font-medium text-foreground/80 ml-0.5">
-            Password
-          </Label>
-          {isLogin && (
-            <button
-              type="button"
-              className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-            >
-              Forgot password?
-            </button>
-          )}
-        </div>
-        <div className="relative">
-          <Lock size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
-          <Input
-            id="password"
-            type={showPassword ? "text" : "password"}
-            placeholder="••••••••"
-            className={`${fieldClass} pr-11`}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={6}
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+      <AnimatePresence mode="wait">
+        {!isForgotPassword && (
+          <m.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            key="password-field"
+            className="space-y-1.5"
           >
-            {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
-          </button>
-        </div>
-        {!isLogin && (
-          <p className="text-[11px] text-muted-foreground/60 ml-0.5">
-            Must be at least 6 characters
-          </p>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password" className="text-sm font-medium text-foreground/80 ml-0.5">
+                Password
+              </Label>
+            </div>
+            <div className="relative">
+              <Lock size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                className={`${fieldClass} pr-11`}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+              >
+                {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+              </button>
+            </div>
+            {!isLogin && (
+              <p className="text-[11px] text-muted-foreground/60 ml-0.5">
+                Must be at least 6 characters
+              </p>
+            )}
+          </m.div>
         )}
-      </div>
+      </AnimatePresence>
     </m.div>
   );
 };

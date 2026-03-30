@@ -8,6 +8,7 @@ interface CartItem {
     id?: string; // DB ID
     product_id: string;
     quantity: number;
+    size?: string;
     user_id?: string;
     products?: {
         id: string;
@@ -24,9 +25,9 @@ interface CartItem {
 interface CartContextType {
     cartItems: CartItem[];
     isLoading: boolean;
-    addToCart: (productId: string, quantity?: number) => Promise<void>;
-    updateQuantity: (productId: string, quantity: number) => Promise<void>;
-    removeFromCart: (productId: string) => Promise<void>;
+    addToCart: (productId: string, quantity?: number, size?: string) => Promise<void>;
+    updateQuantity: (productId: string, quantity: number, size?: string) => Promise<void>;
+    removeFromCart: (productId: string, size?: string) => Promise<void>;
     clearCart: () => Promise<void>;
     totalCount: number;
 }
@@ -65,7 +66,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         queryFn: async () => {
             const { data, error } = await supabase
                 .from("cart_items")
-                .select("id, product_id, quantity, products(id, title, price, images, inventory, seller_id)")
+                .select("id, product_id, quantity, size, products(id, title, price, images, inventory, seller_id)")
                 .eq("user_id", user?.id!);
             if (error) throw error;
             return (data as any) as CartItem[];
@@ -100,13 +101,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
             if (user && localCart.length > 0) {
                 let itemsSynced = 0;
                 for (const item of localCart) {
-                    // Check if already in DB
-                    const { data: existing } = await supabase
+                    // Check if already in DB with same size
+                    const query = supabase
                         .from("cart_items")
                         .select("id, quantity")
                         .eq("user_id", user.id)
-                        .eq("product_id", item.product_id)
-                        .maybeSingle();
+                        .eq("product_id", item.product_id);
+                    
+                    if (item.size) {
+                        query.eq("size", item.size);
+                    } else {
+                        query.is("size", null);
+                    }
+
+                    const { data: existing } = await query.maybeSingle();
 
                     if (existing) {
                         await supabase
@@ -118,6 +126,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
                             user_id: user.id,
                             product_id: item.product_id,
                             quantity: item.quantity,
+                            size: item.size
                         });
                     }
                     itemsSynced++;
@@ -138,34 +147,50 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // -- OPTIMISTIC MUTATIONS --
 
     const updateQuantityMutation = useMutation({
-        mutationFn: async ({ productId, quantity }: { productId: string; quantity: number }) => {
+        mutationFn: async ({ productId, quantity, size }: { productId: string; quantity: number; size?: string }) => {
             if (quantity <= 0) {
-                const { error } = await supabase
+                let query = supabase
                     .from("cart_items")
                     .delete()
                     .eq("user_id", user?.id!)
                     .eq("product_id", productId);
+                
+                if (size) {
+                    query = query.eq("size", size);
+                } else {
+                    query = query.is("size", null);
+                }
+
+                const { error } = await query;
                 if (error) throw error;
             } else {
-                const { error } = await supabase
+                let query = supabase
                     .from("cart_items")
                     .update({ quantity })
                     .eq("user_id", user?.id!)
                     .eq("product_id", productId);
+                
+                if (size) {
+                    query = query.eq("size", size);
+                } else {
+                    query = query.is("size", null);
+                }
+
+                const { error } = await query;
                 if (error) throw error;
             }
         },
-        onMutate: async ({ productId, quantity }) => {
+        onMutate: async ({ productId, quantity, size }) => {
             await queryClient.cancelQueries({ queryKey: ["cart", user?.id] });
             const previousCart = queryClient.getQueryData<CartItem[]>(["cart", user?.id]);
 
             if (previousCart) {
                 queryClient.setQueryData<CartItem[]>(["cart", user?.id], (old) => {
                     if (quantity <= 0) {
-                        return old?.filter(item => item.product_id !== productId);
+                        return old?.filter(item => item.product_id !== productId || item.size !== size);
                     }
                     return old?.map(item =>
-                        item.product_id === productId ? { ...item, quantity } : item
+                        (item.product_id === productId && item.size === size) ? { ...item, quantity } : item
                     );
                 });
             }
@@ -184,13 +209,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
 
     const addToCartMutation = useMutation({
-        mutationFn: async ({ productId, quantity }: { productId: string; quantity: number }) => {
-            const { data: existing } = await supabase
+        mutationFn: async ({ productId, quantity, size }: { productId: string; quantity: number; size?: string }) => {
+            let query = supabase
                 .from("cart_items")
                 .select("id, quantity")
                 .eq("user_id", user?.id!)
-                .eq("product_id", productId)
-                .maybeSingle();
+                .eq("product_id", productId);
+            
+            if (size) {
+                query = query.eq("size", size);
+            } else {
+                query = query.is("size", null);
+            }
+
+            const { data: existing } = await query.maybeSingle();
 
             if (existing) {
                 const { error } = await supabase
@@ -203,22 +235,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
                     user_id: user?.id!,
                     product_id: productId,
                     quantity,
+                    size: size
                 });
                 if (error) throw error;
             }
         },
-        onMutate: async ({ productId, quantity }) => {
+        onMutate: async ({ productId, quantity, size }) => {
             await queryClient.cancelQueries({ queryKey: ["cart", user?.id] });
             const previousCart = queryClient.getQueryData<CartItem[]>(["cart", user?.id]);
 
-            // Note: Since we don't have full product details for NEW items in the cache immediately,
-            // we'll just invalidate for NEW items, but for existing items we can update optimistically.
             if (previousCart) {
-                const existing = previousCart.find(item => item.product_id === productId);
+                const existing = previousCart.find(item => item.product_id === productId && item.size === size);
                 if (existing) {
                     queryClient.setQueryData<CartItem[]>(["cart", user?.id], (old) =>
                         old?.map(item =>
-                            item.product_id === productId ? { ...item, quantity: item.quantity + quantity } : item
+                            (item.product_id === productId && item.size === size) ? { ...item, quantity: item.quantity + quantity } : item
                         )
                     );
                 }
@@ -238,21 +269,29 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
 
     const removeFromCartMutation = useMutation({
-        mutationFn: async (productId: string) => {
-            const { error } = await supabase
+        mutationFn: async ({ productId, size }: { productId: string; size?: string }) => {
+            const query = supabase
                 .from("cart_items")
                 .delete()
                 .eq("user_id", user?.id!)
                 .eq("product_id", productId);
+            
+            if (size) {
+                query.eq("size", size);
+            } else {
+                query.is("size", null);
+            }
+
+            const { error } = await query;
             if (error) throw error;
         },
-        onMutate: async (productId) => {
+        onMutate: async ({ productId, size }) => {
             await queryClient.cancelQueries({ queryKey: ["cart", user?.id] });
             const previousCart = queryClient.getQueryData<CartItem[]>(["cart", user?.id]);
 
             if (previousCart) {
                 queryClient.setQueryData<CartItem[]>(["cart", user?.id], (old) =>
-                    old?.filter(item => item.product_id !== productId)
+                    old?.filter(item => item.product_id !== productId || item.size !== size)
                 );
             }
 
@@ -298,45 +337,45 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const isLoading = user ? isLoadingDb : isLoadingLocal;
     const totalCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
-    const addToCart = async (productId: string, quantity = 1) => {
+    const addToCart = async (productId: string, quantity = 1, size?: string) => {
         if (user) {
             try {
-                await addToCartMutation.mutateAsync({ productId, quantity });
+                await addToCartMutation.mutateAsync({ productId, quantity, size });
             } catch (error) {
                 console.error("Cart mutation failed", error);
                 return; // Don't show success toast if it failed
             }
         } else {
             setLocalCart(prev => {
-                const existingIdx = prev.findIndex(i => i.product_id === productId);
+                const existingIdx = prev.findIndex(i => i.product_id === productId && i.size === size);
                 if (existingIdx > -1) {
                     const newCart = [...prev];
                     newCart[existingIdx].quantity += quantity;
                     return newCart;
                 }
-                return [...prev, { product_id: productId, quantity }];
+                return [...prev, { product_id: productId, quantity, size }];
             });
         }
         toast.success("Added to cart!");
     };
 
-    const updateQuantity = async (productId: string, quantity: number) => {
+    const updateQuantity = async (productId: string, quantity: number, size?: string) => {
         if (user) {
-            updateQuantityMutation.mutate({ productId, quantity });
+            updateQuantityMutation.mutate({ productId, quantity, size });
         } else {
             if (quantity <= 0) {
-                removeFromCart(productId);
+                removeFromCart(productId, size);
                 return;
             }
-            setLocalCart(prev => prev.map(i => i.product_id === productId ? { ...i, quantity } : i));
+            setLocalCart(prev => prev.map(i => (i.product_id === productId && i.size === size) ? { ...i, quantity } : i));
         }
     };
 
-    const removeFromCart = async (productId: string) => {
+    const removeFromCart = async (productId: string, size?: string) => {
         if (user) {
-            removeFromCartMutation.mutate(productId);
+            removeFromCartMutation.mutate({ productId, size });
         } else {
-            setLocalCart(prev => prev.filter(i => i.product_id !== productId));
+            setLocalCart(prev => prev.filter(i => i.product_id !== productId || i.size !== size));
         }
         toast.success("Removed from cart");
     };

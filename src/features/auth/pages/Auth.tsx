@@ -1,17 +1,16 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/shared/components/ui/button";
 import { toast } from "sonner";
 import { m } from "framer-motion";
 import { AuthHeader } from "@/features/auth/components/AuthHeader";
 import { AuthFormFields } from "@/features/auth/components/AuthFormFields";
-import { SocialAuth } from "@/features/auth/components/SocialAuth";
 import { AuthSidebar } from "@/features/auth/components/AuthSidebar";
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -21,10 +20,35 @@ export default function Auth() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
     try {
-      if (isLogin) {
+      if (isForgotPassword) {
+        // First check if the email is registered in our profiles table
+        const { data: profile, error: checkError } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("email", email.trim().toLowerCase())
+          .maybeSingle();
+
+        if (checkError) {
+          console.error("Profile check error:", checkError);
+          throw new Error("Unable to verify email at this time. Please try again later.");
+        }
+
+        if (!profile) {
+          throw new Error("This email is not registered with us. Please check for typos or sign up instead.");
+        }
+
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+        toast.success("Check your email for the reset link!");
+        setIsForgotPassword(false);
+      } else if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        // ... rest of redirection logic
 
         // The following fetches are for redirection logic. 
         // We wrap them so that if a request is aborted during navigation, it doesn't toast an error.
@@ -89,11 +113,9 @@ export default function Auth() {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (error) toast.error(String(error));
+  const handleBackToLogin = () => {
+    setIsForgotPassword(false);
+    setIsLogin(true);
   };
 
   return (
@@ -111,6 +133,7 @@ export default function Auth() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <AuthFormFields
               isLogin={isLogin}
+              isForgotPassword={isForgotPassword}
               email={email}
               setEmail={setEmail}
               password={password}
@@ -118,6 +141,18 @@ export default function Auth() {
               displayName={displayName}
               setDisplayName={setDisplayName}
             />
+
+            {isLogin && !isForgotPassword && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsForgotPassword(true)}
+                  className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
+                >
+                  Forgot Password?
+                </button>
+              </div>
+            )}
 
             <Button
               type="submit"
@@ -129,6 +164,8 @@ export default function Auth() {
                   <span className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                   Processing…
                 </span>
+              ) : isForgotPassword ? (
+                "Send Reset Link"
               ) : isLogin ? (
                 "Sign In"
               ) : (
@@ -137,17 +174,27 @@ export default function Auth() {
             </Button>
           </form>
 
-          <SocialAuth onGoogleLogin={handleGoogleLogin} />
-
           <p className="text-center text-sm text-muted-foreground mt-8">
-            {isLogin ? "Don't have an account?" : "Already have an account?"}
-            <button
-              type="button"
-              className="ml-1 font-semibold text-primary hover:text-primary/80 transition-colors"
-              onClick={() => setIsLogin(!isLogin)}
-            >
-              {isLogin ? "Sign up" : "Sign in"}
-            </button>
+            {isForgotPassword ? (
+              <button
+                type="button"
+                className="font-semibold text-primary hover:text-primary/80 transition-colors"
+                onClick={handleBackToLogin}
+              >
+                Back to sign in
+              </button>
+            ) : (
+              <>
+                {isLogin ? "Don't have an account?" : "Already have an account?"}
+                <button
+                  type="button"
+                  className="ml-1 font-semibold text-primary hover:text-primary/80 transition-colors"
+                  onClick={() => setIsLogin(!isLogin)}
+                >
+                  {isLogin ? "Sign up" : "Sign in"}
+                </button>
+              </>
+            )}
           </p>
         </m.div>
       </div>

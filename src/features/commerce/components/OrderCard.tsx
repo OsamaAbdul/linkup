@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/shared/components/ui/collapsible";
-import { Store, Smartphone, Activity, ChevronUp, ChevronDown, AlertCircle, CheckCircle } from "lucide-react";
+import { Store, Smartphone, Activity, ChevronUp, ChevronDown, AlertCircle, CheckCircle, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OrderTimeline } from "./OrderTimeline";
 import { OrderShipmentIntel } from "./OrderShipmentIntel";
@@ -28,10 +28,12 @@ interface OrderCardProps {
         displayStatus: string;
         shipment?: any;
         sellerId?: string;
+        size?: string;
     };
 }
 
 export function OrderCard({ order }: OrderCardProps) {
+
     const [isOpen, setIsOpen] = useState(false);
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const [issueTitle, setIssueTitle] = useState("");
@@ -79,14 +81,14 @@ export function OrderCard({ order }: OrderCardProps) {
             });
 
             if (error) throw new Error(error.message);
-            if (!data?.success) throw new Error(data?.error || "Settlement failed €” no earnings credited");
+            if (!data?.success) throw new Error(data?.error || "Settlement failed no earnings credited");
 
             return data;
         },
         onSuccess: (data) => {
-            const earned = data.seller_credited ? `‚¦${Number(data.seller_credited).toLocaleString()} released to seller.` : "";
+            const earned = data.seller_credited ? `â‚¦${Number(data.seller_credited).toLocaleString()} released to seller.` : "";
             toast.success(`Order finalized! ${earned}`, { duration: 5000 });
-            queryClient.invalidateQueries({ queryKey: ["my-orders"] });
+            queryClient.invalidateQueries({ queryKey: ["orders"] });
         },
         onError: (err: any) => {
             toast.error("Finalization failed: " + err.message);
@@ -114,9 +116,19 @@ export function OrderCard({ order }: OrderCardProps) {
                     <div className="flex-1 min-w-0 space-y-3">
                         <div className="flex justify-between items-start gap-4">
                             <div className="space-y-0.5">
-                                <div className="flex items-center gap-1.5 text-[9px] font-black text-primary/60 uppercase tracking-widest">
-                                    <Store size={10} />
-                                    {order.store}
+                                <div className="flex flex-wrap items-center gap-2 text-[9px] font-black uppercase tracking-widest">
+                                    <div className="flex items-center gap-1.5 text-primary/60">
+                                        <Store size={10} />
+                                        {order.store}
+                                    </div>
+                                    {order.shipment?.pickup_address && (
+                                        <div className="flex items-center gap-1.5 text-orange-600/80 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-100">
+                                            <MapPin size={10} strokeWidth={3} />
+                                            {typeof order.shipment.pickup_address === 'string' 
+                                                ? order.shipment.pickup_address 
+                                                : (order.shipment.pickup_address as any)?.address || "Pickup Node"}
+                                        </div>
+                                    )}
                                 </div>
                                 <h3 className="text-base sm:text-lg font-black text-foreground tracking-tight group-hover:text-primary transition-colors duration-300 line-clamp-1">{order.title}</h3>
                             </div>
@@ -133,10 +145,17 @@ export function OrderCard({ order }: OrderCardProps) {
                         </div>
 
                         <div className="flex flex-row items-center justify-between gap-2 pt-1">
-                            <p className="text-xl sm:text-2xl font-black text-primary tracking-tighter">
-                                <span className="text-xs sm:text-sm opacity-60 mr-0.5">‚¦</span>
-                                {order.price.toLocaleString()}
-                            </p>
+                            <div className="flex items-baseline gap-2">
+                                <p className="text-xl sm:text-2xl font-black text-primary tracking-tighter">
+                                    <span className="text-xs sm:text-sm opacity-60 mr-0.5">â‚¦</span>
+                                    {order.price.toLocaleString()}
+                                </p>
+                                {order.size && (
+                                    <Badge variant="outline" className="rounded-full h-5 px-2 text-[8px] font-black border-primary/20 text-primary bg-primary/5 uppercase">
+                                        Size: {order.size}
+                                    </Badge>
+                                )}
+                            </div>
 
                             <div className="flex items-center gap-2">
                                 <div className="text-right">
@@ -184,7 +203,7 @@ export function OrderCard({ order }: OrderCardProps) {
                                     disabled
                                 >
                                     <CheckCircle size={12} strokeWidth={3} />
-                                    Order Finalized œ“
+                                    Order Finalized successfully
                                 </Button>
                             )}
                             {!["delivered", "completed"].includes(order.status.toLowerCase()) && (
@@ -213,7 +232,7 @@ export function OrderCard({ order }: OrderCardProps) {
                                                 />
                                             </div>
                                             <div className="space-y-2">
-                                                <Label htmlFor="priority" className="text-xs font-black uppercase tracking-widest text-muted-foreground">Priority Level</Label>
+                                                <Label htmlFor="priority" className="text-xs font-black uppercase tracking-widest text-muted-foreground">Urgency Level</Label>
                                                 <Select value={issuePriority} onValueChange={setIssuePriority}>
                                                     <SelectTrigger className="h-12 bg-gray-50 border-none rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-primary/20">
                                                         <SelectValue placeholder="Select priority" />
@@ -265,4 +284,3 @@ export function OrderCard({ order }: OrderCardProps) {
         </Card>
     );
 }
-

@@ -14,7 +14,7 @@ import {
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useCart } from "@/features/commerce/context/CartContext";
+import { useCart } from "@/features/marketplace/context/CartContext";
 import { RoleSwitcher } from "./RoleSwitcher";
 import Logo from "@/assets/logo.png";
 

@@ -5,8 +5,8 @@ import { AppLayout } from "@/shared/components/layout/AppLayout";
 import { useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "@/shared/hooks/use-toast";
-import { OrdersHeader } from "@/features/commerce/components/OrdersHeader";
-import { OrdersTabs } from "@/features/commerce/components/OrdersTabs";
+import { OrdersHeader } from "@/features/marketplace/components/OrdersHeader";
+import { OrdersTabs } from "@/features/marketplace/components/OrdersTabs";
 
 export default function Orders() {
     const { user } = useAuth();

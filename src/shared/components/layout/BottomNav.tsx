@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger } from "@/shared/components/ui/sheet";
 import { SidebarContent } from "./Sidebar";
-import { useCart } from "@/features/commerce/context/CartContext";
+import { useCart } from "@/features/marketplace/context/CartContext";
 import { motion as m } from "framer-motion";
 
 export function BottomNav() {

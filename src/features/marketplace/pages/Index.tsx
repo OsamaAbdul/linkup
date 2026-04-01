@@ -2,10 +2,11 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/context/AuthContext";
-import { useCart } from "@/features/commerce/context/CartContext";
+import { useCart } from "@/features/marketplace/context/CartContext";
 import { useGeolocation } from "@/features/logistics/hooks/useGeolocation";
 import { haversineDistance, formatDistance } from "@/lib/haversine";
-import { ProductCard } from "@/features/commerce/components/ProductCard";
+import { ProductCard } from "@/features/marketplace/components/ProductCard";
+import { useWishlist } from "@/features/marketplace/hooks/useWishlist";
 import { useReferral } from "@/features/promoter/hooks/useReferral";
 import { AppLayout } from "@/shared/components/layout/AppLayout";
 import { Skeleton } from "@/shared/components/ui/skeleton";
@@ -51,6 +52,7 @@ export default function Index() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { likes, toggleLike } = useWishlist();
   useReferral();
 
   const isPromoter = roles.includes("promoter");
@@ -258,76 +260,6 @@ export default function Index() {
           reviews_count: (p.reviews_count || 0) > 0 ? p.reviews_count : derivedCount
         };
       });
-    },
-  });
-
-  const { data: likes = [] } = useQuery({
-    queryKey: ["my-likes", user?.id],
-    queryFn: async () => {
-      if (!user) return [];
-      const { data } = await supabase.from("likes").select("product_id").eq("user_id", user.id);
-      return data?.map((l) => l.product_id) ?? [];
-    },
-    enabled: !!user,
-  });
-
-  const likeMutation = useMutation({
-    mutationFn: async (productId: string) => {
-      if (!user) {
-        toast.error("Please sign in to like products");
-        navigate("/auth");
-        return;
-      }
-      const isLiked = likes.includes(productId);
-      if (isLiked) {
-        await supabase.from("likes").delete().eq("user_id", user.id).eq("product_id", productId);
-        toast.success("Removed from wishlist");
-      } else {
-        await supabase.from("likes").insert({ user_id: user.id, product_id: productId });
-        toast.success("Added to wishlist");
-      }
-    },
-    onMutate: async (productId) => {
-      if (!user) return;
-
-      // Cancel relevant queries
-      await queryClient.cancelQueries({ queryKey: ["my-likes", user.id] });
-      await queryClient.cancelQueries({ queryKey: ["products"] });
-
-      // 1. Update the 'liked' state instantly
-      const prevLikes = queryClient.getQueryData<string[]>(["my-likes", user.id]);
-      const currentlyLiked = prevLikes?.includes(productId);
-
-      queryClient.setQueryData(["my-likes", user.id], (old: string[] = []) =>
-        currentlyLiked ? old.filter((id) => id !== productId) : [...old, productId]
-      );
-
-      // 2. Update the 'likes_count' instantly
-      queryClient.setQueriesData({ queryKey: ["products"] }, (oldData: any) => {
-        if (!oldData) return oldData;
-        return {
-          ...oldData,
-          pages: oldData.pages.map((page: any[]) =>
-            page.map((p: any) =>
-              p.id === productId
-                ? { ...p, likes_count: (p.likes_count || 0) + (currentlyLiked ? -1 : 1) }
-                : p
-            )
-          )
-        };
-      });
-
-      return { prevLikes };
-    },
-    onError: (_err, _id, context) => {
-      if (user) {
-        queryClient.setQueryData(["my-likes", user.id], context?.prevLikes);
-      }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["my-likes", user?.id] });
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-      queryClient.invalidateQueries({ queryKey: ["like-counts"] });
     },
   });
 
@@ -582,7 +514,7 @@ export default function Index() {
                 latitude={product.latitude}
                 longitude={product.longitude}
                 userLocation={position}
-                onLike={(id) => likeMutation.mutate(id)}
+                onLike={(id) => toggleLike(id)}
                 onBuyNow={() => handleBuyNow(product)}
                 onAddToCart={() => {
                   if ((product.inventory ?? 0) <= 0) {

@@ -4,14 +4,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useGeolocation } from "@/features/logistics/hooks/useGeolocation";
 import { haversineDistance, formatDistance } from "@/lib/haversine";
-import { ProductCard } from "@/features/commerce/components/ProductCard";
+import { ProductCard } from "@/features/marketplace/components/ProductCard";
 import { AppLayout } from "@/shared/components/layout/AppLayout";
 import { Input } from "@/shared/components/ui/input";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { Search as SearchIcon } from "lucide-react";
+import { useWishlist } from "@/features/marketplace/hooks/useWishlist";
 import { useNavigate, Navigate } from "react-router-dom";
-import { useCart } from "@/features/commerce/context/CartContext";
+import { useCart } from "@/features/marketplace/context/CartContext";
 import { toast } from "sonner";
 
 export default function SearchPage() {
@@ -23,6 +24,7 @@ export default function SearchPage() {
   const [queryInput, setQueryInput] = useState("");
   const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const { likes, toggleLike } = useWishlist();
 
   // Debounce search by 300ms
   useEffect(() => {
@@ -109,71 +111,6 @@ export default function SearchPage() {
 
   const products = infiniteData?.pages.flat() || [];
 
-  const { data: likes = [] } = useQuery({
-    queryKey: ["my-likes", user?.id],
-    queryFn: async () => {
-      const { data } = await supabase.from("likes").select("product_id").eq("user_id", user!.id);
-      return data?.map((l) => l.product_id) ?? [];
-    },
-    enabled: !!user,
-  });
-
-
-  const likeMutation = useMutation({
-    mutationFn: async (productId: string) => {
-      if (!user) return;
-      const isLiked = likes.includes(productId);
-      if (isLiked) {
-        await supabase.from("likes").delete().eq("user_id", user.id).eq("product_id", productId);
-        toast.success("Removed from wishlist");
-      } else {
-        await supabase.from("likes").insert({ user_id: user.id, product_id: productId });
-        toast.success("Added to wishlist");
-      }
-    },
-    onMutate: async (productId) => {
-      if (!user) return;
-      await queryClient.cancelQueries({ queryKey: ["my-likes", user.id] });
-      await queryClient.cancelQueries({ queryKey: ["search-products"] });
-
-      const previousLikes = queryClient.getQueryData<string[]>(["my-likes", user.id]);
-      const currentlyLiked = previousLikes?.includes(productId);
-
-      // 1. Update liked state
-      queryClient.setQueryData(["my-likes", user.id], (old: string[] = []) =>
-        currentlyLiked ? old.filter((id) => id !== productId) : [...old, productId]
-      );
-
-      // 2. Update count in search results
-      queryClient.setQueriesData({ queryKey: ["search-products"] }, (oldData: any) => {
-        if (!oldData) return oldData;
-        return {
-          ...oldData,
-          pages: oldData.pages.map((page: any[]) =>
-            page.map((p: any) =>
-              p.id === productId
-                ? { ...p, likes_count: (p.likes_count || 0) + (currentlyLiked ? -1 : 1) }
-                : p
-            )
-          )
-        };
-      });
-
-      return { previousLikes };
-    },
-    onError: (err, productId, context) => {
-      if (context?.previousLikes) {
-        queryClient.setQueryData(["my-likes", user?.id], context.previousLikes);
-      }
-      toast.error("Failed to update wishlist");
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["my-likes", user?.id] });
-      queryClient.invalidateQueries({ queryKey: ["search-products"] });
-      queryClient.invalidateQueries({ queryKey: ["like-counts"] });
-    },
-  });
-
   return (
     <AppLayout>
       <div className="p-4 space-y-4">
@@ -198,7 +135,7 @@ export default function SearchPage() {
               latitude={product.latitude}
               longitude={product.longitude}
               userLocation={position}
-              onLike={(id) => likeMutation.mutate(id)}
+              onLike={(id) => toggleLike(id)}
               onBuyNow={async (productId) => {
                 try {
                   await addToCart(productId, 1);

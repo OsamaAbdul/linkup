@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/context/AuthContext";
-import { useCart } from "@/features/commerce/context/CartContext";
+import { useCart } from "@/features/marketplace/context/CartContext";
 import { AppLayout } from "@/shared/components/layout/AppLayout";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -23,7 +23,7 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import Receipt from "@/features/commerce/components/Receipt";
+import Receipt from "@/features/marketplace/components/Receipt";
 import {
   Select,
   SelectContent,
@@ -31,13 +31,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
-import { usePaystackInline } from "@/features/commerce/hooks/usePaystackInline";
+import { usePaystackInline } from "@/features/marketplace/hooks/usePaystackInline";
 
 import { AnimatePresence } from "framer-motion";
-import { CheckoutProgress } from "@/features/commerce/components/v2/CheckoutProgress";
-import { DeliveryStep } from "@/features/commerce/components/v2/DeliveryStep";
-import { PaymentStep } from "@/features/commerce/components/v2/PaymentStep";
-import { SuccessStep } from "@/features/commerce/components/v2/SuccessStep";
+import { CheckoutProgress } from "@/features/marketplace/components/v2/CheckoutProgress";
+import { DeliveryStep } from "@/features/marketplace/components/v2/DeliveryStep";
+import { PaymentStep } from "@/features/marketplace/components/v2/PaymentStep";
+import { SuccessStep } from "@/features/marketplace/components/v2/SuccessStep";
 
 const DELIVERY_FEE = 1500; 
 

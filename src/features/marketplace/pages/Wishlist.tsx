@@ -11,7 +11,7 @@ import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useCart } from "@/features/commerce/context/CartContext";
+import { useCart } from "@/features/marketplace/context/CartContext";
 import { useGeolocation } from "@/features/logistics/hooks/useGeolocation";
 import { haversineDistance, formatDistance } from "@/lib/haversine";
 

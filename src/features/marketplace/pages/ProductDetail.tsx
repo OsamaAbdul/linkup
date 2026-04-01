@@ -2,23 +2,25 @@ import { useParams, Navigate, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/context/AuthContext";
-import { useCart } from "@/features/commerce/context/CartContext";
+import { useCart } from "@/features/marketplace/context/CartContext";
 import { useGeolocation } from "@/features/logistics/hooks/useGeolocation";
 import { haversineDistance, formatDistance } from "@/lib/haversine";
 import { AppLayout } from "@/shared/components/layout/AppLayout";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { Input } from "@/shared/components/ui/input";
+import { Label } from "@/shared/components/ui/label";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { Heart, ShoppingCart, Send, ArrowLeft, Share2, MapPin, ShieldCheck, Clock, MessageSquare, Star } from "lucide-react";
+import { useWishlist } from "@/features/marketplace/hooks/useWishlist";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
-import RatingSelector from "@/features/commerce/components/RatingSelector";
+import RatingSelector from "@/features/marketplace/components/RatingSelector";
 import { useReferral } from "@/features/promoter/hooks/useReferral";
 import { cn } from "@/lib/utils";
-import { BuyNowModal } from "@/features/commerce/components/BuyNowModal";
+import { BuyNowModal } from "@/features/marketplace/components/BuyNowModal";
 import { m, AnimatePresence } from "framer-motion";
-import { ProductReportModal } from "@/features/commerce/components/ProductReportModal";
+import { ProductReportModal } from "@/features/marketplace/components/ProductReportModal";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
@@ -53,15 +55,8 @@ export default function ProductDetail() {
     enabled: !!id,
   });
 
-  const { data: isLiked = false } = useQuery({
-    queryKey: ["is-liked", id, user?.id],
-    queryFn: async () => {
-      if (!user) return false;
-      const { data } = await supabase.from("likes").select("id").eq("user_id", user.id).eq("product_id", id!).maybeSingle();
-      return !!data;
-    },
-    enabled: !!id && !!user,
-  });
+  const { likes, toggleLike } = useWishlist();
+  const isProductLiked = likes.includes(id!);
 
   const { data: likeCount = 0 } = useQuery({
     queryKey: ["like-count", id],
@@ -98,7 +93,7 @@ export default function ProductDetail() {
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "likes", filter: `product_id=eq.${id}` }, () => {
         queryClient.invalidateQueries({ queryKey: ["like-count", id] });
-        if (user) queryClient.invalidateQueries({ queryKey: ["is-liked", id, user.id] });
+        if (user) queryClient.invalidateQueries({ queryKey: ["my-likes", user.id] });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -108,52 +103,6 @@ export default function ProductDetail() {
     toast.error("Please sign in to continue");
     navigate("/auth");
   };
-
-  const likeMutation = useMutation({
-    mutationFn: async () => {
-      if (!user) {
-        toggleAuth();
-        return;
-      }
-      if (isLiked) {
-        await supabase.from("likes").delete().eq("user_id", user.id).eq("product_id", id!);
-        toast.success("Removed from wishlist");
-      } else {
-        await supabase.from("likes").insert({ user_id: user.id, product_id: id! });
-        toast.success("Added to wishlist");
-      }
-    },
-    onMutate: async () => {
-      if (!user || !id) return;
-
-      // Cancel relevant queries
-      await queryClient.cancelQueries({ queryKey: ["is-liked", id, user.id] });
-      await queryClient.cancelQueries({ queryKey: ["like-count", id] });
-
-      // Snapshot previous values
-      const previousIsLiked = queryClient.getQueryData<boolean>(["is-liked", id, user.id]);
-      const previousCount = queryClient.getQueryData<number>(["like-count", id]) || 0;
-
-      // Optimistically update
-      queryClient.setQueryData(["is-liked", id, user.id], !previousIsLiked);
-      queryClient.setQueryData(["like-count", id], previousIsLiked ? previousCount - 1 : previousCount + 1);
-
-      return { previousIsLiked, previousCount };
-    },
-    onError: (err, variables, context) => {
-      if (context && user && id) {
-        queryClient.setQueryData(["is-liked", id, user.id], context.previousIsLiked);
-        queryClient.setQueryData(["like-count", id], context.previousCount);
-      }
-      toast.error("Action failed");
-    },
-    onSettled: () => {
-      if (user && id) {
-        queryClient.invalidateQueries({ queryKey: ["is-liked", id, user.id] });
-        queryClient.invalidateQueries({ queryKey: ["like-count", id] });
-      }
-    },
-  });
 
   const reviewMutation = useMutation({
     mutationFn: async () => {
@@ -434,16 +383,16 @@ export default function ProductDetail() {
 
             <div className="flex gap-3">
               <button
-                onClick={() => likeMutation.mutate()}
+                onClick={() => toggleLike(id!)}
                 className={cn(
                   "flex-1 flex items-center justify-center gap-2 h-12 lg:h-10 rounded-xl border transition-all text-sm font-bold shadow-sm",
-                  isLiked
+                  isProductLiked
                     ? "bg-destructive/10 border-destructive/20 text-destructive"
                     : "bg-surface border-border text-foreground/70"
                 )}
               >
-                <Heart size={18} className={cn(isLiked && "fill-current")} />
-                {isLiked ? "Saved" : "Save Item"}
+                <Heart size={18} className={cn(isProductLiked && "fill-current")} />
+                {isProductLiked ? "Saved" : "Save Item"}
               </button>
 
               <button

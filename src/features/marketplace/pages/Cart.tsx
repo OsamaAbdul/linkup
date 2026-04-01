@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useCart } from "@/features/commerce/context/CartContext";
+import { useCart } from "@/features/marketplace/context/CartContext";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { AppLayout } from "@/shared/components/layout/AppLayout";
 import { Button } from "@/shared/components/ui/button";

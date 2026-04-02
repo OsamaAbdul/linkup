@@ -14,6 +14,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect } from "react";
 import { toast } from "sonner";
 
+import { ProfileCompletionBanner } from "@/shared/components/ProfileCompletionBanner";
+
 export default function LogisticsDashboard() {
     const { user, loading } = useAuth();
     const queryClient = useQueryClient();
@@ -183,6 +185,7 @@ export default function LogisticsDashboard() {
                 />
 
                 <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 lg:pb-8 overflow-x-hidden">
+                    <ProfileCompletionBanner />
                     {activeTab === "dashboard" && (
                         <LogisticsOverview 
                             kycStatus={kycStatus} 

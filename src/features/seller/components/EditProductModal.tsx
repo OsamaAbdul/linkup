@@ -12,7 +12,7 @@ interface EditProductModalProps {
     onSave: (product: any) => void;
 }
 
-const CLOTHING_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+import { getAvailableSizes } from "@/features/marketplace/utils/product-sizes";
 
 export function EditProductModal({ product, setProduct, onClose, onSave }: EditProductModalProps) {
     const toggleSize = (size: string) => {
@@ -47,23 +47,25 @@ export function EditProductModal({ product, setProduct, onClose, onSave }: EditP
                             </div>
                         </div>
 
-                        <div className="space-y-3">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Available Sizes</Label>
-                            <div className="flex flex-wrap gap-2">
-                                {CLOTHING_SIZES.map((size) => (
-                                    <Badge
-                                        key={size}
-                                        variant={(product.sizes || []).includes(size) ? "default" : "outline"}
-                                        className={`cursor-pointer h-10 px-4 rounded-xl text-xs font-bold transition-all ${
-                                            (product.sizes || []).includes(size) ? "scale-105 shadow-md" : "hover:bg-muted opacity-60"
-                                        }`}
-                                        onClick={() => toggleSize(size)}
-                                    >
-                                        {size}
-                                    </Badge>
-                                ))}
+                        {getAvailableSizes(product.category) && (
+                            <div className="space-y-3">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Available Sizes</Label>
+                                <div className="flex flex-wrap gap-2">
+                                    {getAvailableSizes(product.category)?.map((size) => (
+                                        <Badge
+                                            key={size}
+                                            variant={(product.sizes || []).includes(size) ? "default" : "outline"}
+                                            className={`cursor-pointer h-10 px-4 rounded-xl text-xs font-bold transition-all ${
+                                                (product.sizes || []).includes(size) ? "scale-105 shadow-md" : "hover:bg-muted opacity-60"
+                                            }`}
+                                            onClick={() => toggleSize(size)}
+                                        >
+                                            {size}
+                                        </Badge>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         <div className="space-y-3">
                             <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Specification Log</Label>

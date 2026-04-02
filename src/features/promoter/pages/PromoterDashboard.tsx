@@ -27,6 +27,8 @@ import {
 import { toast } from "sonner";
 import { PromoteAction } from "@/features/promoter/components/PromoteAction";
 
+import { ProfileCompletionBanner } from "@/shared/components/ProfileCompletionBanner";
+
 export default function PromoterDashboard() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -160,6 +162,7 @@ export default function PromoterDashboard() {
   return (
     <AppLayout>
       <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+        <ProfileCompletionBanner />
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Promoter Hub</h1>

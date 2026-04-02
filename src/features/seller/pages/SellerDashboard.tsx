@@ -18,6 +18,7 @@ import { ProfileTab } from "@/features/seller/components/ProfileTab";
 // Hooks
 import { useSellerDashboardData } from "../hooks/useSellerDashboardData";
 import { useSellerRealtime } from "../hooks/useSellerRealtime";
+import { ProfileCompletionBanner } from "@/shared/components/ProfileCompletionBanner";
 
 export default function Dashboard() {
   const { user, loading } = useAuth();
@@ -71,6 +72,7 @@ export default function Dashboard() {
         <DashboardSidebar activeTab={tab} setTab={setTab} pendingOrdersCount={pendingOrdersCount} openIssuesCount={openIssuesCount} />
 
         <main className="flex-1 min-w-0 w-full p-6 lg:p-10 pt-24 lg:pt-10 pb-32 lg:pb-10 max-w-6xl mx-auto space-y-10">
+          <ProfileCompletionBanner />
           {tab === "products" && (
             <InventoryTab
               products={products}

@@ -41,7 +41,7 @@ const formReducer = (state: FormState, action: FormAction): FormState => {
   return { ...state, [action.field]: action.value };
 };
 
-const CLOTHING_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+import { getAvailableSizes } from "@/features/marketplace/utils/product-sizes";
 
 export function ListProductTab() {
   const { user } = useAuth();
@@ -224,24 +224,25 @@ export function ListProductTab() {
           <Textarea value={form.description} onChange={(e) => dispatch({ type: "SET_FIELD", field: "description", value: e.target.value })} placeholder="Describe your product" className="rounded-xl min-h-[100px]" />
         </div>
 
-        {/* Sizes */}
-        <div className="space-y-3">
-          <Label className="text-xs font-black uppercase tracking-widest">Available Sizes</Label>
-          <div className="flex flex-wrap gap-2">
-            {CLOTHING_SIZES.map((size) => (
-              <Badge
-                key={size}
-                variant={form.sizes.includes(size) ? "default" : "outline"}
-                className={`cursor-pointer h-10 px-4 rounded-lg text-xs font-bold transition-all ${
-                  form.sizes.includes(size) ? "scale-105 shadow-md" : "hover:bg-muted opacity-60"
-                }`}
-                onClick={() => toggleSize(size)}
-              >
-                {size}
-              </Badge>
-            ))}
+        {getAvailableSizes(form.category) && (
+          <div className="space-y-3">
+            <Label className="text-xs font-black uppercase tracking-widest">Available Sizes</Label>
+            <div className="flex flex-wrap gap-2">
+              {getAvailableSizes(form.category)?.map((size) => (
+                <Badge
+                  key={size}
+                  variant={form.sizes.includes(size) ? "default" : "outline"}
+                  className={`cursor-pointer h-10 px-4 rounded-lg text-xs font-bold transition-all ${
+                    form.sizes.includes(size) ? "scale-105 shadow-md" : "hover:bg-muted opacity-60"
+                  }`}
+                  onClick={() => toggleSize(size)}
+                >
+                  {size}
+                </Badge>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Price & Inventory */}
         <div className="grid grid-cols-2 gap-4">

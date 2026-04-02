@@ -111,7 +111,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
                         .select("id, quantity")
                         .eq("user_id", user.id)
                         .eq("product_id", item.product_id);
-                    
+
                     if (item.size) {
                         query = query.eq("size", item.size);
                     } else {
@@ -158,7 +158,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
                     .delete()
                     .eq("user_id", user?.id!)
                     .eq("product_id", productId);
-                
+
                 if (size) {
                     query = query.eq("size", size);
                 } else {
@@ -173,7 +173,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
                     .update({ quantity })
                     .eq("user_id", user?.id!)
                     .eq("product_id", productId);
-                
+
                 if (size) {
                     query = query.eq("size", size);
                 } else {
@@ -219,7 +219,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
                 .select("id, quantity")
                 .eq("user_id", user?.id!)
                 .eq("product_id", productId);
-            
+
             if (size) {
                 query = query.eq("size", size);
             } else {
@@ -279,7 +279,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
                 .delete()
                 .eq("user_id", user?.id!)
                 .eq("product_id", productId);
-            
+
             if (size) {
                 query = query.eq("size", size);
             } else {

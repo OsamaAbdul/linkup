@@ -38,6 +38,10 @@ interface MissionDetailsModalProps {
 }
 
 export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDetailsModalProps) {
+
+    // logging the shipments details
+
+    console.log("this is the shipments:", shipment)
     const queryClient = useQueryClient();
 
     // Fetch full shipment details if missing or as a source of truth
@@ -166,17 +170,32 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
 
                 <div className="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/30">
                     <div className="p-6 space-y-6">
-                        {/* Consignee Identity */}
-                        <section className="space-y-3">
-                            <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                                <Smartphone size={12} strokeWidth={3} />
-                                Consignee Identity
-                            </h4>
-                            <div className="bg-muted/30 p-4 rounded-2xl border border-black/[0.03]">
-                                <p className="font-black text-sm">{buyer.name}</p>
-                                <p className="text-xs font-bold text-primary mt-0.5">{buyer.phone}</p>
-                            </div>
-                        </section>
+                        {/* Contact Information */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* Seller Identity */}
+                            <section className="space-y-3">
+                                <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                                    <Smartphone size={12} strokeWidth={3} />
+                                    Seller Contact
+                                </h4>
+                                <div className="bg-muted/30 p-4 rounded-2xl border border-black/[0.03]">
+                                    <p className="font-black text-sm">{sellerInfo.name}</p>
+                                    <p className="text-xs font-bold text-primary mt-0.5">{sellerInfo.phone}</p>
+                                </div>
+                            </section>
+
+                            {/* Consignee Identity */}
+                            <section className="space-y-3">
+                                <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                                    <Smartphone size={12} strokeWidth={3} />
+                                    Consignee Identity
+                                </h4>
+                                <div className="bg-muted/30 p-4 rounded-2xl border border-black/[0.03]">
+                                    <p className="font-black text-sm">{buyer.name}</p>
+                                    <p className="text-xs font-bold text-primary mt-0.5">{buyer.phone}</p>
+                                </div>
+                            </section>
+                        </div>
 
                         {/* Item List */}
                         <section className="space-y-3">

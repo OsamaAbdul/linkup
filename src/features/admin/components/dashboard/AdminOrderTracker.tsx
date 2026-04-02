@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
-import { Eye, Package, User, MapPin, Calendar, CreditCard } from "lucide-react";
+import { Eye, Package, User, MapPin, Calendar, Smartphone, Bike } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
     Dialog,
@@ -22,7 +22,14 @@ export default function AdminOrderTracker() {
         queryFn: async () => {
             const { data, error } = await supabase
                 .from("orders")
-                .select("*, profiles:buyer_id(display_name, id)")
+                .select(`
+                    *,
+                    profiles:buyer_id(display_name, id),
+                    shipments(
+                        rider_id,
+                        profiles:rider_id(display_name, phone, avatar_url)
+                    )
+                `)
                 .order("created_at", { ascending: false });
             if (error) throw error;
             return data;
@@ -36,10 +43,12 @@ export default function AdminOrderTracker() {
         if (!order) return null;
         const items = order.items as any[] || [];
         const shipping = order.shipping_address as any || {};
+        const shipment = order.shipments?.[0];
+        const rider = shipment?.profiles;
 
         return (
             <div className="space-y-6 py-4">
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
                         <div className="flex items-center gap-2 text-muted-foreground font-bold text-[10px] uppercase tracking-widest">
                             <User size={14} className="text-primary" />
@@ -60,6 +69,44 @@ export default function AdminOrderTracker() {
                             <p className="text-[10px] font-medium text-muted-foreground mt-1 text-primary lowercase tracking-tighter">System Recorded</p>
                         </div>
                     </div>
+                </div>
+
+                {/* Rider Information Section */}
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-muted-foreground font-bold text-[10px] uppercase tracking-widest">
+                        <Bike size={14} className="text-primary" />
+                        Rider identification
+                    </div>
+                    {rider ? (
+                        <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 flex items-center justify-between group">
+                            <div className="flex items-center gap-4">
+                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold overflow-hidden border-2 border-white shadow-sm">
+                                    {rider.avatar_url ? (
+                                        <img src={rider.avatar_url} alt={rider.display_name} className="h-full w-full object-cover" />
+                                    ) : (
+                                        rider.display_name?.charAt(0) || "R"
+                                    )}
+                                </div>
+                                <div>
+                                    <p className="font-bold text-sm">{rider.display_name || "Assigned Rider"}</p>
+                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                        <Smartphone size={10} className="text-muted-foreground" />
+                                        <a href={`tel:${rider.phone}`} className="text-[10px] font-medium text-primary hover:underline transition-all">
+                                            {rider.phone || "No contact info available"}
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <Badge className="bg-primary text-white border-none font-black text-[8px] uppercase tracking-widest px-2">
+                                Active Agent
+                            </Badge>
+                        </div>
+                    ) : (
+                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 border-dashed text-center">
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">No Rider Assigned Yet</p>
+                            <p className="text-[9px] text-muted-foreground mt-1 italic">Waiting for an agent to claim this broadcast.</p>
+                        </div>
+                    )}
                 </div>
 
                 <div className="space-y-4">
@@ -126,6 +173,7 @@ export default function AdminOrderTracker() {
                             <tr className="border-b border-gray-100 bg-gray-50/50">
                                 <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Order ID</th>
                                 <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Customer</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Rider</th>
                                 <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Date</th>
                                 <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Amount</th>
                                 <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Status</th>
@@ -133,44 +181,59 @@ export default function AdminOrderTracker() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
-                            {orders?.map((o) => (
-                                <tr key={o.id} className="hover:bg-gray-50/50 transition-colors group">
-                                    <td className="px-8 py-6 font-mono text-xs font-bold text-primary">#{o.id.slice(0, 8)}</td>
-                                    <td className="px-8 py-6">
-                                        <p className="font-bold text-sm text-foreground">{(o.profiles as any)?.display_name || "Guest"}</p>
-                                    </td>
-                                    <td className="px-8 py-6 text-xs font-medium text-muted-foreground">
-                                        {new Date(o.created_at).toLocaleDateString()}
-                                    </td>
-                                    <td className="px-8 py-6 font-black text-sm">₦{(o.total || 0).toLocaleString()}</td>
-                                    <td className="px-8 py-6">
-                                        <Badge className={cn(
-                                            "rounded-full px-3 py-0.5 text-[9px] font-black uppercase tracking-widest border-none shadow-sm",
-                                            o.status === 'pending' ? 'bg-amber-100 text-amber-800' :
-                                                o.status === 'confirmed' ? 'bg-emerald-100 text-emerald-800' :
-                                                    o.status === 'awaiting_agent' ? 'bg-orange-100 text-orange-800' :
-                                                        o.status === 'accepted' ? 'bg-indigo-100 text-indigo-800' :
-                                                            o.status === 'picked_up' ? 'bg-purple-100 text-purple-800' :
-                                                                o.status === 'out_for_delivery' ? 'bg-blue-100 text-blue-800' :
-                                                                    o.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                                                                        o.status === 'completed' ? 'bg-black text-white' :
-                                                                            'bg-muted text-muted-foreground'
-                                        )}>
-                                            {o.status.replace(/_/g, ' ')}
-                                        </Badge>
-                                    </td>
-                                    <td className="px-8 py-6 text-right">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="rounded-xl group-hover:bg-white group-hover:shadow-sm"
-                                            onClick={() => setSelectedOrder(o)}
-                                        >
-                                            <Eye size={18} />
-                                        </Button>
-                                    </td>
-                                </tr>
-                            ))}
+                            {orders?.map((o) => {
+                                const rider = (o as any).shipments?.[0]?.profiles;
+                                return (
+                                    <tr key={o.id} className="hover:bg-gray-50/50 transition-colors group">
+                                        <td className="px-8 py-6 font-mono text-xs font-bold text-primary">#{o.id.slice(0, 8)}</td>
+                                        <td className="px-8 py-6">
+                                            <p className="font-bold text-sm text-foreground">{(o.profiles as any)?.display_name || "Guest"}</p>
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            {rider ? (
+                                                <div className="flex items-center gap-2">
+                                                    <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">
+                                                        {rider.display_name?.charAt(0) || "R"}
+                                                    </div>
+                                                    <p className="font-bold text-xs truncate max-w-[120px]">{rider.display_name}</p>
+                                                </div>
+                                            ) : (
+                                                <span className="text-[10px] font-medium text-muted-foreground italic">Unassigned</span>
+                                            )}
+                                        </td>
+                                        <td className="px-8 py-6 text-xs font-medium text-muted-foreground">
+                                            {new Date(o.created_at).toLocaleDateString()}
+                                        </td>
+                                        <td className="px-8 py-6 font-black text-sm">₦{(o.total || 0).toLocaleString()}</td>
+                                        <td className="px-8 py-6">
+                                            <Badge className={cn(
+                                                "rounded-full px-3 py-0.5 text-[9px] font-black uppercase tracking-widest border-none shadow-sm",
+                                                o.status === 'pending' ? 'bg-amber-100 text-amber-800' :
+                                                    o.status === 'confirmed' ? 'bg-emerald-100 text-emerald-800' :
+                                                        o.status === 'awaiting_agent' ? 'bg-orange-100 text-orange-800' :
+                                                            o.status === 'accepted' ? 'bg-indigo-100 text-indigo-800' :
+                                                                o.status === 'picked_up' ? 'bg-purple-100 text-purple-800' :
+                                                                    o.status === 'out_for_delivery' ? 'bg-blue-100 text-blue-800' :
+                                                                        o.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                                                                            o.status === 'completed' ? 'bg-black text-white' :
+                                                                                'bg-muted text-muted-foreground'
+                                            )}>
+                                                {o.status.replace(/_/g, ' ')}
+                                            </Badge>
+                                        </td>
+                                        <td className="px-8 py-6 text-right">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="rounded-xl group-hover:bg-white group-hover:shadow-sm"
+                                                onClick={() => setSelectedOrder(o)}
+                                            >
+                                                <Eye size={18} />
+                                            </Button>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

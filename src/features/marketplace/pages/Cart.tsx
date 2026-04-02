@@ -89,11 +89,18 @@ export default function Cart() {
                           <img src={item.products.images[0]} className="w-full h-full object-contain" alt={item.products.title} />
                         )}
                       </div>
-                      <div className="flex-1 min-w-0 flex flex-col justify-between">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-semibold text-foreground line-clamp-1">{item.products?.title}</h3>
-                            <p className="font-bold text-lg mt-1">NGN {item.products?.price?.toLocaleString()}</p>
+                      <div className="flex-1 min-w-0 flex flex-col justify-between space-y-3">
+                        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                          <div className="min-w-0 flex-1">
+                            <h3 className="font-semibold text-foreground line-clamp-2 sm:line-clamp-1">{item.products?.title}</h3>
+                            <div className="flex items-center gap-2 mt-1">
+                              <p className="font-bold text-lg">NGN {item.products?.price?.toLocaleString()}</p>
+                              {item.size && (
+                                <span className="bg-muted px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider text-muted-foreground border border-muted-foreground/10">
+                                  Size: {item.size}
+                                </span>
+                              )}
+                            </div>
                           </div>
 
                           <div className="flex items-center border rounded-lg bg-card h-8">
@@ -131,15 +138,16 @@ export default function Cart() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 mt-3">
-                          <Button variant="outline" size="sm" className="h-8 gap-2 text-muted-foreground hover:text-destructive hover:border-destructive/20">
-                            <Heart size={14} />
-                            Save to Wishlist
-                          </Button>
-                          <div className="flex items-center border rounded-lg bg-card h-8 px-2 ml-auto lg:hidden">
-                            <span className="text-sm font-medium">Qty: {item.quantity}</span>
+                        <div className="flex items-center justify-between mt-auto pt-2 border-t border-dashed sm:border-none sm:pt-0">
+                          <div className="flex items-center gap-2">
+                            <Button variant="outline" size="sm" className="h-8 px-2 sm:px-3 gap-1.5 text-xs text-muted-foreground hover:text-destructive hover:border-destructive/20 transition-all active:scale-95">
+                              <Heart size={14} />
+                              <span className="hidden sm:inline">Save to Wishlist</span>
+                              <span className="sm:hidden text-[10px]">Wishlist</span>
+                            </Button>
                           </div>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" onClick={() => removeFromCart(item.product_id, item.size)}>
+                          
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors shrink-0" onClick={() => removeFromCart(item.product_id, item.size)}>
                             <Trash2 size={16} />
                           </Button>
                         </div>

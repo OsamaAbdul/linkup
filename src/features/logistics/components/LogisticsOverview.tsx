@@ -67,11 +67,12 @@ export function LogisticsOverview({
     const { data: broadcastMissions = [] } = useQuery({
         queryKey: ["broadcast-missions", user?.id],
         queryFn: async () => {
+            const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
             const { data } = await (supabase as any)
                 .from("shipments")
                 .select(`*, order:orders (*, buyer:profiles!buyer_id (*), seller:profiles!seller_id (*))`)
-                .eq("status", "broadcast")
-                .is("rider_id", null)
+                .or(`status.eq.broadcast,and(status.eq.accepted,updated_at.lt.${oneHourAgo})`)
+                .neq("rider_id", user?.id || '')
                 .order("created_at", { ascending: false });
             return data || [];
         },

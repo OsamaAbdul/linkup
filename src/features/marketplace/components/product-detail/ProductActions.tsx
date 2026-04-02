@@ -1,7 +1,7 @@
 import { m } from "framer-motion";
 import { Button } from "@/shared/components/ui/button";
 import { Label } from "@/shared/components/ui/label";
-import { Heart, ShoppingCart, MessageSquare } from "lucide-react";
+import { Heart, ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,44 +45,6 @@ export function ProductActions({
     navigate("/checkout");
   };
 
-  const handleChat = async () => {
-    if (!user) {
-      toggleAuth();
-      return;
-    }
-    if (user.id === product.seller_id) {
-      toast.error("You cannot chat with yourself");
-      return;
-    }
-
-    const { data: existing } = await (supabase as any)
-      .from("conversations")
-      .select("id")
-      .eq("product_id", product.id)
-      .eq("buyer_id", user.id)
-      .eq("seller_id", product.seller_id)
-      .maybeSingle();
-
-    if (existing) {
-      navigate(`/chat/${existing.id}`);
-    } else {
-      const { data: newConv, error } = await (supabase as any)
-        .from("conversations")
-        .insert({
-          product_id: product.id,
-          buyer_id: user.id,
-          seller_id: product.seller_id
-        })
-        .select("id")
-        .single();
-
-      if (error) {
-        toast.error("Failed to initiate secure channel");
-        return;
-      }
-      navigate(`/chat/${newConv.id}`);
-    }
-  };
 
   return (
     <div className="space-y-6 lg:space-y-4">
@@ -133,22 +95,14 @@ export function ProductActions({
           <button
             onClick={() => toggleLike(product.id)}
             className={cn(
-              "flex-1 flex items-center justify-center gap-2 h-12 lg:h-10 rounded-xl border transition-all text-sm font-bold shadow-sm",
+              "w-full flex items-center justify-center gap-2 h-12 lg:h-10 rounded-xl border transition-all text-sm font-bold shadow-sm",
               isProductLiked
                 ? "bg-destructive/10 border-destructive/20 text-destructive"
                 : "bg-surface border-border text-foreground/70"
             )}
           >
             <Heart size={18} className={cn(isProductLiked && "fill-current")} />
-            {isProductLiked ? "Saved" : "Save Item"}
-          </button>
-
-          <button
-            onClick={handleChat}
-            className="flex-1 flex items-center justify-center gap-2 h-12 lg:h-10 rounded-xl bg-surface border border-border text-foreground/70 hover:bg-muted transition-all text-sm font-bold shadow-sm"
-          >
-            <MessageSquare size={18} />
-            Ask Our Partner
+            {isProductLiked ? "Saved to Wishlist" : "Save to Wishlist"}
           </button>
         </div>
       </m.div>

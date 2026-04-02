@@ -100,7 +100,7 @@ export default function Cart() {
                             <button
                               aria-label="Decrease quantity"
                               className="w-8 h-full flex items-center justify-center hover:bg-muted text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
-                              onClick={() => updateQuantity(item.product_id, item.quantity - 1)}
+                              onClick={() => updateQuantity(item.product_id, item.quantity - 1, item.size)}
                             >
                               {item.quantity === 1 ? <Trash2 size={14} /> : <Minus size={14} />}
                             </button>
@@ -116,7 +116,7 @@ export default function Cart() {
                                   toast.error(`Only ${stock} items available`);
                                   return;
                                 }
-                                updateQuantity(item.product_id, item.quantity + 1);
+                                updateQuantity(item.product_id, item.quantity + 1, item.size);
                               }}
                               disabled={item.quantity >= (item.products?.inventory || 0)}
                             >
@@ -139,7 +139,7 @@ export default function Cart() {
                           <div className="flex items-center border rounded-lg bg-card h-8 px-2 ml-auto lg:hidden">
                             <span className="text-sm font-medium">Qty: {item.quantity}</span>
                           </div>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" onClick={() => removeFromCart(item.product_id)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" onClick={() => removeFromCart(item.product_id, item.size)}>
                             <Trash2 size={16} />
                           </Button>
                         </div>

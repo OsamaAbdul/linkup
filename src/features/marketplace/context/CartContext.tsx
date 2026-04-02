@@ -36,6 +36,11 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 const LOCAL_CART_KEY = "linkup_guest_cart";
 
+// Helper to compare sizes considering null and undefined as equal
+const isSameSize = (s1?: string | null, s2?: string | null) => {
+    return (s1 || null) === (s2 || null);
+};
+
 export function CartProvider({ children }: { children: ReactNode }) {
     const { user } = useAuth();
     const queryClient = useQueryClient();
@@ -101,17 +106,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
             if (user && localCart.length > 0) {
                 let itemsSynced = 0;
                 for (const item of localCart) {
-                    // Check if already in DB with same size
-                    const query = supabase
+                    let query = supabase
                         .from("cart_items")
                         .select("id, quantity")
                         .eq("user_id", user.id)
                         .eq("product_id", item.product_id);
                     
                     if (item.size) {
-                        query.eq("size", item.size);
+                        query = query.eq("size", item.size);
                     } else {
-                        query.is("size", null);
+                        query = query.is("size", null);
                     }
 
                     const { data: existing } = await query.maybeSingle();
@@ -187,10 +191,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
             if (previousCart) {
                 queryClient.setQueryData<CartItem[]>(["cart", user?.id], (old) => {
                     if (quantity <= 0) {
-                        return old?.filter(item => item.product_id !== productId || item.size !== size);
+                        return old?.filter(item => item.product_id !== productId || !isSameSize(item.size, size));
                     }
                     return old?.map(item =>
-                        (item.product_id === productId && item.size === size) ? { ...item, quantity } : item
+                        (item.product_id === productId && isSameSize(item.size, size)) ? { ...item, quantity } : item
                     );
                 });
             }
@@ -245,11 +249,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
             const previousCart = queryClient.getQueryData<CartItem[]>(["cart", user?.id]);
 
             if (previousCart) {
-                const existing = previousCart.find(item => item.product_id === productId && item.size === size);
+                const existing = previousCart.find(item => item.product_id === productId && isSameSize(item.size, size));
                 if (existing) {
                     queryClient.setQueryData<CartItem[]>(["cart", user?.id], (old) =>
                         old?.map(item =>
-                            (item.product_id === productId && item.size === size) ? { ...item, quantity: item.quantity + quantity } : item
+                            (item.product_id === productId && isSameSize(item.size, size)) ? { ...item, quantity: item.quantity + quantity } : item
                         )
                     );
                 }
@@ -270,16 +274,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     const removeFromCartMutation = useMutation({
         mutationFn: async ({ productId, size }: { productId: string; size?: string }) => {
-            const query = supabase
+            let query = supabase
                 .from("cart_items")
                 .delete()
                 .eq("user_id", user?.id!)
                 .eq("product_id", productId);
             
             if (size) {
-                query.eq("size", size);
+                query = query.eq("size", size);
             } else {
-                query.is("size", null);
+                query = query.is("size", null);
             }
 
             const { error } = await query;
@@ -291,7 +295,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
             if (previousCart) {
                 queryClient.setQueryData<CartItem[]>(["cart", user?.id], (old) =>
-                    old?.filter(item => item.product_id !== productId || item.size !== size)
+                    old?.filter(item => item.product_id !== productId || !isSameSize(item.size, size))
                 );
             }
 
@@ -347,7 +351,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             }
         } else {
             setLocalCart(prev => {
-                const existingIdx = prev.findIndex(i => i.product_id === productId && i.size === size);
+                const existingIdx = prev.findIndex(i => i.product_id === productId && isSameSize(i.size, size));
                 if (existingIdx > -1) {
                     const newCart = [...prev];
                     newCart[existingIdx].quantity += quantity;
@@ -367,7 +371,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
                 removeFromCart(productId, size);
                 return;
             }
-            setLocalCart(prev => prev.map(i => (i.product_id === productId && i.size === size) ? { ...i, quantity } : i));
+            setLocalCart(prev => prev.map(i => (i.product_id === productId && isSameSize(i.size, size)) ? { ...i, quantity } : i));
         }
     };
 
@@ -375,7 +379,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         if (user) {
             removeFromCartMutation.mutate({ productId, size });
         } else {
-            setLocalCart(prev => prev.filter(i => i.product_id !== productId || i.size !== size));
+            setLocalCart(prev => prev.filter(i => i.product_id !== productId || !isSameSize(i.size, size)));
         }
         toast.success("Removed from cart");
     };

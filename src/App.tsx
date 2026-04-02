@@ -17,6 +17,7 @@ import SellerVerification from "@/features/seller/pages/SellerVerification";
 import AdminDashboard from "@/features/admin/pages/AdminDashboard";
 import AdminAuth from "@/features/admin/pages/AdminAuth";
 import { AdminRoute } from "@/features/auth/components/AdminRoute";
+import { ProtectedRoute } from "@/features/auth/components/ProtectedRoute";
 import { AdminLayout } from "@/features/admin/components/AdminLayout";
 import Notifications from "@/features/user/pages/Notifications";
 import Dashboard from "@/features/seller/pages/SellerDashboard";
@@ -64,27 +65,27 @@ const App = () => (
             <Sonner />
             <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
               <Routes>
-                <Route path="/" element={<Index />} />
+                <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/product/:id" element={<ProductDetail />} />
                 <Route path="/cart" element={<Cart />} />
-                <Route path="/checkout" element={<Checkout />} />
-                <Route path="/sell" element={<ListProduct />} />
+                <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+                <Route path="/sell" element={<ProtectedRoute><ListProduct /></ProtectedRoute>} />
                 <Route path="/search" element={<SearchPage />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/notifications" element={<Notifications />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/wishlist" element={<Wishlist />} />
-                <Route path="/orders" element={<Orders />} />
-                <Route path="/messages" element={<Messages />} />
-                <Route path="/chat/:id" element={<Chat />} />
+                <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
+                <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+                <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+                <Route path="/chat/:id" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
                 <Route path="/support" element={<Support />} />
-                <Route path="/onboarding" element={<Onboarding />} />
+                <Route path="/onboarding" element={<ProtectedRoute requireOnboarding={false}><Onboarding /></ProtectedRoute>} />
                 <Route path="/logistics" element={<Logistics />} />
-                <Route path="/logistics-dashboard" element={<LogisticsDashboard />} />
-                <Route path="/promoter-dashboard" element={<PromoterDashboard />} />
-                <Route path="/seller-verification" element={<SellerVerification />} />
+                <Route path="/logistics-dashboard" element={<ProtectedRoute><LogisticsDashboard /></ProtectedRoute>} />
+                <Route path="/promoter-dashboard" element={<ProtectedRoute><PromoterDashboard /></ProtectedRoute>} />
+                <Route path="/seller-verification" element={<ProtectedRoute><SellerVerification /></ProtectedRoute>} />
                 <Route path="/admin-auth" element={<AdminAuth />} />
                 <Route
                   path="/admin/*"

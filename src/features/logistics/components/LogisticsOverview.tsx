@@ -71,8 +71,7 @@ export function LogisticsOverview({
             const { data } = await (supabase as any)
                 .from("shipments")
                 .select(`*, order:orders (*, buyer:profiles!buyer_id (*), seller:profiles!seller_id (*))`)
-                .or(`status.eq.broadcast,and(status.eq.accepted,updated_at.lt.${oneHourAgo})`)
-                .neq("rider_id", user?.id || '')
+                .or(`status.eq.broadcast,and(status.eq.accepted,updated_at.lt.${oneHourAgo},rider_id.neq.${user?.id})`)
                 .order("created_at", { ascending: false });
             return data || [];
         },

@@ -45,14 +45,16 @@ export default function AdminOrderTracker() {
         if (!order) return null;
         const items = order.items as any[] || [];
         const shipment = order.shipments?.[0];
-        
+
         // Merge shipping info from Order and Shipment records
         const shipping = {
             ...(order.shipping_address as any || {}),
             ...(shipment?.delivery_address as any || {})
         };
-        
+
         const rider = shipment?.profiles;
+
+        console.log("shipment", shipment)
 
         return (
             <div className="space-y-6 py-4">
@@ -153,17 +155,15 @@ export default function AdminOrderTracker() {
                 <div className="space-y-4">
                     <div className="flex items-center gap-2 text-muted-foreground font-bold text-[10px] uppercase tracking-widest">
                         <MapPin size={14} className="text-primary" />
-                        Logistic Endpoint (Shipping)
+                        Logistic Delivery Address
                     </div>
                     <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                         <p className="text-sm font-medium leading-relaxed">
-                            {shipping.name && <><span className="font-bold text-foreground">{shipping.name}</span><br /></>}
+
                             {/* Priority: Explicit address -> raw delivery_address -> shipment fallbacks */}
-                            {(shipping.address || (typeof shipment?.delivery_address === 'string' ? shipment.delivery_address : shipment?.delivery_address?.address) || "Node Connection Missing")}<br />
-                            <span className="font-bold text-primary/80 text-[10px] uppercase tracking-tighter">
-                                {shipping.zone_name || shipping.state || "Geographic Node Unknown"} { (shipping.city_name || shipping.city) ? `• ${shipping.city_name || shipping.city}` : ""}
-                            </span><br />
-                            <span className="font-bold text-primary">{shipping.phone || "No contact digits"}</span>
+                            {(shipment.delivery_address || (typeof shipment?.delivery_address === 'string' ? shipment.delivery_address : shipment?.delivery_address?.address) || "Delivery Address missing")}<br />
+
+
                         </p>
                     </div>
                 </div>
@@ -214,8 +214,8 @@ export default function AdminOrderTracker() {
                                                     <div className="flex flex-col min-w-0">
                                                         <p className="font-black text-xs text-foreground truncate">{rider.display_name || "Agent"}</p>
                                                         {rider.phone && (
-                                                            <a 
-                                                                href={`tel:${rider.phone}`} 
+                                                            <a
+                                                                href={`tel:${rider.phone}`}
                                                                 className="text-[10px] font-bold text-primary hover:underline transition-all flex items-center gap-1 mt-0.5"
                                                             >
                                                                 <Smartphone size={8} />
@@ -285,7 +285,7 @@ export default function AdminOrderTracker() {
                                 Order Details Extraction
                             </DialogTitle>
                             <DialogDescription className="text-xs font-medium text-muted-foreground">
-                                Granular breakdown of order manifest, logistics endpoint, and customer data.
+                                Total breakdown of order manifest, logistics endpoint, and customer data.
                             </DialogDescription>
                         </DialogHeader>
                     </div>

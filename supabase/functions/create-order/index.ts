@@ -7,8 +7,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-platform-runtime, x-supabase-client-platform-runtime-version",
 };
 
-const COMMISSION_RATE = 0.05; // 5%
-
 function toTextAddress(val: unknown): string {
   if (!val) return "";
   if (typeof val === "string") return val;
@@ -97,7 +95,6 @@ serve(async (req: Request) => {
     if (sellerIds.length === 0) throw new Error("No valid products or sellers found in order items");
 
     const createdOrderIds: string[] = [];
-    let overallCommissionCreated = false;
 
     // --- Process each Seller as a separate Order ---
     for (const sId of sellerIds) {
@@ -105,7 +102,7 @@ serve(async (req: Request) => {
       const sellerItems = itemsBySeller[sId];
       
       // Calculate sub-total for this seller
-      const subTotal = sellerItems.reduce((acc, item) => acc + (Number(item.price) * (item.quantity || 1)), 0);
+      const subTotal = sellerItems.reduce((acc: number, item: any) => acc + (Number(item.price) * (item.quantity || 1)), 0);
 
       // --- Fetch Seller details for Distance & Pickup ---
       let current_pickup_lat = pickup_lat;
@@ -193,7 +190,7 @@ serve(async (req: Request) => {
 
       if (orderError) {
         console.error(`ORDER_INSERT_FAIL for seller ${sId}:`, orderError);
-        continue; // Or handle more gracefully
+        continue;
       }
 
       createdOrderIds.push(order.id);
@@ -220,7 +217,7 @@ serve(async (req: Request) => {
         status: "pending",
         delivery_address: deliveryAddress,
         pickup_address: finalPickupAddress,
-        delivery_fee: delivery_fee ? (delivery_fee / sellerIds.length) : 0, // Proportional splitting of delivery fee
+        delivery_fee: delivery_fee ? (delivery_fee / sellerIds.length) : 0, 
         zone_id: zone_id || null,
         city_id: city_id || null,
         zone: zone || null,
@@ -230,24 +227,6 @@ serve(async (req: Request) => {
         buyer_latitude: delivery_lat || null,
         buyer_longitude: delivery_lng || null,
       });
-
-      // --- Commission Logic (Per sub-order) ---
-      if (promoter_id && promoter_id !== user.id && promoter_id !== sId) {
-        const commissionAmount = subTotal * COMMISSION_RATE;
-        if (commissionAmount > 0) {
-          const { error: commError } = await adminClient
-            .from("commissions")
-            .insert({
-              order_id: order.id,
-              promoter_id: promoter_id,
-              seller_id: sId,
-              rate: COMMISSION_RATE,
-              amount: commissionAmount,
-              status: "pending",
-            });
-          if (!commError) overallCommissionCreated = true;
-        }
-      }
 
       // --- Notify Seller ---
       await adminClient.from("notifications").insert({
@@ -274,7 +253,6 @@ serve(async (req: Request) => {
       JSON.stringify({
         order_ids: createdOrderIds,
         main_order_id: createdOrderIds[0],
-        commission_created: overallCommissionCreated,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

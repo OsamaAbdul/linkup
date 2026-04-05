@@ -81,10 +81,11 @@ export function LogisticsOverview({
 
     const isKycVerified = kycStatus?.toLowerCase() === "verified" || kycStatus?.toLowerCase() === "approved";
 
-    // Real-time listener
+    // Real-time listener: High-frequency sync
     useEffect(() => {
         if (!user) return;
 
+        // 1. My Shipments: Listen to all changes (*) assigned to me
         const myChannel = supabase
             .channel(`agent-shipments-${user.id}`)
             .on("postgres_changes", {
@@ -92,21 +93,39 @@ export function LogisticsOverview({
                 schema: "public",
                 table: "shipments",
                 filter: `rider_id=eq.${user.id}`,
-            }, () => {
+            }, (payload) => {
+                console.log("Realtime: My shipment updated", payload);
                 queryClient.invalidateQueries({ queryKey: ["agent-shipments", user.id] });
+                // Also invalidate specific order detail if needed
+                if (payload.new && (payload.new as any).order_id) {
+                    queryClient.invalidateQueries({ queryKey: ["order", (payload.new as any).order_id] });
+                }
             })
             .subscribe();
 
+        // 2. Broadcast Missions: Catch new ones and removals
         const broadcastChannel = supabase
-            .channel(`broadcast-zone-${user.id}`)
+            .channel(`broadcast-global-${user.id}`)
             .on("postgres_changes", {
-                event: "INSERT",
+                event: "*", 
                 schema: "public",
                 table: "shipments",
             }, (payload) => {
-                if ((payload.new as any).status === "broadcast") {
+                // If it's a new broadcast OR an existing one changed (e.g. taken by someone else)
+                const isBroadcast = (payload.new as any)?.status === "broadcast" || (payload.old as any)?.status === "broadcast";
+                if (isBroadcast) {
+                    console.log("Realtime: Broadcast mission updated");
                     queryClient.invalidateQueries({ queryKey: ["broadcast-missions", user.id] });
-                    toast("📡 New Mission Available!");
+                    
+                    if (payload.eventType === "INSERT" && (payload.new as any).status === "broadcast") {
+                        toast("📡 New Mission Available!", {
+                            description: "A new order just entered the broadcast pool.",
+                            action: {
+                                label: "View",
+                                onClick: () => console.log("Navigate to missions")
+                            }
+                        });
+                    }
                 }
             })
             .subscribe();

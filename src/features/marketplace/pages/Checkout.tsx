@@ -155,9 +155,13 @@ export default function Checkout() {
     }
   }, [cities, profile, authLoading, isCitiesPending, shipping.city_id, shipping.address]);
 
-  // Calculate delivery fee
+  // Calculate multi-shipment delivery fee
+  const uniqueSellerIds = new Set(cartItems.map((item: any) => item.products?.seller_id).filter(Boolean));
+  const sellerCount = Math.max(1, uniqueSellerIds.size);
+  
   const selectedZone = zones.find((z: any) => z.id === shipping.zone_id);
-  const deliveryFee = selectedZone?.delivery_fee ?? (shipping.zone_id ? DELIVERY_FEE : 0);
+  const baseDeliveryFee = selectedZone?.delivery_fee ?? (shipping.zone_id ? DELIVERY_FEE : 0);
+  const deliveryFee = baseDeliveryFee * sellerCount;
   const grandTotal = productTotal + deliveryFee;
 
   const placeOrder = useMutation({
@@ -347,6 +351,7 @@ export default function Checkout() {
                 productTotal={productTotal}
                 deliveryFee={deliveryFee}
                 grandTotal={grandTotal}
+                sellerCount={sellerCount}
                 onBack={() => setStep(1)}
                 onPay={handlePayAndPlaceOrder}
                 isPending={placeOrder.isPending || isPaystackProcessing}

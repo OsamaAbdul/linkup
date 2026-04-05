@@ -9,6 +9,7 @@ interface PaymentStepProps {
   productTotal: number;
   deliveryFee: number;
   grandTotal: number;
+  sellerCount: number;
   onBack: () => void;
   onPay: () => void;
   isPending: boolean;
@@ -19,6 +20,7 @@ export function PaymentStep({
   productTotal,
   deliveryFee,
   grandTotal,
+  sellerCount,
   onBack,
   onPay,
   isPending,
@@ -137,7 +139,7 @@ export function PaymentStep({
             </div>
             <div className="flex justify-between items-center text-xs font-semibold">
               <span className="text-muted-foreground flex items-center gap-1.5">
-                <Truck size={12} className="text-blue-500" /> Delivery Fee
+                <Truck size={12} className="text-blue-500" /> Delivery {sellerCount > 1 ? `(${sellerCount} Packages)` : ''}
               </span>
               <span className="text-foreground">₦{deliveryFee.toLocaleString()}</span>
             </div>

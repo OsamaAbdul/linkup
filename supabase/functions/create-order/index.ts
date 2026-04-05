@@ -217,7 +217,7 @@ serve(async (req: Request) => {
         status: "pending",
         delivery_address: deliveryAddress,
         pickup_address: finalPickupAddress,
-        delivery_fee: delivery_fee ? (delivery_fee / sellerIds.length) : 0, 
+        delivery_fee_amount: delivery_fee ? (delivery_fee / sellerIds.length) : 0, 
         zone_id: zone_id || null,
         city_id: city_id || null,
         zone: zone || null,

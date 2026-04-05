@@ -20,7 +20,7 @@ export default function AdminAuth() {
 
     const { user, roles, loading, refreshProfile } = useAuth();
 
-    console.log("user, roles and loading state:", { user, roles, loading });
+
     const isAdmin = roles.includes("admin");
 
     // redirecting the user t

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
@@ -8,6 +8,7 @@ import { Store, Smartphone, Activity, ChevronUp, ChevronDown, AlertCircle, Check
 import { cn } from "@/lib/utils";
 import { OrderTimeline } from "./OrderTimeline";
 import { OrderShipmentIntel } from "./OrderShipmentIntel";
+import { ShieldAlert, Scale, ArrowRight, MessageSquare } from "lucide-react";
 import { ShipmentStatusHistory } from "./ShipmentStatusHistory";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/shared/components/ui/dialog";
 import { Textarea } from "@/shared/components/ui/textarea";
@@ -28,6 +29,7 @@ interface OrderCardProps {
         displayStatus: string;
         shipment?: any;
         sellerId?: string;
+        productId?: string;
         size?: string;
     };
 }
@@ -36,10 +38,50 @@ export function OrderCard({ order }: OrderCardProps) {
 
     const [isOpen, setIsOpen] = useState(false);
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+    const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
     const [issueTitle, setIssueTitle] = useState("");
     const [issueDescription, setIssueDescription] = useState("");
     const [issuePriority, setIssuePriority] = useState("low");
+    
+    // Dispute state
+    const [disputeReason, setDisputeReason] = useState("");
+    const [disputeDetails, setDisputeDetails] = useState("");
+    
     const { user } = useAuth();
+    const queryClient = useQueryClient();
+
+    // Fetch dispute details if disputed
+    const { data: disputeData } = useQuery({
+        queryKey: ["order-dispute", order.id],
+        queryFn: async () => {
+            if (!user || order.status.toLowerCase() !== "disputed") return null;
+            const { data, error } = await supabase
+                .from("issues" as any)
+                .select("*")
+                .eq("order_id", order.id)
+                .eq("category", "financial_dispute")
+                .single();
+            if (error) return null;
+            return data;
+        },
+        enabled: !!user && order.status.toLowerCase() === "disputed",
+    });
+
+    // Fetch related issues for exact buyer id (Initiator)
+    const { data: relatedIssues } = useQuery({
+        queryKey: ["buyer-issues", user?.id],
+        queryFn: async () => {
+            if (!user) return [];
+            const { data, error } = await supabase
+                .from("issues" as any)
+                .select("*")
+                .eq("user_id", user.id)
+                .order("created_at", { ascending: false });
+            if (error) return [];
+            return data;
+        },
+        enabled: !!user && order.status.toLowerCase() === "disputed",
+    });
 
     const reportIssueMutation = useMutation({
         mutationFn: async () => {
@@ -50,6 +92,7 @@ export function OrderCard({ order }: OrderCardProps) {
                     user_id: user.id,
                     order_id: order.id,
                     seller_id: order.sellerId,
+                    product_id: order.productId, // Link to specific product
                     title: issueTitle,
                     description: issueDescription,
                     priority: issuePriority,
@@ -67,7 +110,49 @@ export function OrderCard({ order }: OrderCardProps) {
             toast.error("Transmission failed: " + err.message);
         }
     });
-    const queryClient = useQueryClient();
+
+    const raiseDisputeMutation = useMutation({
+        mutationFn: async () => {
+            if (!user) throw new Error("Authentication protocol required");
+            
+            // 1. Insert into unified issues table
+            const { error: disputeError } = await supabase
+                .from("issues" as any)
+                .insert([{
+                    user_id: user.id,
+                    order_id: order.id,
+                    seller_id: order.sellerId,
+                    product_id: order.productId,
+                    category: "financial_dispute", // Distinguish from technical tickets
+                    title: `Financial Dispute: ${disputeReason}`,
+                    description: disputeDetails,
+                    priority: "high",
+                    status: "open"
+                }]);
+            
+            if (disputeError) throw disputeError;
+
+            // 2. Update order status to 'disputed'
+            const { error: orderError } = await supabase
+                .from("orders")
+                .update({ status: "disputed" })
+                .eq("id", order.id);
+            
+            if (orderError) throw orderError;
+        },
+        onSuccess: () => {
+            toast.success("Judicial claim recorded successfully", {
+                description: "Order status updated to 'Disputed'. Administration has been notified.",
+            });
+            setIsDisputeModalOpen(false);
+            setDisputeReason("");
+            setDisputeDetails("");
+            queryClient.invalidateQueries({ queryKey: ["orders", user?.id] });
+        },
+        onError: (err: any) => {
+            toast.error("Dispute failed: " + err.message);
+        }
+    });
 
     const confirmDeliveryMutation = useMutation({
         mutationFn: async () => {
@@ -206,7 +291,8 @@ export function OrderCard({ order }: OrderCardProps) {
                                     Order Finalized successfully
                                 </Button>
                             )}
-                            {!["delivered", "completed"].includes(order.status.toLowerCase()) && (
+                            {/* General Issue Reporting (For non-delivered orders) */}
+                            {!["delivered", "completed", "cancelled", "refunded", "disputed"].includes(order.status.toLowerCase()) && (
                                 <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}>
                                     <DialogTrigger asChild>
                                         <Button variant="outline" className="rounded-full border-black/10 text-[9px] font-black uppercase tracking-widest h-8 px-4 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 transition-all">
@@ -266,6 +352,137 @@ export function OrderCard({ order }: OrderCardProps) {
                                         </DialogFooter>
                                     </DialogContent>
                                 </Dialog>
+                            )}
+
+                            {/* Dispute Tracking (When already disputed) */}
+                            {order.status.toLowerCase() === "disputed" && disputeData && (
+                                <div className="mt-4 p-4 rounded-2xl bg-red-50/50 border border-red-100/50 backdrop-blur-sm space-y-4 animate-in fade-in slide-in-from-top-2 duration-500">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center text-white shadow-lg shadow-red-200">
+                                                <Scale size={14} />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-[10px] font-black uppercase tracking-widest text-red-600">Dispute Under Review</h4>
+                                                <p className="text-[8px] font-bold text-red-400 uppercase tracking-tight">Case ID: {disputeData.id.slice(0, 8).toUpperCase()}</p>
+                                            </div>
+                                        </div>
+                                        <Badge className={cn(
+                                            "rounded-full text-[8px] font-black uppercase tracking-widest px-2 py-0.5",
+                                            disputeData.status === 'open' ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-emerald-100 text-emerald-700 border-emerald-200"
+                                        )}>
+                                            {disputeData.status}
+                                        </Badge>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <div className="flex items-start gap-3">
+                                            <MessageSquare size={12} className="text-red-400 mt-1 flex-shrink-0" />
+                                            <div className="space-y-1">
+                                                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">{disputeData.title}</p>
+                                                <p className="text-xs font-medium text-foreground italic leading-relaxed">"{disputeData.description}"</p>
+                                            </div>
+                                        </div>
+
+                                        {disputeData.resolution_meta && (
+                                            <div className="mt-3 pt-3 border-t border-red-100/50 space-y-2">
+                                                <div className="flex items-center gap-2">
+                                                    <ShieldAlert size={12} className="text-emerald-600" />
+                                                    <p className="text-[9px] font-black uppercase tracking-widest text-emerald-700">Official Resolution</p>
+                                                </div>
+                                                <div className="bg-emerald-50/50 p-3 rounded-xl border border-emerald-100/50">
+                                                    <p className="text-xs font-bold text-emerald-800 mb-1">
+                                                        Protocol: {disputeData.resolution_meta.resolution === 'refund' ? "Buyer Refund Issued" : "Funds Released to Seller"}
+                                                    </p>
+                                                    <p className="text-[10px] font-medium text-emerald-600 leading-relaxed italic">
+                                                        "{disputeData.resolution_meta.notes || "Resolved by Neural Administration"}"
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Buyer reported issues intelligence */}
+                                        {relatedIssues && relatedIssues.length > 0 && (
+                                            <div className="mt-3 pt-3 border-t border-red-100/20 space-y-3">
+                                                <div className="flex items-center gap-2">
+                                                    <Activity size={10} className="text-muted-foreground" />
+                                                    <p className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground">Historical Intelligence (Buyer Identity)</p>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    {relatedIssues.map((issue: any) => (
+                                                        <div key={issue.id} className="bg-white/40 p-2.5 rounded-xl border border-black/[0.03] space-y-1">
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="text-[9px] font-black uppercase text-primary">#{issue.id.slice(0, 8)} • {issue.title}</span>
+                                                                <Badge variant="outline" className="h-4 text-[7px] border-black/10 px-1.5">{issue.status}</Badge>
+                                                            </div>
+                                                            <p className="text-[10px] font-medium text-muted-foreground line-clamp-1 italic">"{issue.description}"</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Financial Dispute Trigger (For delivered/completed orders) */}
+                            {["delivered", "completed"].includes(order.status.toLowerCase()) && (
+                                <Dialog open={isDisputeModalOpen} onOpenChange={setIsDisputeModalOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button variant="outline" className="rounded-full border-red-200 text-[9px] font-black uppercase tracking-widest h-8 px-4 text-red-600 hover:bg-red-50 transition-all">
+                                            <AlertCircle size={12} className="mr-1.5" /> Raise Dispute
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="rounded-xl max-w-md border-none shadow-2xl p-6 bg-white">
+                                        <DialogHeader>
+                                            <DialogTitle className="text-2xl font-black text-red-600">Initialize Dispute</DialogTitle>
+                                            <DialogDescription className="text-xs font-medium text-muted-foreground">
+                                                Raising a dispute will immediately halt financial settlement. Use this if the product arrived damaged or is not as described.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <div className="space-y-6 py-4">
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Dispute Protocol</Label>
+                                                <Select value={disputeReason} onValueChange={setDisputeReason}>
+                                                    <SelectTrigger className="h-12 bg-gray-50 border-none rounded-xl px-4 text-sm font-bold">
+                                                        <SelectValue placeholder="Select primary reason" />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="rounded-xl border-none shadow-xl">
+                                                        <SelectItem value="item_mismatch">Item not as described</SelectItem>
+                                                        <SelectItem value="damaged">Product arrived damaged</SelectItem>
+                                                        <SelectItem value="missing_parts">Missing components</SelectItem>
+                                                        <SelectItem value="counterfeit">Product authenticity issue</SelectItem>
+                                                        <SelectItem value="other">Other discrepancies</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Intelligence Report</Label>
+                                                <Textarea
+                                                    placeholder="State your case with absolute precision..."
+                                                    className="min-h-[120px] bg-gray-50 border-none rounded-xl p-4 text-sm font-medium"
+                                                    value={disputeDetails}
+                                                    onChange={(e) => setDisputeDetails(e.target.value)}
+                                                />
+                                            </div>
+                                        </div>
+                                        <DialogFooter>
+                                            <Button
+                                                className="w-full h-12 rounded-xl font-black bg-red-600 text-white hover:bg-red-700 shadow-xl shadow-red-200 active:scale-95 transition-all text-xs uppercase tracking-widest"
+                                                onClick={() => raiseDisputeMutation.mutate()}
+                                                disabled={raiseDisputeMutation.isPending || !disputeReason || !disputeDetails}
+                                            >
+                                                {raiseDisputeMutation.isPending ? "Executing Protocol..." : "Halt Settlement & File Dispute"}
+                                            </Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
+                            )}
+
+                            {order.status.toLowerCase() === "disputed" && (
+                                <Badge className="rounded-full bg-red-50 text-red-600 border border-red-100 text-[8px] font-black uppercase tracking-widest px-3 py-1">
+                                    Dispute Active • Settlement Paused
+                                </Badge>
                             )}
                         </div>
                     </div>

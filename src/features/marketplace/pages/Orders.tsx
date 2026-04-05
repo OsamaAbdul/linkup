@@ -38,6 +38,9 @@ export default function Orders() {
                         pickup_address,
                         delivery_address,
                         delivery_fee
+                    ),
+                    order_items (
+                        product_id
                     )
                 `)
                 .eq("buyer_id", user.id)
@@ -45,6 +48,26 @@ export default function Orders() {
 
             if (error) throw error;
             console.log("these are your orders", data)
+            return data;
+        },
+        enabled: !!user,
+    });
+
+    // Fetch user's submitted issues/disputes
+    const { data: userIssues = [], isLoading: issuesLoading } = useQuery({
+        queryKey: ["user-issues", user?.id],
+        queryFn: async () => {
+            if (!user) return [];
+            const { data, error } = await supabase
+                .from("issues" as any)
+                .select(`
+                    *,
+                    seller:profiles!seller_id(display_name),
+                    product:products(title, images)
+                `)
+                .eq("user_id", user.id)
+                .order("created_at", { ascending: false });
+            if (error) throw error;
             return data;
         },
         enabled: !!user,
@@ -60,6 +83,7 @@ export default function Orders() {
             delivered: "Delivered 🎉",
             completed: "Completed ✅",
             cancelled: "Cancelled",
+            disputed: "Under Dispute ⚖️",
         };
         return map[status] || status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, " ");
     };
@@ -144,8 +168,10 @@ export default function Orders() {
 
     const orders = rawOrders.map((order: any) => {
         const shipment = order.shipments?.[0];
+        const orderItems = order.order_items || [];
         const items = Array.isArray(order.items) ? order.items : [];
         const jsonItem = items[0] || null;
+        const normalizedItem = orderItems[0] || null;
 
         const title = jsonItem?.title || `Order #${order.id.slice(0, 8)}`;
         const image = jsonItem?.image || jsonItem?.images?.[0] || "";
@@ -164,6 +190,7 @@ export default function Orders() {
             deliveredBy: order.status === 'delivered' ? 'Linkup Logistics' : null,
             shipment,
             sellerId: order.seller_id,
+            productId: normalizedItem?.product_id || jsonItem?.product_id || jsonItem?.id, // Robust product ID mapping
             size: jsonItem?.size // Map first item's size
         };
     });
@@ -177,6 +204,7 @@ export default function Orders() {
         toReceive: orders.filter(o => isToReceive(o.status)).length,
         completed: orders.filter(o => isCompleted(o.status)).length,
         cancelled: orders.filter(o => o.status.toLowerCase() === "cancelled").length,
+        reports: userIssues.length,
     };
 
     const filteredOrders = activeTab === "all"
@@ -190,6 +218,8 @@ export default function Orders() {
             return true;
         });
 
+    const isLoadingAll = isLoading || issuesLoading;
+
     if (isLoading) return <AppLayout><div className="flex items-center justify-center min-h-[60vh] text-primary animate-pulse font-bold tracking-widest uppercase text-xs">Loading Secure Registry...</div></AppLayout>;
 
     return (
@@ -202,6 +232,7 @@ export default function Orders() {
                     activeTab={activeTab}
                     setActiveTab={setActiveTab}
                     counts={counts}
+                    userIssues={userIssues}
                 />
             </div>
         </AppLayout>

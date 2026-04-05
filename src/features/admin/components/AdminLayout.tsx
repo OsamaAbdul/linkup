@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import {
     LayoutDashboard, Users, ShoppingBag, AlertTriangle,
-    History, LogOut, ShieldCheck, Bell, Menu, FileCheck, CreditCard, Truck, Wallet
+    History, LogOut, ShieldCheck, Bell, Menu, FileCheck, CreditCard, Truck, Wallet, Scale
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
@@ -22,7 +22,7 @@ interface AdminLayoutProps {
 export function AdminLayout({ children }: AdminLayoutProps) {
     const location = useLocation();
     const navigate = useNavigate();
-    const { signOut } = useAuth();
+    const { signOut, user } = useAuth();
     const [isMobileOpen, setIsMobileOpen] = useState(false);
 
     const { data: openIssuesCount } = useQuery({
@@ -36,7 +36,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             return count || 0;
         }
     });
-
     const navItems = [
         { icon: LayoutDashboard, label: "Overview", path: "/admin" },
         { icon: ShoppingBag, label: "Orders", path: "/admin/orders" },
@@ -86,6 +85,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                                         {openIssuesCount}
                                     </Badge>
                                 )}
+                                {item.label === "Disputes" && openDisputesCount > 0 && (
+                                    <Badge className="ml-auto bg-red-500 text-white border-none text-[10px] rounded-full h-5 min-w-5 flex items-center justify-center font-black animate-pulse shadow-lg shadow-red-500/40">
+                                        {openDisputesCount}
+                                    </Badge>
+                                )}
                             </Link>
                         );
                     })}
@@ -132,7 +136,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
                         {/* Mobile Brand Label */}
                         <div className="lg:hidden">
-                            <span className="text-xs font-black tracking-widest text-primary uppercase">Console</span>
+                            <span className="text-xs font-black tracking-widest text-primary uppercase">{user?.user_metadata?.display_name} </span>
                         </div>
                     </div>
 

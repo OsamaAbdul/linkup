@@ -21,23 +21,22 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 
-// ”€”€”€ Step Indicator ”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€
+// Step Indicator for onboarding
 function StepIndicator({ current, total }: { current: number; total: number }) {
   return (
     <div className="flex items-center gap-2 justify-center mb-8">
       {Array.from({ length: total }, (_, i) => (
         <div
           key={i}
-          className={`h-1.5 rounded-full transition-all duration-500 ${
-            i + 1 <= current ? "bg-primary w-8" : "bg-border w-4"
-          }`}
+          className={`h-1.5 rounded-full transition-all duration-500 ${i + 1 <= current ? "bg-primary w-8" : "bg-border w-4"
+            }`}
         />
       ))}
     </div>
   );
 }
 
-// ”€”€”€ Section Header ”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€
+// Section Header for onboarding
 function SectionHeader({ title, subtitle, icon: Icon }: { title: string; subtitle: string; icon?: any }) {
   return (
     <m.div
@@ -56,7 +55,7 @@ function SectionHeader({ title, subtitle, icon: Icon }: { title: string; subtitl
   );
 }
 
-// ”€”€”€ Input Field with Icon ”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€
+// Input Field with Icon for onboarding
 function FormField({
   label, icon: Icon, children, className = ""
 }: { label: string; icon?: any; children: React.ReactNode; className?: string }) {
@@ -76,11 +75,11 @@ function FormField({
 const inputClass = "h-12 bg-secondary/50 border-border/60 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all rounded-xl text-foreground placeholder:text-muted-foreground/50";
 const inputWithIcon = `${inputClass} pl-10`;
 
-// ”€”€”€ Main Component ”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€
+// Main roles for onboarding
 const roles = [
   { id: "buyer", title: "Buyer", icon: ShoppingBag, description: "Explore marketplace, find deals, and purchase items.", gradient: "from-primary/10 to-primary/5", iconBg: "bg-primary/15 text-primary" },
   { id: "seller", title: "Seller", icon: Store, description: "Create your store, list products, and manage orders.", gradient: "from-orange-500/10 to-orange-500/5", iconBg: "bg-orange-500/15 text-orange-600" },
-  { id: "promoter", title: "Promoter", icon: Megaphone, description: "Earn commissions by sharing products you love.", gradient: "from-purple-500/10 to-purple-500/5", iconBg: "bg-purple-500/15 text-purple-600" },
+  { id: "promoter", title: "Affiliate", icon: Megaphone, description: "Earn commissions by sharing products you love.", gradient: "from-purple-500/10 to-purple-500/5", iconBg: "bg-purple-500/15 text-purple-600" },
   { id: "logistics", title: "Logistics", icon: Truck, description: "Manage deliveries, track shipments, and earn.", gradient: "from-accent/10 to-accent/5", iconBg: "bg-accent/15 text-accent-foreground" },
 ];
 
@@ -95,7 +94,7 @@ export default function Onboarding() {
   const [bio, setBio] = useState("");
   const [selectedRoles, setSelectedRoles] = useState<string[]>(["buyer"]);
 
-  // ”€”€”€ Logistics State ”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€
+  // Logistics State for onboarding
   const [logisticsData, setLogisticsData] = useState({
     fullName: "", phoneNumber: "", homeAddress: "", dob: "",
     city_id: "", zone_id: "", zone: "", passportFile: null as File | null,
@@ -128,7 +127,7 @@ export default function Onboarding() {
 
   useEffect(() => {
     if (authLoading) return;
-    
+
     if (!user) {
       navigate("/auth");
       return;
@@ -155,7 +154,7 @@ export default function Onboarding() {
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="flex flex-col items-center gap-4">
           <div className="h-10 w-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm font-medium text-muted-foreground">Initializing...</p>
+          <p className="text-sm font-medium text-muted-foreground">Getting Ready for you...</p>
         </div>
       </div>
     );
@@ -263,10 +262,10 @@ export default function Onboarding() {
       toast.error("Please select at least one role");
       return;
     }
-    
-    if (selectedRoles.includes("logistics")) { 
-      setStep(3); 
-      return; 
+
+    if (selectedRoles.includes("logistics")) {
+      setStep(3);
+      return;
     }
 
     setStepLoading(true);
@@ -277,13 +276,13 @@ export default function Onboarding() {
         p_roles: selectedRoles
       });
       if (roleError) throw roleError;
-      
+
       const { error: profileError } = await (supabase as any).from("profiles").update({ onboarding_completed: true }).eq("id", user!.id);
       if (profileError) throw profileError;
 
       await refreshProfile();
       toast.success("Welcome to Linkup!");
-      
+
       // Determine where to navigate
       if (selectedRoles.includes("seller")) navigate("/dashboard");
       else if (selectedRoles.includes("logistics")) navigate("/logistics-dashboard");
@@ -323,7 +322,7 @@ export default function Onboarding() {
         <StepIndicator current={step} total={totalSteps} />
 
         <AnimatePresence mode="wait">
-          {/* ”€”€”€ Step 1: Profile ”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€ */}
+          {/* Step 1: Profile */}
           {step === 1 && (
             <m.div
               key="step1"
@@ -373,7 +372,7 @@ export default function Onboarding() {
             </m.div>
           )}
 
-          {/* ”€”€”€ Step 2: Role Selection ”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€ */}
+          {/* Step 2: Role Selection */}
           {step === 2 && (
             <m.div
               key="step2"
@@ -392,8 +391,8 @@ export default function Onboarding() {
                   const isSelected = selectedRoles.includes(role.id);
                   const isSellerPicked = selectedRoles.includes("seller");
                   const isPromoterPicked = selectedRoles.includes("promoter");
-                  const isDisabled = (role.id === "seller" && isPromoterPicked) || 
-                                   (role.id === "promoter" && isSellerPicked);
+                  const isDisabled = (role.id === "seller" && isPromoterPicked) ||
+                    (role.id === "promoter" && isSellerPicked);
 
                   return (
                     <m.div
@@ -451,7 +450,7 @@ export default function Onboarding() {
             </m.div>
           )}
 
-          {/* ”€”€”€ Step 3: Logistics KYC ”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€ */}
+          {/* Step 3: Logistics KYC */}
           {step === 3 && (
             <m.div
               key="step3"
@@ -513,8 +512,8 @@ export default function Onboarding() {
                               onClick={() => setLogisticsData({ ...logisticsData, zone_id: zone.id, zone: zone.name })}
                               className={`
                                 relative p-4 rounded-xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 group
-                                ${isSelected 
-                                  ? "border-primary bg-primary/5 shadow-sm" 
+                                ${isSelected
+                                  ? "border-primary bg-primary/5 shadow-sm"
                                   : "border-secondary/50 bg-secondary/30 hover:border-border hover:bg-secondary/50"
                                 }
                               `}
@@ -549,7 +548,7 @@ export default function Onboarding() {
             </m.div>
           )}
 
-          {/* ”€”€”€ Step 4: Logistics Onboarding ”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€”€ */}
+          {/* Step 4: Logistics Onboarding */}
           {step === 4 && (
             <m.div
               key="step4"
@@ -561,7 +560,7 @@ export default function Onboarding() {
               <SectionHeader
                 icon={CreditCard}
                 title="Final Details"
-                subtitle="Optional €” you can complete this later"
+                subtitle="Optional ï¿½ï¿½ you can complete this later"
               />
               <div className="bg-card border border-border/60 rounded-xl p-6 sm:p-8 shadow-sm space-y-6">
                 <FormField label="Username" icon={User}>

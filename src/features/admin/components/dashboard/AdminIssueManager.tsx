@@ -128,10 +128,23 @@ export default function AdminIssueManager() {
                                 )}
                                 {issue.product_id && (
                                     <Badge variant="outline" className="rounded-xl bg-primary/5 border-primary/10 text-[10px] font-bold text-primary flex items-center w-full gap-2 py-2 px-4">
-                                        <Store className="w-4 h-4" />
+                                        <AlertCircle className="w-4 h-4" />
                                         Linked Asset: <span className="font-black underline decoration-2 underline-offset-4">{issue.products?.title || "Unknown Product"}</span>
                                     </Badge>
                                 )}
+
+                                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-50">
+                                    <Badge className={cn(
+                                        "text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md",
+                                        issue.category === 'financial_dispute' ? "bg-red-50 text-red-600" : 
+                                        issue.category === 'security' ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600"
+                                    )}>
+                                        {issue.category?.replace('_', ' ')}
+                                    </Badge>
+                                    <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md">
+                                        Priority: {issue.priority}
+                                    </Badge>
+                                </div>
                             </div>
                         </CardHeader>
                         <CardContent className="p-8 pt-4">

@@ -3,6 +3,8 @@ import { ShoppingBag } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
 import { OrderCard } from "./OrderCard";
+import { ReportCard } from "./ReportCard";
+import { MessageSquare } from "lucide-react";
 
 interface OrdersTabsProps {
     orders: any[];
@@ -14,7 +16,9 @@ interface OrdersTabsProps {
         toReceive: number;
         completed: number;
         cancelled: number;
+        reports: number;
     };
+    userIssues: any[];
 }
 
 export function OrdersTabs({
@@ -22,14 +26,16 @@ export function OrdersTabs({
     filteredOrders,
     activeTab,
     setActiveTab,
-    counts
+    counts,
+    userIssues
 }: OrdersTabsProps) {
     const tabs = [
         { value: "all", label: "All", count: orders.length },
         { value: "to-ship", label: "To Ship", count: counts.toShip },
         { value: "to-receive", label: "To Receive", count: counts.toReceive },
         { value: "completed", label: "Completed", count: counts.completed },
-        { value: "cancelled", label: "Cancelled", count: counts.cancelled }
+        { value: "cancelled", label: "Cancelled", count: counts.cancelled },
+        { value: "my-reports", label: "My Reports", count: counts.reports }
     ];
 
     return (
@@ -56,7 +62,7 @@ export function OrdersTabs({
             </div>
 
             <div className="grid gap-4 sm:gap-6">
-                {filteredOrders.length === 0 ? (
+                {filteredOrders.length === 0 && activeTab !== "my-reports" ? (
                     <div className="text-center py-12 sm:py-20 border border-dashed border-black/[0.05] rounded-xl bg-muted/5 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4">
                         <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-muted flex items-center justify-center mb-4 text-muted-foreground/30">
                             <ShoppingBag className="w-6 h-6 sm:w-8 sm:h-8" />
@@ -67,6 +73,20 @@ export function OrdersTabs({
                             <Button className="rounded-full px-6 sm:px-8 font-bold text-[10px] sm:text-xs shadow-lg sm:shadow-xl shadow-primary/20 transition-transform active:scale-95">Browse Marketplace</Button>
                         </Link>
                     </div>
+                ) : activeTab === "my-reports" ? (
+                    userIssues.length === 0 ? (
+                        <div className="text-center py-12 sm:py-20 border border-dashed border-black/[0.05] rounded-xl bg-muted/5 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4">
+                            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-muted flex items-center justify-center mb-4 text-muted-foreground/30">
+                                <MessageSquare className="w-6 h-6 sm:w-8 sm:h-8" />
+                            </div>
+                            <h3 className="font-bold text-base sm:text-lg">Clear Judicial Record</h3>
+                            <p className="text-xs sm:text-sm text-muted-foreground max-w-[240px] sm:max-w-xs">You have no active reports or disputes in the official registry.</p>
+                        </div>
+                    ) : (
+                        userIssues.map((issue) => (
+                            <ReportCard key={issue.id} issue={issue} />
+                        ))
+                    )
                 ) : (
                     filteredOrders.map((order) => (
                         <OrderCard key={order.id} order={order} />

@@ -29,7 +29,7 @@ export default function AdminOrderTracker() {
                         rider_id,
                         delivery_address,
                         pickup_address,
-                        profiles:rider_id(display_name, phone, avatar_url)
+                        rider:profiles!rider_id(display_name, phone, avatar_url)
                     )
                 `)
                 .order("created_at", { ascending: false });
@@ -47,14 +47,22 @@ export default function AdminOrderTracker() {
         const shipment = order.shipments?.[0];
 
         // Merge shipping info from Order and Shipment records
+        const orderShipping = typeof order.shipping_address === 'string'
+            ? { address: order.shipping_address }
+            : (order.shipping_address as any || {});
+
+        const shipmentShipping = typeof shipment?.delivery_address === 'string'
+            ? { address: shipment.delivery_address }
+            : (shipment?.delivery_address as any || {});
+
         const shipping = {
-            ...(order.shipping_address as any || {}),
-            ...(shipment?.delivery_address as any || {})
+            ...orderShipping,
+            ...shipmentShipping
         };
 
-        const rider = shipment?.profiles;
+        const rider = shipment?.rider || (shipment as any)?.profiles;
 
-        console.log("shipment", shipment)
+        console.log("Logistic Synthesis:", { shipment, shipping, rider });
 
         return (
             <div className="space-y-6 py-4">
@@ -160,8 +168,8 @@ export default function AdminOrderTracker() {
                     <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                         <p className="text-sm font-medium leading-relaxed">
 
-                            {/* Priority: Explicit address -> raw delivery_address -> shipment fallbacks */}
-                            {(shipment.delivery_address || (typeof shipment?.delivery_address === 'string' ? shipment.delivery_address : shipment?.delivery_address?.address) || "Delivery Address missing")}<br />
+                            {/* Robust address synthesis from Order and Shipment meta */}
+                            {typeof shipping?.address === 'string' ? shipping.address : "Address Unspecified"}<br />
 
 
                         </p>
@@ -174,7 +182,7 @@ export default function AdminOrderTracker() {
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-black">Global Order Registry</h2>
+                <h2 className="text-2xl font-black">Global Order Overview</h2>
                 <Badge className="bg-primary/10 text-primary border-none">{orders?.length} Total Orders</Badge>
             </div>
 
@@ -194,7 +202,8 @@ export default function AdminOrderTracker() {
                         </thead>
                         <tbody className="divide-y divide-gray-50">
                             {orders?.map((o) => {
-                                const rider = (o as any).shipments?.[0]?.profiles;
+                                const shipment = (o as any).shipments?.[0];
+                                const rider = shipment?.rider || shipment?.profiles;
                                 return (
                                     <tr key={o.id} className="hover:bg-gray-50/50 transition-colors group">
                                         <td className="px-8 py-6 font-mono text-xs font-bold text-primary">#{o.id.slice(0, 8)}</td>
@@ -282,7 +291,7 @@ export default function AdminOrderTracker() {
                                 </Badge>
                             </div>
                             <DialogTitle className="text-2xl font-black text-foreground flex items-center gap-2">
-                                Order Details Extraction
+                                Order Details
                             </DialogTitle>
                             <DialogDescription className="text-xs font-medium text-muted-foreground">
                                 Total breakdown of order manifest, logistics endpoint, and customer data.

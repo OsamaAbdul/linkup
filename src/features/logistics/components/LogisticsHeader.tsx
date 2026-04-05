@@ -15,6 +15,7 @@ interface LogisticsHeaderProps {
     activeTab: string;
     setActiveTab: (tab: string) => void;
     balance: number;
+    escrow_balance?: number;
     isOnline: boolean;
     isMobileMenuOpen?: boolean;
     onMenuToggle?: () => void;
@@ -26,6 +27,7 @@ export function LogisticsHeader({
     activeTab,
     setActiveTab,
     balance,
+    escrow_balance = 0,
     isOnline,
     isMobileMenuOpen,
     onMenuToggle,
@@ -130,9 +132,17 @@ export function LogisticsHeader({
                         </div>
                     )}
 
-                    <div className="bg-[#F0F2F5]/50 px-4 py-2.5 rounded-xl flex flex-col items-end border border-transparent hover:border-black/5 transition-all">
-                        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Balance</span>
-                        <span className="text-sm font-black text-foreground">₦ {balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <div className="flex items-center gap-2">
+                        <div className="bg-[#F0F2F5]/50 px-4 py-2.5 rounded-xl flex flex-col items-end border border-transparent hover:border-black/5 transition-all">
+                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Available</span>
+                            <span className="text-sm font-black text-foreground">₦ {balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        {escrow_balance > 0 && (
+                            <div className="bg-amber-50/50 px-4 py-2.5 rounded-xl flex flex-col items-end border border-amber-200/20 hover:border-amber-200/40 transition-all">
+                                <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest leading-none mb-1">Escrow</span>
+                                <span className="text-sm font-black text-amber-700 font-mono">₦ {escrow_balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-3">

@@ -34,10 +34,10 @@ export default function LogisticsDashboard() {
                 .eq("user_id", user?.id)
                 .maybeSingle();
 
-            // Fetch balance from wallets table
+            // Fetch balance and escrow from wallets table
             const { data: walletData } = await (supabase as any)
                 .from("wallets")
-                .select("balance")
+                .select("balance, escrow_balance")
                 .eq("user_id", user?.id)
                 .maybeSingle();
 
@@ -53,6 +53,7 @@ export default function LogisticsDashboard() {
                 user_id: user?.id,
                 ...detailsData,
                 balance: walletData?.balance || 0,
+                escrow_balance: walletData?.escrow_balance || 0,
                 is_online: profileData?.is_online,
                 profiles: profileData
             };
@@ -177,6 +178,7 @@ export default function LogisticsDashboard() {
                     activeTab={activeTab}
                     setActiveTab={handleTabChange}
                     balance={details?.balance || 0}
+                    escrow_balance={details?.escrow_balance || 0}
                     isOnline={details?.is_online || false}
                     onOnlineToggle={toggleOnlineStatus}
                     isMobileMenuOpen={isMobileMenuOpen}

@@ -76,7 +76,7 @@ export default function PromoterDashboard() {
       if (!user) return null;
       const { data } = await (supabase
         .from("wallets" as any)
-        .select("*")
+        .select("balance, escrow_balance")
         .eq("user_id", user.id)
         .maybeSingle() as any);
       return data;
@@ -156,7 +156,7 @@ export default function PromoterDashboard() {
 
   // Stats calculation
   const totalEarnings = commissions.reduce((sum: number, c: any) => sum + Number(c.amount), 0);
-  const pendingEarnings = commissions.filter((c: any) => c.status === "pending").reduce((sum: number, c: any) => sum + Number(c.amount), 0);
+  const pendingEarnings = wallet?.escrow_balance ?? commissions.filter((c: any) => c.status === "pending").reduce((sum: number, c: any) => sum + Number(c.amount), 0);
   const totalOrders = commissions.length;
 
   return (

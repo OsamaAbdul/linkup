@@ -2,7 +2,55 @@ import { useState } from "react";
 import { PaymentReconciliationTab } from "@/features/seller/components/PaymentReconciliationTab";
 import { AdminPayoutManager } from "./AdminPayoutManager";
 import { Button } from "@/shared/components/ui/button";
-import { CreditCard, Landmark } from "lucide-react";
+import { CreditCard, Landmark, Play, AlertTriangle, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+function ForceReleaseButton() {
+  const [loading, setLoading] = useState(false);
+
+  const handleForceRelease = async () => {
+    if (!confirm("Are you sure you want to FORCE release all pending funds? This bypasses the 48-hour hold period and is meant for testing only.")) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.rpc("force_release_all_funds");
+      
+      if (error) throw error;
+      
+      const result = data as any;
+      if (result.success) {
+        toast.success(result.message);
+      } else {
+        toast.error("Failed to release funds");
+      }
+    } catch (error: any) {
+      console.error("Force Release Error:", error);
+      toast.error(error.message || "Failed to trigger force release");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className="rounded-xl border-amber-200 bg-amber-50/50 text-amber-700 hover:bg-amber-100 hover:text-amber-800 h-10 gap-2 font-bold"
+      onClick={handleForceRelease}
+      disabled={loading}
+    >
+      {loading ? (
+        <Loader2 size={14} className="animate-spin" />
+      ) : (
+        <AlertTriangle size={14} />
+      )}
+      Force Release All Pending Funds
+    </Button>
+  );
+}
 
 export default function AdminPaymentsSection() {
   const [activeTab, setActiveTab] = useState<"orders" | "payouts">("orders");
@@ -28,6 +76,10 @@ export default function AdminPaymentsSection() {
           <Landmark size={14} className="mr-2" />
           Seller Payouts
         </Button>
+      </div>
+
+      <div className="flex justify-end">
+        <ForceReleaseButton />
       </div>
 
       {activeTab === "orders" ? (

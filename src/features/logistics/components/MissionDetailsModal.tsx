@@ -11,13 +11,12 @@ import { ScrollArea } from "@/shared/components/ui/scroll-area";
 import { Badge } from "@/shared/components/ui/badge";
 import {
     MapPin,
+    Loader2,
+    Banknote,
+    Percent,
+    Info,
     Navigation,
-    Smartphone,
-    Package,
-    CheckCircle,
-    Truck,
-    ArrowRight,
-    Loader2
+    Route
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -203,6 +202,48 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                                 <Package size={12} strokeWidth={3} />
                                 Bundle Inventory
                             </h4>
+                            
+                            {/* Detailed Earnings Breakdown */}
+                            <div className="bg-green-500/5 border border-green-500/10 rounded-2xl p-4 mb-3 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h5 className="text-[10px] font-black text-green-700 uppercase tracking-widest flex items-center gap-2">
+                                        <Banknote size={12} />
+                                        Total Earnings
+                                    </h5>
+                                    <span className="text-sm font-black text-green-700">
+                                        ₦{activeShipment.delivery_fee_amount || 0}
+                                    </span>
+                                </div>
+                                
+                                {activeShipment.fee_breakdown && (
+                                    <div className="space-y-1.5 border-t border-green-500/10 pt-3">
+                                        <div className="flex justify-between text-[10px] font-bold text-muted-foreground">
+                                            <span>Base Pickup Fee</span>
+                                            <span>₦{activeShipment.fee_breakdown.base_fee || 0}</span>
+                                        </div>
+                                        {activeShipment.fee_breakdown.zone_bonus > 0 && (
+                                            <div className="flex justify-between text-[10px] font-bold text-orange-600">
+                                                <span>Out-of-Zone Bonus</span>
+                                                <span>+ ₦{activeShipment.fee_breakdown.zone_bonus}</span>
+                                            </div>
+                                        )}
+                                        {activeShipment.fee_breakdown.distance_surcharge > 0 && (
+                                            <div className="flex justify-between text-[10px] font-bold text-blue-600">
+                                                <span>Distance Surcharge ({activeShipment.fee_breakdown.distance_km}km)</span>
+                                                <span>+ ₦{activeShipment.fee_breakdown.distance_surcharge}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                
+                                {!activeShipment.fee_breakdown && activeShipment.status === 'broadcast' && (
+                                    <div className="flex items-center gap-2 text-[9px] font-medium text-muted-foreground bg-white/50 p-2 rounded-lg italic">
+                                        <Info size={10} />
+                                        Final payout includes bonuses for distance and out-of-zone travel.
+                                    </div>
+                                )}
+                            </div>
+
                             <div className="space-y-2">
                                 {itemsLoading ? (
                                     <div className="flex items-center gap-2 py-4 text-muted-foreground italic text-xs">

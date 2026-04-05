@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { getPickupAddress, getDeliveryAddress, getBuyerContact } from "../../utils/logistics-utils";
+import { getPickupAddress, getDeliveryAddress, getBuyerContact, calculateDistance } from "../../utils/logistics-utils";
 
 interface BroadcastMissionsProps {
     missions: any[];
@@ -106,6 +106,15 @@ export function BroadcastMissions({
                             const buyer = getBuyerContact(mission);
                             const pickupAddr = getPickupAddress(mission);
                             const deliveryAddr = getDeliveryAddress(mission);
+                            
+                            // Calculate Distance
+                            const dist = calculateDistance(
+                                mission.pickup_latitude, mission.pickup_longitude,
+                                mission.buyer_latitude, mission.buyer_longitude
+                            );
+
+                            const isOutOfZone = profile?.zone && mission.zone && 
+                                               profile.zone.trim().toLowerCase() !== mission.zone.trim().toLowerCase();
 
                             return (
                                 <motion.div
@@ -113,7 +122,12 @@ export function BroadcastMissions({
                                     initial={{ opacity: 0, y: 16 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, scale: 0.97 }}
-                                    className="rounded-xl border border-blue-500/20 bg-gradient-to-r from-blue-500/5 to-transparent p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-5"
+                                    className={cn(
+                                        "rounded-xl border p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 transition-all duration-300",
+                                        isOutOfZone 
+                                            ? "border-orange-500/30 bg-gradient-to-r from-orange-500/5 to-transparent shadow-orange-500/5" 
+                                            : "border-blue-500/20 bg-gradient-to-r from-blue-500/5 to-transparent shadow-blue-500/5"
+                                    )}
                                 >
                                     <div className="flex items-start gap-4 flex-1">
                                         <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 font-black text-[11px] font-mono shrink-0">
@@ -121,10 +135,23 @@ export function BroadcastMissions({
                                         </div>
                                         <div className="space-y-1 min-w-0">
                                             <div className="flex items-center gap-2 flex-wrap">
-                                                <Badge className="bg-blue-100 text-blue-700 font-black text-[9px] uppercase tracking-wider border-none">
-                                                    <Radio size={8} className="mr-1" /> Open Mission
+                                                <Badge className={cn(
+                                                    "font-black text-[9px] uppercase tracking-wider border-none",
+                                                    isOutOfZone ? "bg-orange-100 text-orange-700" : "bg-blue-100 text-blue-700"
+                                                )}>
+                                                    <Radio size={8} className="mr-1" /> {isOutOfZone ? "Global Mission" : "Local Mission"}
                                                 </Badge>
-                                                <span className="text-[10px] font-black text-muted-foreground uppercase">
+                                                {isOutOfZone && (
+                                                    <Badge className="bg-orange-500 text-white font-black text-[9px] uppercase tracking-wider border-none animate-pulse">
+                                                        Bonus Active
+                                                    </Badge>
+                                                )}
+                                                {dist > 0 && (
+                                                    <Badge variant="outline" className="text-[9px] font-black uppercase border-black/5 bg-white/50">
+                                                        {dist.toFixed(1)} KM
+                                                    </Badge>
+                                                )}
+                                                <span className="text-[10px] font-black text-muted-foreground uppercase opacity-60">
                                                     {mission.zone?.split(" (")[0]}
                                                 </span>
                                             </div>

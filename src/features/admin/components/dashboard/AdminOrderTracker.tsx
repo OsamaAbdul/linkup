@@ -27,6 +27,8 @@ export default function AdminOrderTracker() {
                     profiles:buyer_id(display_name, id),
                     shipments(
                         rider_id,
+                        delivery_address,
+                        pickup_address,
                         profiles:rider_id(display_name, phone, avatar_url)
                     )
                 `)
@@ -42,8 +44,14 @@ export default function AdminOrderTracker() {
     const renderOrderDetails = (order: any) => {
         if (!order) return null;
         const items = order.items as any[] || [];
-        const shipping = order.shipping_address as any || {};
         const shipment = order.shipments?.[0];
+        
+        // Merge shipping info from Order and Shipment records
+        const shipping = {
+            ...(order.shipping_address as any || {}),
+            ...(shipment?.delivery_address as any || {})
+        };
+        
         const rider = shipment?.profiles;
 
         return (
@@ -149,9 +157,13 @@ export default function AdminOrderTracker() {
                     </div>
                     <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                         <p className="text-sm font-medium leading-relaxed">
-                            {shipping.address}<br />
-                            {shipping.city}, {shipping.state}<br />
-                            <span className="font-bold text-primary">{shipping.phone}</span>
+                            {shipping.name && <><span className="font-bold text-foreground">{shipping.name}</span><br /></>}
+                            {/* Priority: Explicit address -> raw delivery_address -> shipment fallbacks */}
+                            {(shipping.address || (typeof shipment?.delivery_address === 'string' ? shipment.delivery_address : shipment?.delivery_address?.address) || "Node Connection Missing")}<br />
+                            <span className="font-bold text-primary/80 text-[10px] uppercase tracking-tighter">
+                                {shipping.zone_name || shipping.state || "Geographic Node Unknown"} { (shipping.city_name || shipping.city) ? `• ${shipping.city_name || shipping.city}` : ""}
+                            </span><br />
+                            <span className="font-bold text-primary">{shipping.phone || "No contact digits"}</span>
                         </p>
                     </div>
                 </div>
@@ -191,14 +203,32 @@ export default function AdminOrderTracker() {
                                         </td>
                                         <td className="px-8 py-6">
                                             {rider ? (
-                                                <div className="flex items-center gap-2">
-                                                    <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">
-                                                        {rider.display_name?.charAt(0) || "R"}
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0 border-2 border-white shadow-sm overflow-hidden">
+                                                        {rider.avatar_url ? (
+                                                            <img src={rider.avatar_url} className="h-full w-full object-cover" />
+                                                        ) : (
+                                                            rider.display_name?.charAt(0) || "R"
+                                                        )}
                                                     </div>
-                                                    <p className="font-bold text-xs truncate max-w-[120px]">{rider.display_name}</p>
+                                                    <div className="flex flex-col min-w-0">
+                                                        <p className="font-black text-xs text-foreground truncate">{rider.display_name || "Agent"}</p>
+                                                        {rider.phone && (
+                                                            <a 
+                                                                href={`tel:${rider.phone}`} 
+                                                                className="text-[10px] font-bold text-primary hover:underline transition-all flex items-center gap-1 mt-0.5"
+                                                            >
+                                                                <Smartphone size={8} />
+                                                                {rider.phone}
+                                                            </a>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             ) : (
-                                                <span className="text-[10px] font-medium text-muted-foreground italic">Unassigned</span>
+                                                <div className="flex items-center gap-2 opacity-40 italic">
+                                                    <Bike size={14} className="text-muted-foreground" />
+                                                    <span className="text-[10px] font-bold uppercase tracking-widest">Unassigned</span>
+                                                </div>
                                             )}
                                         </td>
                                         <td className="px-8 py-6 text-xs font-medium text-muted-foreground">

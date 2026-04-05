@@ -198,7 +198,10 @@ export default function Checkout() {
       const summary = {
         items: payload.items,
         total: grandTotal,
-        orderNumber: `#ORD-${Math.floor(Math.random() * 1000000)}`,
+        orderNumber: data?.order_ids?.length > 1 
+          ? `${data.order_ids.length} Shipments` 
+          : `#ORD-${(data?.main_order_id || "NEW").slice(0, 8).toUpperCase()}`,
+        orderIds: data?.order_ids || [],
         date: new Date().toLocaleString(),
       };
 
@@ -207,8 +210,8 @@ export default function Checkout() {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       return summary;
     },
-    onSuccess: (data) => {
-      setOrderSummary(data);
+    onSuccess: (summary) => {
+      setOrderSummary(summary);
       setStep(3);
     },
     onError: (err: any) => toast.error(err.message),

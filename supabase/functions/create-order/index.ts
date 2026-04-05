@@ -84,205 +84,197 @@ serve(async (req: Request) => {
 
     if (!items || items.length === 0) throw new Error("No items in order");
 
-    // Determine the seller_id from items or payload
-    const orderSellerId = seller_id || items[0]?.seller_id;
-    if (!orderSellerId) throw new Error("No seller_id provided");
+    // --- Group Items by Seller ---
+    const itemsBySeller: Record<string, any[]> = {};
+    for (const item of items) {
+      const sId = item.seller_id || seller_id;
+      if (!sId) continue;
+      if (!itemsBySeller[sId]) itemsBySeller[sId] = [];
+      itemsBySeller[sId].push(item);
+    }
 
-    // --- Fetch Seller details for Distance & Pickup ---
-    let final_pickup_lat = pickup_lat;
-    let final_pickup_lng = pickup_lng;
-    let seller_address_fallback = "";
+    const sellerIds = Object.keys(itemsBySeller);
+    if (sellerIds.length === 0) throw new Error("No valid products or sellers found in order items");
 
-    if (!final_pickup_lat || !final_pickup_lng || !seller_address_fallback) {
+    const createdOrderIds: string[] = [];
+    let overallCommissionCreated = false;
+
+    // --- Process each Seller as a separate Order ---
+    for (const sId of sellerIds) {
+      console.log(`Processing sub-order for seller: ${sId}`);
+      const sellerItems = itemsBySeller[sId];
+      
+      // Calculate sub-total for this seller
+      const subTotal = sellerItems.reduce((acc, item) => acc + (Number(item.price) * (item.quantity || 1)), 0);
+
+      // --- Fetch Seller details for Distance & Pickup ---
+      let current_pickup_lat = pickup_lat;
+      let current_pickup_lng = pickup_lng;
+      let current_seller_address = "";
+
       const { data: sellerProfile } = await adminClient
         .from("profiles")
         .select("latitude, longitude, address")
-        .eq("id", orderSellerId)
+        .eq("id", sId)
         .single();
       
       if (sellerProfile) {
-        final_pickup_lat = final_pickup_lat || sellerProfile.latitude;
-        final_pickup_lng = final_pickup_lng || sellerProfile.longitude;
-        seller_address_fallback = seller_address_fallback || sellerProfile.address || "";
+        current_pickup_lat = current_pickup_lat || sellerProfile.latitude;
+        current_pickup_lng = current_pickup_lng || sellerProfile.longitude;
+        current_seller_address = sellerProfile.address || "";
       }
 
-      // Check seller_verifications if still missing
-      if (!seller_address_fallback) {
+      // Check seller_verifications if still missing address
+      if (!current_seller_address) {
         const { data: sellerVerif } = await adminClient
           .from("seller_verifications")
           .select("business_address")
-          .eq("user_id", orderSellerId)
+          .eq("user_id", sId)
           .single();
         
         if (sellerVerif) {
-          seller_address_fallback = sellerVerif.business_address || "";
+          current_seller_address = sellerVerif.business_address || "";
         }
       }
-    }
 
-    // --- Enrich Items & Decrement inventory ---
-    const enrichedItems = [];
-    for (const item of items) {
-      if (item.product_id && item.quantity) {
-        const { data: prod } = await adminClient
-          .from("products")
-          .select("inventory, title, images")
-          .eq("id", item.product_id)
-          .single();
-
-        if (prod) {
-          enrichedItems.push({
-            ...item,
-            title: item.title || prod.title,
-            image: item.image || prod.images?.[0] || ""
-          });
-
-          await adminClient
+      // --- Enrich Items & Decrement inventory for this seller's products ---
+      const enrichedSellerItems = [];
+      for (const item of sellerItems) {
+        if (item.product_id && item.quantity) {
+          const { data: prod } = await adminClient
             .from("products")
-            .update({
-              inventory: Math.max(0, (prod.inventory || 0) - item.quantity),
-            })
-            .eq("id", item.product_id);
+            .select("inventory, title, images")
+            .eq("id", item.product_id)
+            .single();
+
+          if (prod) {
+            enrichedSellerItems.push({
+              ...item,
+              title: item.title || prod.title,
+              image: item.image || prod.images?.[0] || ""
+            });
+
+            await adminClient
+              .from("products")
+              .update({
+                inventory: Math.max(0, (prod.inventory || 0) - item.quantity),
+              })
+              .eq("id", item.product_id);
+          } else {
+            enrichedSellerItems.push(item);
+          }
         } else {
-          enrichedItems.push(item);
+          enrichedSellerItems.push(item);
         }
-      } else {
-        enrichedItems.push(item);
       }
-    }
 
-    // --- Create Order ---
-    const { data: order, error: orderError } = await adminClient
-      .from("orders")
-      .insert({
-        buyer_id: user.id,
-        seller_id: orderSellerId,
-        items: enrichedItems,
-        total: total || 0,
-        shipping_info: shipping_address || pickup_address || null,
-        status: "pending",
-        promoter_id: promoter_id || null,
-        payment_method: payment_method || null,
-        payment_ref: payment_ref || null,
-        payment_status: payment_status || null,
-        pickup_lat: final_pickup_lat || null,
-        pickup_lng: final_pickup_lng || null,
-        delivery_lat: delivery_lat || null,
-        delivery_lng: delivery_lng || null,
-        settlement_status: "none",
-      })
-      .select("id")
-      .single();
-
-    if (orderError) {
-      console.error("ORDER_INSERT_FAIL:", orderError);
-      throw new Error(`Failed to create order: ${orderError.message}`);
-    }
-
-    // --- Create Order Items (Relational Integrity) ---
-    const orderItemsPayload = enrichedItems.map((item) => ({
-      order_id: order.id,
-      product_id: item.product_id,
-      seller_id: item.seller_id || orderSellerId,
-      quantity: item.quantity,
-      price_at_purchase: item.price,
-      size: item.size || null,
-    }));
-
-    const { error: itemsError } = await adminClient
-      .from("order_items_new")
-      .insert(orderItemsPayload);
-
-    if (itemsError) {
-      console.error("ORDER_ITEMS_INSERT_FAIL:", itemsError);
-      // Non-blocking but logged
-    }
-
-    // --- Conversion Tracking (New Engine) ---
-    if (promoter_id) {
-       await adminClient
-        .from("referrals")
-        .update({ 
-          converted_at: new Date().toISOString(), 
-          order_id: order.id 
+      // --- Create Order for this Seller ---
+      const { data: order, error: orderError } = await adminClient
+        .from("orders")
+        .insert({
+          buyer_id: user.id,
+          seller_id: sId,
+          items: enrichedSellerItems, // Storing items in JSONB too for legacy/quick view
+          total: subTotal || 0,
+          shipping_info: shipping_address || pickup_address || null,
+          status: "pending",
+          promoter_id: promoter_id || null,
+          payment_method: payment_method || null,
+          payment_ref: payment_ref || null,
+          payment_status: payment_status || null,
+          pickup_lat: current_pickup_lat || null,
+          pickup_lng: current_pickup_lng || null,
+          delivery_lat: delivery_lat || null,
+          delivery_lng: delivery_lng || null,
+          settlement_status: "none",
         })
-        .eq("promoter_id", promoter_id)
-        .eq("visitor_id", user.id) // Assuming visitor_id maps to user_id after login
-        .is("converted_at", null);
-    }
+        .select("id")
+        .single();
 
-    console.log("Order created:", order.id);
+      if (orderError) {
+        console.error(`ORDER_INSERT_FAIL for seller ${sId}:`, orderError);
+        continue; // Or handle more gracefully
+      }
 
-    // --- Create Shipment (fail loudly) ---
-    const deliveryAddress = toTextAddress(shipping_address);
-    const pickupAddress = toTextAddress(pickup_address) || seller_address_fallback;
+      createdOrderIds.push(order.id);
 
-    const { error: shipmentError } = await adminClient.from("shipments").insert({
-      order_id: order.id,
-      seller_id: orderSellerId,
-      status: "pending",
-      delivery_address: deliveryAddress,
-      pickup_address: pickupAddress,
-      delivery_fee: delivery_fee || 0,
-      zone_id: zone_id || null,
-      city_id: city_id || null,
-      zone: zone || null,
-      broadcast_zone: zone || null,
-      pickup_latitude: final_pickup_lat || null,
-      pickup_longitude: final_pickup_lng || null,
-      buyer_latitude: delivery_lat || null,
-      buyer_longitude: delivery_lng || null,
-    });
+      // --- Create Order Items Relationship ---
+      const orderItemsPayload = enrichedSellerItems.map((item) => ({
+        order_id: order.id,
+        product_id: item.product_id,
+        seller_id: sId,
+        quantity: item.quantity,
+        price_at_purchase: item.price,
+        size: item.size || null,
+      }));
 
-    if (shipmentError) {
-      console.error("SHIPMENT_INSERT_FAIL:", shipmentError);
-      // Best-effort rollback to avoid orphaned orders
-      await adminClient.from("orders").delete().eq("id", order.id);
-      throw new Error(`Failed to create shipment: ${shipmentError.message}`);
-    }
+      await adminClient.from("order_items_new").insert(orderItemsPayload);
 
-    // --- Commission Logic ---
-    let commissionCreated = false;
-    if (promoter_id) {
-      // Anti-fraud: promoter cannot be the buyer or the seller
-      if (promoter_id !== user.id && promoter_id !== orderSellerId) {
-        const commissionAmount = (total || 0) * COMMISSION_RATE;
+      // --- Create Shipment for this Seller's sub-order ---
+      const deliveryAddress = toTextAddress(shipping_address);
+      const finalPickupAddress = toTextAddress(pickup_address) || current_seller_address;
+
+      await adminClient.from("shipments").insert({
+        order_id: order.id,
+        seller_id: sId,
+        status: "pending",
+        delivery_address: deliveryAddress,
+        pickup_address: finalPickupAddress,
+        delivery_fee: delivery_fee ? (delivery_fee / sellerIds.length) : 0, // Proportional splitting of delivery fee
+        zone_id: zone_id || null,
+        city_id: city_id || null,
+        zone: zone || null,
+        broadcast_zone: zone || null,
+        pickup_latitude: current_pickup_lat || null,
+        pickup_longitude: current_pickup_lng || null,
+        buyer_latitude: delivery_lat || null,
+        buyer_longitude: delivery_lng || null,
+      });
+
+      // --- Commission Logic (Per sub-order) ---
+      if (promoter_id && promoter_id !== user.id && promoter_id !== sId) {
+        const commissionAmount = subTotal * COMMISSION_RATE;
         if (commissionAmount > 0) {
           const { error: commError } = await adminClient
             .from("commissions")
             .insert({
               order_id: order.id,
               promoter_id: promoter_id,
-              seller_id: orderSellerId,
+              seller_id: sId,
               rate: COMMISSION_RATE,
               amount: commissionAmount,
               status: "pending",
             });
-          if (commError) {
-            console.error("COMMISSION_INSERT_FAIL:", commError);
-          } else {
-            commissionCreated = true;
-            console.log(
-              `Commission created: ₦${commissionAmount} for promoter ${promoter_id}`
-            );
-          }
+          if (!commError) overallCommissionCreated = true;
         }
-      } else {
-        console.log("Self-referral blocked. No commission awarded.");
       }
+
+      // --- Notify Seller ---
+      await adminClient.from("notifications").insert({
+        user_id: sId,
+        type: "order",
+        message: `New order portion received! Order #${order.id.slice(0, 8)}`,
+      });
     }
 
-    // --- Notifications ---
-    await adminClient.from("notifications").insert({
-      user_id: orderSellerId,
-      type: "order",
-      message: `New order received! Order #${order.id.slice(0, 8)}`,
-    });
+    // --- Conversion Tracking (Reference the first order created) ---
+    if (promoter_id && createdOrderIds.length > 0) {
+       await adminClient
+        .from("referrals")
+        .update({ 
+          converted_at: new Date().toISOString(), 
+          order_id: createdOrderIds[0] 
+        })
+        .eq("promoter_id", promoter_id)
+        .eq("visitor_id", user.id)
+        .is("converted_at", null);
+    }
 
     return new Response(
       JSON.stringify({
-        order_id: order.id,
-        commission_created: commissionCreated,
+        order_ids: createdOrderIds,
+        main_order_id: createdOrderIds[0],
+        commission_created: overallCommissionCreated,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

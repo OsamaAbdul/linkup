@@ -8,17 +8,22 @@ import {
 import { cn } from "@/lib/utils";
 
 export default function AdminOverview() {
-    const { data: revenueData } = useQuery({
+    const { data: revenueData, isLoading: isRevLoading } = useQuery({
         queryKey: ["admin-revenue"],
         queryFn: async () => {
             const { data, error } = await (supabase as any).rpc("get_admin_revenue");
-            if (error) throw error;
+            if (error) {
+                console.error("REVENUE_ERROR", error);
+                (window as any).LATEST_REVENUE_ERROR = error;
+            }
+            console.log("REVENUE_SUCCESS", data);
+            (window as any).LATEST_REVENUE_DATA = data;
             return data || 0;
         },
         staleTime: 1000 * 60 * 5, // 5 minutes
     });
 
-    const { data: activeOrdersCount } = useQuery({
+    const { data: activeOrdersCount, isLoading: isActiveOrdersLoading } = useQuery({
         queryKey: ["admin-active-orders-count"],
         queryFn: async () => {
             const { count, error } = await supabase
@@ -31,7 +36,7 @@ export default function AdminOverview() {
         staleTime: 1000 * 60 * 2, // 2 minutes
     });
 
-    const { data: usersCount } = useQuery({
+    const { data: usersCount, isLoading: isUsersLoading } = useQuery({
         queryKey: ["admin-users-count"],
         queryFn: async () => {
             const { count, error } = await supabase
@@ -43,7 +48,7 @@ export default function AdminOverview() {
         staleTime: 1000 * 60 * 10, // 10 minutes
     });
 
-    const { data: openIssuesCount } = useQuery({
+    const { data: openIssuesCount, isLoading: isIssuesLoading } = useQuery({
         queryKey: ["admin-open-issues-count"],
         queryFn: async () => {
             const { count, error } = await (supabase as any)
@@ -73,10 +78,10 @@ export default function AdminOverview() {
     });
 
     const stats = [
-        { label: "Total Revenue", value: `${(revenueData || 0).toLocaleString()}`, icon: TrendingUp },
-        { label: "Active Orders", value: (activeOrdersCount || 0).toString(), icon: ShoppingBag },
-        { label: "Total Users", value: (usersCount || 0).toLocaleString(), icon: Users },
-        { label: "Open Issues", value: (openIssuesCount || 0).toString(), icon: AlertTriangle },
+        { label: "Total Revenue", value: revenueData, icon: TrendingUp, loading: isRevLoading, isCurrency: true },
+        { label: "Active Orders", value: activeOrdersCount, icon: ShoppingBag, loading: isActiveOrdersLoading },
+        { label: "Total Users", value: usersCount, icon: Users, loading: isUsersLoading },
+        { label: "Open Issues", value: openIssuesCount, icon: AlertTriangle, loading: isIssuesLoading },
     ];
 
     return (
@@ -100,7 +105,16 @@ export default function AdminOverview() {
 
                             </div>
                             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em]">{stat.label}</p>
-                            <p className="text-3xl font-black text-foreground mt-1">{stat.value}</p>
+                            <div className="text-3xl font-black text-foreground mt-1">
+                                {stat.loading ? (
+                                    <div className="h-9 w-24 bg-gray-100 animate-pulse rounded-lg" />
+                                ) : (
+                                    <>
+                                        {stat.isCurrency && "₦ "}
+                                        {(stat.value || 0).toLocaleString()}
+                                    </>
+                                )}
+                            </div>
                         </CardContent>
                     </Card>
                 ))}

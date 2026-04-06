@@ -116,9 +116,13 @@ export function ProductCard({
             )}
 
             <button
-              onClick={(e) => { e.preventDefault(); onLike(id); }}
+              onClick={(e) => { e.preventDefault(); if (!isOutOfStock) onLike(id); }}
+              disabled={isOutOfStock}
               aria-label={isLiked ? "Remove from wishlist" : "Add to wishlist"}
-              className="absolute top-2 right-2 p-1.5 rounded-full glass hover:bg-white hover:text-destructive dark:hover:bg-black transition-all duration-300 z-10 shadow-lg group/heart"
+              className={cn(
+                "absolute top-2 right-2 p-1.5 rounded-full glass hover:bg-white hover:text-destructive dark:hover:bg-black transition-all duration-300 z-10 shadow-lg group/heart",
+                isOutOfStock && "opacity-50 cursor-not-allowed pointer-events-none"
+              )}
             >
               <Heart
                 size={16}

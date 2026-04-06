@@ -4,8 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
-import { Eye, Package, User, MapPin, Calendar, Smartphone, Bike } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Eye, Package, User, MapPin, Calendar, Smartphone, Bike, Copy } from "lucide-react";
+import { cn, maskPII } from "@/lib/utils";
 import {
     Dialog,
     DialogContent,
@@ -112,7 +112,7 @@ export default function AdminOrderTracker() {
                                     <div className="flex items-center gap-1.5 mt-0.5">
                                         <Smartphone size={10} className="text-muted-foreground" />
                                         <a href={`tel:${rider.phone}`} className="text-[10px] font-medium text-primary hover:underline transition-all">
-                                            {rider.phone || "No contact info available"}
+                                            {maskPII(rider.phone)}
                                         </a>
                                     </div>
                                 </div>

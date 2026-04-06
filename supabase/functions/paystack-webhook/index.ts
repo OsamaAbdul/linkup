@@ -30,7 +30,17 @@ serve(async (req: Request) => {
       .update(bodyText)
       .digest("hex");
 
-    if (hash !== paystackSignature) {
+    // Constant-time comparison to prevent timing attacks
+    const constantTimeCompare = (a: string, b: string) => {
+      if (a.length !== b.length) return false;
+      let result = 0;
+      for (let i = 0; i < a.length; i++) {
+        result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+      }
+      return result === 0;
+    };
+
+    if (!constantTimeCompare(hash, paystackSignature)) {
       console.error("Invalid Paystack signature");
       return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 401 });
     }

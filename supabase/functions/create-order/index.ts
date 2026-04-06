@@ -97,6 +97,31 @@ serve(async (req: Request) => {
     const createdOrderIds: string[] = [];
 
     // --- Process each Seller as a separate Order ---
+    // --- IDEMPOTENCY GUARD (Phase 14) ---
+    // If we have a payment_ref, check if we've already created an order for it.
+    if (payment_ref) {
+      const { data: existingOrder } = await adminClient
+        .from("orders")
+        .select("id")
+        .eq("payment_ref", payment_ref)
+        .limit(1)
+        .maybeSingle();
+
+      if (existingOrder) {
+        console.log(`Idempotency Hit: Order already exists for ref ${payment_ref}. ID: ${existingOrder.id}`);
+        return new Response(
+          JSON.stringify({
+            success: true,
+            order_id: existingOrder.id,
+            was_idempotent: true
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+    }
+
     for (const sId of sellerIds) {
       console.log(`Processing sub-order for seller: ${sId}`);
       const sellerItems = itemsBySeller[sId];
@@ -136,17 +161,38 @@ serve(async (req: Request) => {
 
       // --- Enrich Items & Decrement inventory for this seller's products ---
       const enrichedSellerItems = [];
+      let calculatedSubTotal = 0;
+
       for (const item of sellerItems) {
-        if (item.product_id && item.quantity) {
+        // SECURE: Enforce positive quantity to prevent "negative order" theft
+        if (!item.quantity || item.quantity <= 0) {
+          console.error(`Invalid quantity for product ${item.product_id}: ${item.quantity}`);
+          continue; // Skip items with negative/zero quantity
+        }
+
+        if (item.product_id) {
+          // HEAL: Fetch PRICE and inventory from source of truth (DB)
           const { data: prod } = await adminClient
             .from("products")
-            .select("inventory, title, images")
+            .select("price, inventory, title, images")
             .eq("id", item.product_id)
             .single();
 
           if (prod) {
+            const itemPrice = Number(prod.price) || 0;
+            const requestedQty = item.quantity || 1;
+
+            // --- STRICT STOCK GUARD (Phase 14) ---
+            if ((prod.inventory || 0) < requestedQty) {
+              console.error(`INSUFFICIENT_STOCK: ${prod.title} (${item.product_id}). Wanted ${requestedQty}, had ${prod.inventory}`);
+              throw new Error(`Sorry, only ${prod.inventory} of "${prod.title}" items are left in stock.`);
+            }
+
+            calculatedSubTotal += (itemPrice * requestedQty);
+
             enrichedSellerItems.push({
               ...item,
+              price: itemPrice, // SECURE: Overwrite client price with DB price
               title: item.title || prod.title,
               image: item.image || prod.images?.[0] || ""
             });
@@ -154,14 +200,37 @@ serve(async (req: Request) => {
             await adminClient
               .from("products")
               .update({
-                inventory: Math.max(0, (prod.inventory || 0) - item.quantity),
+                inventory: (prod.inventory || 0) - requestedQty,
               })
               .eq("id", item.product_id);
           } else {
+            // Fallback for missing product
             enrichedSellerItems.push(item);
+            calculatedSubTotal += (Number(item.price) || 0) * (item.quantity || 1);
           }
         } else {
           enrichedSellerItems.push(item);
+          calculatedSubTotal += (Number(item.price) || 0) * (item.quantity || 1);
+        }
+      }
+
+      // SECURE: Referral Verification Guard (Phase 10)
+      // We verify that a matching referral entry exists in the ledger for this buyer.
+      let finalPromoterId = null;
+      if (promoter_id) {
+        const { data: referralRecord } = await adminClient
+          .from("referrals")
+          .select("id")
+          .eq("promoter_id", promoter_id)
+          .eq("buyer_id", user.id)
+          .gt("expires_at", new Date().toISOString())
+          .limit(1)
+          .maybeSingle();
+
+        if (referralRecord) {
+          finalPromoterId = promoter_id;
+        } else {
+          console.warn(`Referral Spoof Attempt Detected: Buyer ${user.id} tried to use non-existent promoter_id ${promoter_id}`);
         }
       }
 
@@ -171,11 +240,11 @@ serve(async (req: Request) => {
         .insert({
           buyer_id: user.id,
           seller_id: sId,
-          items: enrichedSellerItems, // Storing items in JSONB too for legacy/quick view
-          total: subTotal || 0,
+          items: enrichedSellerItems, 
+          total: calculatedSubTotal || 0, // SECURE: Use server-calculated total
           shipping_info: shipping_address || pickup_address || null,
           status: "pending",
-          promoter_id: promoter_id || null,
+          promoter_id: finalPromoterId || null,
           payment_method: payment_method || null,
           payment_ref: payment_ref || null,
           payment_status: payment_status || null,

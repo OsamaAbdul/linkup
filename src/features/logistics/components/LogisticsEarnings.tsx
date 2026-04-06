@@ -9,7 +9,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/shared/components/ui/dialog";
-import { TrendingUp, Calendar, CreditCard, Wallet, ArrowDownToLine, Loader2, CheckCircle, Package } from "lucide-react";
+import { TrendingUp, Calendar, CreditCard, Wallet, ArrowDownToLine, Loader2, CheckCircle, Package, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { PayoutRequestModal } from "@/features/seller/components/PayoutRequestModal";
@@ -123,10 +123,7 @@ export function LogisticsEarnings() {
     const deliveryFees = riderTransactions.filter((t: any) => t.type === 'delivery_fee' && t.status === 'success');
     const pendingFees = riderTransactions.filter((t: any) => t.type === 'delivery_fee' && t.status === 'pending');
     
-    // Total sum should include both success and pending for the "Total Earned" metric if users want to see everything,
-    // but the balance hero should only show available. 
-    // The user asked "credit both seller and the logistics dashboard" instantly.
-    // So I'll show the combined total in "Total Earned" but keep balance as available.
+    const pendingBalance = wallet?.escrow_balance ?? 0;
     const totalEarnings = riderTransactions
         .filter((t: any) => t.type === 'delivery_fee')
         .reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
@@ -204,16 +201,21 @@ export function LogisticsEarnings() {
                             Rider Wallet
                         </Badge>
                     </div>
-                    <div>
-                        <p className="text-xs font-black uppercase tracking-widest text-white/60">Available Balance</p>
-                        <h2 className="text-5xl font-black tracking-tighter mt-1">
-                            <span className="text-2xl opacity-60 mr-1">₦</span>
-                            {(wallet?.balance || 0).toLocaleString()}
-                        </h2>
-                        <p className="text-xs text-white/50 mt-1 font-medium">
-                            {completedShipments.length} completed deliveries · ₦{totalEarnings.toLocaleString()} total earned
-                        </p>
-                    </div>
+                        <div>
+                            <p className="text-xs font-black uppercase tracking-widest text-white/60">Available Balance</p>
+                            <h2 className="text-5xl font-black tracking-tighter mt-1">
+                                <span className="text-2xl opacity-60 mr-1">₦</span>
+                                {(wallet?.balance || 0).toLocaleString()}
+                            </h2>
+                            <div className="flex items-center gap-4 mt-2">
+                                <p className="text-[10px] text-white/70 font-black uppercase tracking-widest bg-white/10 px-2 py-1 rounded-lg">
+                                    ₦{pendingBalance.toLocaleString()} Settling
+                                </p>
+                                <p className="text-xs text-white/50 font-medium">
+                                    {completedShipments.length} completed deliveries
+                                </p>
+                            </div>
+                        </div>
                     <Button
                         onClick={() => setWithdrawOpen(true)}
                         disabled={!wallet?.balance || wallet.balance <= 0}
@@ -227,9 +229,9 @@ export function LogisticsEarnings() {
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[
+                    { label: "Pending Cut", value: pendingBalance, icon: Clock, color: "text-amber-600", bg: "bg-amber-50" },
                     { label: "Today", value: todayEarnings, icon: CreditCard, color: "text-blue-600", bg: "bg-blue-50" },
-                    { label: "This Week", value: weekEarnings, icon: Calendar, color: "text-purple-600", bg: "bg-purple-50" },
-                    { label: "Total Earned", value: totalEarnings, icon: TrendingUp, color: "text-green-600", bg: "bg-green-50" },
+                    { label: "Total History", value: totalEarnings, icon: TrendingUp, color: "text-green-600", bg: "bg-green-50" },
                 ].map((card, i) => (
                     <Card key={i} className="border-none shadow-sm rounded-xl">
                         <CardContent className="p-8 flex items-center gap-5">

@@ -29,6 +29,11 @@ CREATE INDEX IF NOT EXISTS idx_shipments_rider_id ON public.shipments (rider_id)
 -- Index on order_id for shipment joins (already exists in some migrations, but safety first)
 CREATE INDEX IF NOT EXISTS idx_shipments_order_id ON public.shipments (order_id);
 
--- 3. Grant access to authenticated users (RLS will still apply if used, but RPC is SECURITY DEFINER)
+-- 3. Add indexes for issues table filters
+CREATE INDEX IF NOT EXISTS idx_issues_status ON public.issues (status);
+CREATE INDEX IF NOT EXISTS idx_issues_priority ON public.issues (priority);
+CREATE INDEX IF NOT EXISTS idx_issues_created_at_desc ON public.issues (created_at DESC);
+
+-- 4. Grant access to authenticated users (RLS will still apply if used, but RPC is SECURITY DEFINER)
 GRANT EXECUTE ON FUNCTION public.get_admin_revenue() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_admin_revenue() TO service_role;

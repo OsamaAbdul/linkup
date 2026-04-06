@@ -12,25 +12,8 @@ import { Badge } from "@/shared/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  Check,
-  LocateFixed,
-  Loader2,
-  Navigation,
-  Truck,
-  CreditCard,
-  ShieldCheck,
-  Lock,
   ShoppingBag,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import Receipt from "@/features/marketplace/components/Receipt";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 import { usePaystackInline } from "@/features/marketplace/hooks/usePaystackInline";
 
 import { AnimatePresence } from "framer-motion";
@@ -39,7 +22,7 @@ import { DeliveryStep } from "@/features/marketplace/components/v2/DeliveryStep"
 import { PaymentStep } from "@/features/marketplace/components/v2/PaymentStep";
 import { SuccessStep } from "@/features/marketplace/components/v2/SuccessStep";
 
-const DELIVERY_FEE = 1500; 
+const DELIVERY_FEE = 1500;
 
 type PlaceOrderVars = {
   payment_method?: string | null;
@@ -106,6 +89,19 @@ export default function Checkout() {
     enabled: !!shipping.city_id,
   });
 
+  // Fetch dynamic delivery fee from config
+  const { data: feeConfigs = [] } = useQuery({
+    queryKey: ["fee-config"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("fee_config")
+        .select("*")
+        .eq("is_active", true);
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+  });
+
   // Auto-select from localStorage, profile, or default to Abuja
   useEffect(() => {
     // Wait for basic data to load
@@ -158,9 +154,15 @@ export default function Checkout() {
   // Calculate multi-shipment delivery fee
   const uniqueSellerIds = new Set(cartItems.map((item: any) => item.products?.seller_id).filter(Boolean));
   const sellerCount = Math.max(1, uniqueSellerIds.size);
-  
+
+  const riderFeeConfig = feeConfigs.find((f: any) => f.fee_type === "rider");
+  const dynamicDefaultFee = riderFeeConfig?.flat_fee ?? DELIVERY_FEE;
+
   const selectedZone = zones.find((z: any) => z.id === shipping.zone_id);
-  const baseDeliveryFee = selectedZone?.delivery_fee ?? (shipping.zone_id ? DELIVERY_FEE : 0);
+  const zoneFee = selectedZone?.delivery_fee;
+  const baseDeliveryFee = (zoneFee === 1500 || zoneFee === null || zoneFee === undefined)
+    ? (shipping.zone_id ? dynamicDefaultFee : 0)
+    : zoneFee;
   const deliveryFee = baseDeliveryFee * sellerCount;
   const grandTotal = productTotal + deliveryFee;
 
@@ -202,8 +204,8 @@ export default function Checkout() {
       const summary = {
         items: payload.items,
         total: grandTotal,
-        orderNumber: data?.order_ids?.length > 1 
-          ? `${data.order_ids.length} Shipments` 
+        orderNumber: data?.order_ids?.length > 1
+          ? `${data.order_ids.length} Shipments`
           : `#ORD-${(data?.main_order_id || "NEW").slice(0, 8).toUpperCase()}`,
         orderIds: data?.order_ids || [],
         date: new Date().toLocaleString(),
@@ -289,8 +291,8 @@ export default function Checkout() {
         const { latitude, longitude } = pos.coords;
         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
         const data = await res.json();
-        setShipping((prev) => ({ 
-          ...prev, 
+        setShipping((prev) => ({
+          ...prev,
           address: data.display_name,
           lat: latitude,
           lng: longitude
@@ -308,11 +310,11 @@ export default function Checkout() {
     return (
       <AppLayout>
         <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 space-y-6">
-            <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center">
-                <ShoppingBag className="text-muted-foreground" size={32} />
-            </div>
-            <h2 className="text-xl font-bold">Your cart is empty</h2>
-            <Button onClick={() => navigate("/")}>Go Shopping</Button>
+          <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center">
+            <ShoppingBag className="text-muted-foreground" size={32} />
+          </div>
+          <h2 className="text-xl font-bold">Your cart is empty</h2>
+          <Button onClick={() => navigate("/")}>Go Shopping</Button>
         </div>
       </AppLayout>
     );
@@ -342,11 +344,11 @@ export default function Checkout() {
               <PaymentStep
                 key="step2"
                 items={cartItems.map(i => ({
-                    title: i.products?.title,
-                    price: i.products?.price,
-                    quantity: i.quantity,
-                    size: i.size,
-                    image: i.products?.images?.[0]
+                  title: i.products?.title,
+                  price: i.products?.price,
+                  quantity: i.quantity,
+                  size: i.size,
+                  image: i.products?.images?.[0]
                 }))}
                 productTotal={productTotal}
                 deliveryFee={deliveryFee}

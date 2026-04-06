@@ -16,18 +16,23 @@ import {
     Percent,
     Info,
     Navigation,
-    Route
+    Route,
+    Package,
+    Smartphone,
+    ArrowRight,
+    CheckCircle,
+    Truck
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { 
-    getPickupAddress, 
-    getDeliveryAddress, 
+import {
+    getPickupAddress,
+    getDeliveryAddress,
     getBuyerContact,
     getSellerInfo,
-    generateMapsUrl 
+    generateMapsUrl
 } from "../utils/logistics-utils";
 
 interface MissionDetailsModalProps {
@@ -40,7 +45,7 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
 
     // logging the shipments details
 
-    console.log("this is the shipments:", shipment)
+
     const queryClient = useQueryClient();
 
     // Fetch full shipment details if missing or as a source of truth
@@ -93,7 +98,7 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
         queryFn: async () => {
             const orderId = activeShipment?.order_id || (activeShipment as any)?.order?.id;
             if (!orderId) return [];
-            
+
             const { data, error } = await (supabase as any)
                 .from("order_items")
                 .select("*, products(title, images)")
@@ -123,7 +128,7 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
 
     const buyer = getBuyerContact(activeShipment);
     const sellerInfo = getSellerInfo(activeShipment);
-    
+
     const handleOpenMaps = (mode: 'pickup' | 'delivery' = 'delivery') => {
         const mapsUrl = generateMapsUrl(activeShipment, mode);
         if (mapsUrl) {
@@ -153,13 +158,13 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                             <Badge className={cn(
                                 "rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-widest border-none",
                                 activeShipment.status === 'assigned' ? 'bg-blue-100 text-blue-700' :
-                                activeShipment.status === 'accepted' ? 'bg-indigo-100 text-indigo-700' :
-                                activeShipment.status === 'out_for_pickup' ? 'bg-amber-100 text-amber-700' :
-                                activeShipment.status === 'arrived_at_seller' ? 'bg-orange-100 text-orange-700' :
-                                activeShipment.status === 'picked_up' ? 'bg-purple-100 text-purple-700' :
-                                activeShipment.status === 'out_for_delivery' ? 'bg-blue-100 text-blue-700' :
-                                activeShipment.status === 'arrived_at_destination' ? 'bg-cyan-100 text-cyan-700' :
-                                'bg-green-100 text-green-700'
+                                    activeShipment.status === 'accepted' ? 'bg-indigo-100 text-indigo-700' :
+                                        activeShipment.status === 'out_for_pickup' ? 'bg-amber-100 text-amber-700' :
+                                            activeShipment.status === 'arrived_at_seller' ? 'bg-orange-100 text-orange-700' :
+                                                activeShipment.status === 'picked_up' ? 'bg-purple-100 text-purple-700' :
+                                                    activeShipment.status === 'out_for_delivery' ? 'bg-blue-100 text-blue-700' :
+                                                        activeShipment.status === 'arrived_at_destination' ? 'bg-cyan-100 text-cyan-700' :
+                                                            'bg-green-100 text-green-700'
                             )}>
                                 {activeShipment.status.replace(/_/g, ' ')}
                             </Badge>
@@ -198,80 +203,12 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
 
                         {/* Item List */}
                         <section className="space-y-3">
-                            <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                                <Package size={12} strokeWidth={3} />
-                                Bundle Inventory
-                            </h4>
-                            
-                            {/* Detailed Earnings Breakdown */}
-                            <div className="bg-green-500/5 border border-green-500/10 rounded-2xl p-4 mb-3 space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <h5 className="text-[10px] font-black text-green-700 uppercase tracking-widest flex items-center gap-2">
-                                        <Banknote size={12} />
-                                        Total Earnings
-                                    </h5>
-                                    <span className="text-sm font-black text-green-700">
-                                        ₦{activeShipment.delivery_fee_amount || 0}
-                                    </span>
-                                </div>
-                                
-                                {activeShipment.fee_breakdown && (
-                                    <div className="space-y-1.5 border-t border-green-500/10 pt-3">
-                                        <div className="flex justify-between text-[10px] font-bold text-muted-foreground">
-                                            <span>Base Pickup Fee</span>
-                                            <span>₦{activeShipment.fee_breakdown.base_fee || 0}</span>
-                                        </div>
-                                        {activeShipment.fee_breakdown.zone_bonus > 0 && (
-                                            <div className="flex justify-between text-[10px] font-bold text-orange-600">
-                                                <span>Out-of-Zone Bonus</span>
-                                                <span>+ ₦{activeShipment.fee_breakdown.zone_bonus}</span>
-                                            </div>
-                                        )}
-                                        {activeShipment.fee_breakdown.distance_surcharge > 0 && (
-                                            <div className="flex justify-between text-[10px] font-bold text-blue-600">
-                                                <span>Distance Surcharge ({activeShipment.fee_breakdown.distance_km}km)</span>
-                                                <span>+ ₦{activeShipment.fee_breakdown.distance_surcharge}</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                                
-                                {!activeShipment.fee_breakdown && activeShipment.status === 'broadcast' && (
-                                    <div className="flex items-center gap-2 text-[9px] font-medium text-muted-foreground bg-white/50 p-2 rounded-lg italic">
-                                        <Info size={10} />
-                                        Final payout includes bonuses for distance and out-of-zone travel.
-                                    </div>
-                                )}
-                            </div>
 
-                            <div className="space-y-2">
-                                {itemsLoading ? (
-                                    <div className="flex items-center gap-2 py-4 text-muted-foreground italic text-xs">
-                                        <Loader2 className="animate-spin" size={12} />
-                                        Retrieving item manifest...
-                                    </div>
-                                ) : items.length === 0 ? (
-                                    <div className="text-[10px] text-muted-foreground italic bg-muted/20 p-4 rounded-xl text-center">
-                                        No items found in manifest
-                                    </div>
-                                ) : items.map((item: any, idx: number) => (
-                                    <div key={idx} className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-black/5 shadow-sm">
-                                        <div className="w-10 h-10 rounded-lg bg-muted/20 overflow-hidden flex-shrink-0">
-                                            {item.products?.images?.[0] ? (
-                                                <img src={item.products.images[0]} className="w-full h-full object-cover" />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-muted-foreground/30">
-                                                    <Package size={16} />
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="flex-1 overflow-hidden">
-                                            <p className="text-xs font-bold text-foreground truncate">{item.products?.title || "Item Component"}</p>
-                                            <p className="text-[10px] font-black text-primary opacity-60 italic">Quantity: {item.quantity}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+
+
+
+
+
                         </section>
 
                         {/* Path Trace */}
@@ -293,8 +230,8 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                                             </p>
                                         </div>
                                     </div>
-                                    <Button 
-                                        size="sm" variant="outline" 
+                                    <Button
+                                        size="sm" variant="outline"
                                         className="h-8 px-3 text-[9px] font-black uppercase tracking-widest border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-700 shrink-0 shadow-sm rounded-full"
                                         onClick={() => handleOpenMaps('pickup')}
                                     >
@@ -313,8 +250,8 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                                             </p>
                                         </div>
                                     </div>
-                                    <Button 
-                                        size="sm" variant="outline" 
+                                    <Button
+                                        size="sm" variant="outline"
                                         className="h-8 px-3 text-[9px] font-black uppercase tracking-widest border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 shrink-0 shadow-sm rounded-full"
                                         onClick={() => handleOpenMaps('delivery')}
                                     >

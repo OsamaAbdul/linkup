@@ -22,7 +22,6 @@ interface ActiveTransitsProps {
 
 export function ActiveTransits({ shipments, onViewDetails, onNavigate }: ActiveTransitsProps) {
 
-    console.log("shipmeents", shipments)
     return (
         <section className="space-y-4">
             <div className="flex items-center gap-3">

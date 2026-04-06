@@ -34,31 +34,31 @@ export default function AdminKycManager() {
     queryKey: ["admin-kyc-verifications", kycType],
     queryFn: async () => {
       const table = kycType === "seller" ? "seller_verifications" : "logistics_kyc";
-      const fk = kycType === "seller" ? "profiles!seller_verifications_user_id_fkey" : "profiles!logistics_kyc_user_id_fkey";
       
-      const { data, error } = await supabase
+      const { data: kycData, error: kycError } = await supabase
         .from(table)
-        .select(`*, profiles(display_name, avatar_url)`)
+        .select(`*`)
         .order("created_at", { ascending: false });
       
-      // Post-process to ensure profiles is mapped correctly regardless of join style
-      if (data) {
-        data.forEach((item: any) => {
-          if (item.profiles && Array.isArray(item.profiles)) {
-            item.profiles = item.profiles[0];
-          }
-        });
-      }
-      
-      if (error) {
-        const { data: fallback, error: fbErr } = await supabase
-          .from(table)
-          .select("*")
-          .order("created_at", { ascending: false });
-        if (fbErr) throw fbErr;
-        return fallback || [];
-      }
-      return data || [];
+      if (kycError) throw kycError;
+      if (!kycData || kycData.length === 0) return [];
+
+      // Manual Profile Joining to resolve PGRST200 error
+      const userIds = Array.from(new Set(kycData.map((v: any) => v.user_id)));
+      const { data: profiles, error: profileError } = await supabase
+        .from("profiles")
+        .select("id, display_name, avatar_url")
+        .in("id", userIds);
+
+      const profileMap = (profiles || []).reduce((acc: any, p: any) => {
+        acc[p.id] = p;
+        return acc;
+      }, {});
+
+      return kycData.map((v: any) => ({
+        ...v,
+        profiles: profileMap[v.user_id] || null
+      }));
     },
   });
 
@@ -183,7 +183,7 @@ export default function AdminKycManager() {
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-1.5">
                       <MapPin size={12} className="text-muted-foreground" />
-                      <span className="text-sm font-bold text-muted-foreground">{v.zone || '€”'}</span>
+                      <span className="text-sm font-bold text-muted-foreground">{v.zone || ''}</span>
                     </div>
                   </td>
                   <td className="px-8 py-6 text-center">
@@ -244,7 +244,7 @@ export default function AdminKycManager() {
                 {kycType === 'logistics' && (
                   <div>
                     <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest mb-1">NIN Number</p>
-                    <p className="font-bold text-sm text-foreground">{selectedVerification.nin_number || '€”'}</p>
+                    <p className="font-bold text-sm text-foreground">{selectedVerification.nin_number || ''}</p>
                   </div>
                 )}
                 <div className="col-span-2">
@@ -253,7 +253,7 @@ export default function AdminKycManager() {
                 </div>
                 <div>
                   <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest mb-1">Zone</p>
-                  <p className="font-bold text-sm text-foreground">{selectedVerification.zone || '€”'}</p>
+                  <p className="font-bold text-sm text-foreground">{selectedVerification.zone || ''}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest mb-1">Submission Date</p>
@@ -365,4 +365,3 @@ export default function AdminKycManager() {
     </div>
   );
 }
-

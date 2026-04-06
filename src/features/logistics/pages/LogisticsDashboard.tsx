@@ -48,8 +48,8 @@ export default function LogisticsDashboard() {
                 .eq("id", user?.id)
                 .maybeSingle();
 
-            console.log("LogisticsDashboard: profileData fetched:", profileData);
-            return { 
+
+            return {
                 user_id: user?.id,
                 ...detailsData,
                 balance: walletData?.balance || 0,
@@ -62,7 +62,7 @@ export default function LogisticsDashboard() {
     });
 
     useEffect(() => {
-        console.log("LogisticsDashboard: details changed:", details);
+
     }, [details]);
 
     const { data: kycStatus } = useQuery({
@@ -105,9 +105,7 @@ export default function LogisticsDashboard() {
         };
     }, [user?.id, queryClient]);
 
-    useEffect(() => {
-        console.log("LogisticsDashboard: State updated - activeTab:", activeTab, "kycStatus:", kycStatus);
-    }, [activeTab, kycStatus]);
+
 
     const toggleOnlineStatus = async (checked: boolean) => {
         try {
@@ -157,9 +155,9 @@ export default function LogisticsDashboard() {
                 )}
             </AnimatePresence>
 
-            <LogisticsSidebar 
-                activeTab={activeTab} 
-                setActiveTab={handleTabChange} 
+            <LogisticsSidebar
+                activeTab={activeTab}
+                setActiveTab={handleTabChange}
                 isCollapsed={isCollapsed}
                 setIsCollapsed={setIsCollapsed}
                 isOpen={isMobileMenuOpen}
@@ -189,18 +187,18 @@ export default function LogisticsDashboard() {
                 <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 lg:pb-8 overflow-x-hidden">
                     <ProfileCompletionBanner />
                     {activeTab === "dashboard" && (
-                        <LogisticsOverview 
-                            kycStatus={kycStatus} 
+                        <LogisticsOverview
+                            kycStatus={kycStatus}
                             profile={details?.profiles}
-                            onVerificationClick={() => setActiveTab("verification")} 
+                            onVerificationClick={() => setActiveTab("verification")}
                         />
                     )}
                     {activeTab === "orders" && (
-                        <LogisticsOverview 
-                            kycStatus={kycStatus} 
-                            showAllOrders={true} 
+                        <LogisticsOverview
+                            kycStatus={kycStatus}
+                            showAllOrders={true}
                             profile={details?.profiles}
-                            onVerificationClick={() => setActiveTab("verification")} 
+                            onVerificationClick={() => setActiveTab("verification")}
                         />
                     )}
                     {activeTab === "earnings" && <LogisticsEarnings />}

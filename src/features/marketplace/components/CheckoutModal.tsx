@@ -70,6 +70,19 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
         enabled: !!cityId
     });
 
+    // Fetch dynamic delivery fee from config
+    const { data: feeConfigs = [] } = useQuery({
+        queryKey: ["fee-config"],
+        queryFn: async () => {
+            const { data, error } = await (supabase as any)
+                .from("fee_config")
+                .select("*")
+                .eq("is_active", true);
+            if (error) throw error;
+            return (data as any[]) || [];
+        }
+    });
+
     // Auto-select Abuja if available
     useEffect(() => {
         const abuja = cities.find(c => c.name === "Abuja");
@@ -80,8 +93,13 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
     }, [cities, cityId]);
 
 
+    const riderFeeConfig = feeConfigs.find((f: any) => f.fee_type === "rider");
+    const dynamicDefaultFee = riderFeeConfig?.flat_fee ?? DELIVERY_FEE;
+
     const selectedZone = zones.find(z => z.id === zoneId);
-    const deliveryFee = deliveryMethod === "standard" ? (selectedZone?.delivery_fee ?? DELIVERY_FEE) : 0;
+    const zFee = selectedZone?.delivery_fee;
+    const baseFee = (zFee === 1500 || zFee === null || zFee === undefined) ? dynamicDefaultFee : zFee;
+    const deliveryFee = deliveryMethod === "standard" ? baseFee : 0;
     const productPrice = product.price;
     const grandTotal = productPrice + deliveryFee;
 

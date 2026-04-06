@@ -64,7 +64,7 @@ export default function AdminOverview() {
         queryFn: async () => {
             const { data, error } = await (supabase as any)
                 .from("issues")
-                .select("*, profiles(display_name)")
+                .select("*, profiles!issues_reporter_profile_fkey(display_name)")
                 .in("priority", ["high", "critical"])
                 .eq("status", "open")
                 .order("created_at", { ascending: false })

@@ -46,6 +46,7 @@ export default function AdminFeeConfig() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["admin-fee-config"] });
+            queryClient.invalidateQueries({ queryKey: ["fee-config"] });
             toast.success("Fee configuration updated successfully");
             setEditingId(null);
         },

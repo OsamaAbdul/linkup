@@ -18,8 +18,8 @@ export default function AdminIssueManager() {
                 .from("issues")
                 .select(`
                     *,
-                    reporter:profiles!user_id(id, display_name),
-                    seller:profiles!seller_id(id, display_name),
+                    reporter:profiles!issues_reporter_profile_fkey(id, display_name),
+                    seller:profiles!issues_seller_id_fkey(id, display_name),
                     products(title, images),
                     orders(shipping_address)
                 `)

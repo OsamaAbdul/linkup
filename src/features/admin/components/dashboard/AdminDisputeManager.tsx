@@ -35,7 +35,7 @@ export default function AdminDisputeManager() {
                 .from("issues")
                 .select(`
                     *,
-                    reporter: profiles!user_id(display_name, avatar_url),
+                    reporter: profiles!issues_reporter_profile_fkey(display_name, avatar_url),
                     order: orders(
                         id, 
                         total, 

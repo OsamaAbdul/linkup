@@ -11,12 +11,9 @@ export default function AdminOverview() {
     const { data: revenueData } = useQuery({
         queryKey: ["admin-revenue"],
         queryFn: async () => {
-            const { data, error } = await supabase
-                .from("orders")
-                .select("total")
-                .in("status", ["delivered", "completed"]);
+            const { data, error } = await (supabase as any).rpc("get_admin_revenue");
             if (error) throw error;
-            return data?.reduce((acc, curr) => acc + (curr.total || 0), 0) || 0;
+            return data || 0;
         },
         staleTime: 1000 * 60 * 5, // 5 minutes
     });

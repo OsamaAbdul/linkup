@@ -15,10 +15,11 @@ import {
 } from "@/shared/components/ui/dialog";
 
 export default function AdminOrderTracker() {
+    const [pageSize, setPageSize] = useState(50);
     const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
     const { data: orders, isLoading } = useQuery({
-        queryKey: ["admin-all-orders"],
+        queryKey: ["admin-all-orders", pageSize],
         queryFn: async () => {
             const { data, error } = await supabase
                 .from("orders")
@@ -32,7 +33,8 @@ export default function AdminOrderTracker() {
                         rider:profiles!rider_id(display_name, phone, avatar_url)
                     )
                 `)
-                .order("created_at", { ascending: false });
+                .order("created_at", { ascending: false })
+                .limit(pageSize);
             if (error) throw error;
             return data;
         },
@@ -276,6 +278,18 @@ export default function AdminOrderTracker() {
                         </tbody>
                     </table>
                 </div>
+                {orders && orders.length >= pageSize && (
+                    <div className="p-6 bg-gray-50/30 border-t border-gray-100 flex justify-center">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-xl font-bold text-[10px] uppercase tracking-widest px-8 bg-white hover:bg-primary hover:text-white transition-all border-none shadow-sm"
+                            onClick={() => setPageSize(prev => prev + 50)}
+                        >
+                            Load More Historical Data
+                        </Button>
+                    </div>
+                )}
             </Card>
 
             <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>

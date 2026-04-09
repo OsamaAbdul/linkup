@@ -24,7 +24,7 @@ import { SuccessStep } from "@/features/marketplace/components/v2/SuccessStep";
 
 const DELIVERY_FEE = 1500;
 
-type PlaceOrderVars = {
+type PaymentInfo = {
   payment_method?: string | null;
   payment_ref?: string | null;
   payment_status?: string | null;
@@ -167,13 +167,13 @@ export default function Checkout() {
   const grandTotal = productTotal + deliveryFee;
 
   const placeOrder = useMutation({
-    mutationFn: async (vars?: PlaceOrderVars) => {
+    mutationFn: async (paymentInfo?: PaymentInfo) => {
       const token = await getToken();
       if (!user || !profile?.onboarding_completed || !token) {
-        throw new Error("Authentication or profile incomplete. Please login again.");
+        throw new Error("Please log in and finish setting up your account to continue.");
       }
 
-      const payload = {
+      const orderData = {
         items: cartItems.map((item: any) => ({
           product_id: item.product_id,
           quantity: item.quantity,
@@ -186,9 +186,9 @@ export default function Checkout() {
         shipping_address: shipping,
         total: grandTotal,
         delivery_fee: deliveryFee,
-        payment_method: vars?.payment_method ?? "direct",
-        payment_ref: vars?.payment_ref ?? null,
-        payment_status: vars?.payment_status ?? null,
+        payment_method: paymentInfo?.payment_method ?? "direct",
+        payment_ref: paymentInfo?.payment_ref ?? null,
+        payment_status: paymentInfo?.payment_status ?? null,
         zone_id: shipping.zone_id,
         city_id: shipping.city_id,
         delivery_lat: shipping.lat,
@@ -196,13 +196,13 @@ export default function Checkout() {
       };
 
       const { data, error } = await supabase.functions.invoke("create-order", {
-        body: payload,
+        body: orderData,
       });
 
-      if (error) throw new Error(error.message || "Order creation failed");
+      if (error) throw new Error(error.message || "We couldn't create your order. Please try again.");
 
       const summary = {
-        items: payload.items,
+        items: orderData.items,
         total: grandTotal,
         orderNumber: data?.order_ids?.length > 1
           ? `${data.order_ids.length} Shipments`
@@ -225,17 +225,17 @@ export default function Checkout() {
 
   const handlePayAndPlaceOrder = async () => {
     if (!user || !profile?.onboarding_completed) {
-      toast.error("Please login and complete onboarding to continue");
+      toast.error("Please log in and finish your profile setup to continue");
       return;
     }
 
     const email = user.email;
     if (!email) {
-      toast.error("Account email is missing");
+      toast.error("We couldn't find an email for your account");
       return;
     }
 
-    const payload = {
+    const orderData = {
       items: cartItems.map((item: any) => ({
         product_id: item.product_id,
         quantity: item.quantity,
@@ -259,7 +259,7 @@ export default function Checkout() {
 
       const { data: pkData } = await supabase.functions.invoke("paystack-public-key");
       const publicKey = (pkData as any)?.publicKey;
-      if (!publicKey) throw new Error("Payment gateway offline");
+      if (!publicKey) throw new Error("The payment system is currently unavailable. Please try later.");
 
       const paid = await pay({
         publicKey,
@@ -267,7 +267,7 @@ export default function Checkout() {
         amountKobo: Math.round(grandTotal * 100),
         reference: `LKUP_${Date.now()}`,
         metadata: {
-          order_payload: payload
+          order_details: orderData
         }
       });
 
@@ -297,9 +297,9 @@ export default function Checkout() {
           lat: latitude,
           lng: longitude
         }));
-        toast.success("Location and address synchronized");
+        toast.success("Location updated successfully");
       } catch {
-        toast.error("Could not resolve address details");
+        toast.error("We couldn't find your address. Please enter it manually.");
       } finally {
         setIsDetecting(false);
       }

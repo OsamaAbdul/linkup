@@ -61,7 +61,7 @@ export function SuccessStep({ orderSummary, onClose }: SuccessStepProps) {
         <div className="space-y-2">
             <h2 className="text-4xl font-black text-foreground tracking-tight">Payment Received!</h2>
             <p className="text-base text-muted-foreground font-medium">
-                Order <span className="text-primary font-bold">{orderSummary.orderNumber}</span> is now secured in escrow.
+                Order <span className="text-primary font-bold">{orderSummary.orderNumber}</span> is now being held safely.
             </p>
         </div>
 

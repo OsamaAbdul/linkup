@@ -122,9 +122,9 @@ export default function Profile() {
             <CardHeader className="bg-muted/30 pb-6 border-b border-black/[0.03]">
               <CardTitle className="text-lg font-bold flex items-center gap-2">
                 <User size={20} className="text-primary" />
-                Basic Info
+                Personal Details
               </CardTitle>
-              <CardDescription className="text-xs font-semibold uppercase tracking-widest text-muted-foreground opacity-70">Tell us who you are</CardDescription>
+              <CardDescription className="text-xs font-semibold uppercase tracking-widest text-muted-foreground opacity-70">Tell us a bit about yourself</CardDescription>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
               <div className="space-y-1.5">
@@ -172,9 +172,9 @@ export default function Profile() {
             <CardHeader className="bg-muted/30 pb-6 border-b border-black/[0.03]">
               <CardTitle className="text-lg font-bold flex items-center gap-2">
                 <MapPin size={20} className="text-primary" />
-                Physical Node
+                Address Details
               </CardTitle>
-              <CardDescription className="text-xs font-semibold uppercase tracking-widest text-muted-foreground opacity-70">Location for deliveries and logistics</CardDescription>
+              <CardDescription className="text-xs font-semibold uppercase tracking-widest text-muted-foreground opacity-70">Where should we deliver your orders?</CardDescription>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -237,12 +237,12 @@ export default function Profile() {
             {updateProfile.isPending ? (
               <>
                 <Loader2 size={18} className="animate-spin" />
-                Synchronizing...
+                Saving Changes...
               </>
             ) : (
               <>
                 <Save size={18} className="group-hover:scale-110 transition-transform" />
-                Finalize Changes
+                Save Profile
               </>
             )}
           </Button>
@@ -253,7 +253,7 @@ export default function Profile() {
                 <User size={18} />
               </div>
               <div className="flex-1">
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">System Identifier</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Account ID</p>
                 <p className="text-xs font-mono text-foreground/60">{user?.id}</p>
               </div>
             </CardContent>

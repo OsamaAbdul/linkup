@@ -122,8 +122,8 @@ export function WalletTab() {
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div>
-                <p className="text-[9px] font-black text-primary/60 uppercase tracking-[0.2em] mb-1">Liquidity Hub</p>
-                <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight">Financial Treasury</h1>
+                <p className="text-[9px] font-black text-primary/60 uppercase tracking-[0.2em] mb-1">Your Money</p>
+                <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight">Wallet & Payouts</h1>
             </div>
 
             <div className="grid md:grid-cols-3 gap-4">
@@ -136,7 +136,7 @@ export function WalletTab() {
                             <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
                                 <Wallet size={22} strokeWidth={3} />
                             </div>
-                            <Badge className="bg-white/20 hover:bg-white/30 text-white border-none rounded-full px-3 text-[9px] font-black uppercase tracking-widest">Master Safe</Badge>
+                            <Badge className="bg-white/20 hover:bg-white/30 text-white border-none rounded-full px-3 text-[9px] font-black uppercase tracking-widest">Secure Wallet</Badge>
                         </div>
                         <div className="flex justify-between items-end">
                             <div className="space-y-1">
@@ -168,11 +168,11 @@ export function WalletTab() {
                         </div>
                     </div>
                     <div className="p-5 rounded-xl bg-white border border-black/5 shadow-xl shadow-black/[0.02] hover:shadow-2xl hover:shadow-amber-500/5 transition-all duration-500">
-                        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Escrow (Pending)</p>
+                        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Pending Clearance</p>
                         <p className="text-2xl font-black text-foreground tracking-tight">₦{escrowBalance.toLocaleString()}</p>
                         <div className="flex items-center gap-1.5 text-amber-500 mt-1.5">
                             <Clock size={14} strokeWidth={3} />
-                            <span className="text-[9px] font-black uppercase tracking-widest">Awaiting Buyer</span>
+                            <span className="text-[9px] font-black uppercase tracking-widest">Waiting for buyer confirm</span>
                         </div>
                     </div>
                 </div>
@@ -182,7 +182,7 @@ export function WalletTab() {
             {completedShipments.length > 0 && (
                 <div className="space-y-4">
                     <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">
-                        <PackageCheck size={12} className="inline mr-2" />Settled Orders
+                        <PackageCheck size={12} className="inline mr-2" />Completed Sales
                     </h3>
                     <Card className="border-none shadow-xl rounded-xl overflow-hidden max-w-full">
                         <div className="overflow-x-auto no-scrollbar">
@@ -216,7 +216,7 @@ export function WalletTab() {
                                                         <span className="text-sm font-black text-green-600">+₦{payout.toLocaleString()}</span>
                                                     ) : (
                                                         <div className="flex flex-col items-end gap-1">
-                                                            <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest border-amber-200 text-amber-700 bg-amber-50">Pending Settlement</Badge>
+                                                            <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest border-amber-200 text-amber-700 bg-amber-50">Checking Delivery</Badge>
                                                             {txMetadata?.reason && (
                                                                 <span className="text-[8px] text-muted-foreground font-medium max-w-[100px] text-right leading-tight italic">
                                                                     {txMetadata.reason}

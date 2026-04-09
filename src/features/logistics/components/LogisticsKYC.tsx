@@ -215,30 +215,30 @@ export function LogisticsKYC() {
                     "rounded-full px-4 py-1 border-none text-[10px] font-black uppercase tracking-[0.2em]",
                     isVerified ? "bg-green-500/10 text-green-600" : "bg-blue-500/10 text-blue-600"
                 )}>
-                    {isVerified ? "Protocol Active" : "Verification Pending"}
+                    {isVerified ? "Account Verified" : "Review Pending"}
                 </Badge>
             </div>
           </div>
           
           <CardHeader className="text-center p-10 pt-8">
             <CardTitle className="text-4xl font-black tracking-tight uppercase italic mb-2">
-              {isVerified ? "Verified Agent" : "Review in Progress"}
+              {isVerified ? "Verified Rider" : "Review in Progress"}
             </CardTitle>
             <CardDescription className="text-base font-medium max-w-sm mx-auto leading-relaxed text-muted-foreground/80">
               {isVerified 
-                ? "Your identity has been confirmed. You are officially authorized to operate within your designated logistics unit." 
-                : "Our security protocols require a manual review of your identity documents. This process usually completes within 24-48 hours."}
+                ? "Your identity has been confirmed. You are now authorized to accept delivery orders." 
+                : "We are currently reviewing your documents. This process usually completes within 24-48 hours."}
             </CardDescription>
           </CardHeader>
           
           <CardContent className="p-10 pt-0 flex flex-col items-center gap-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
               <div className="p-5 rounded-2xl bg-muted/20 border border-black/[0.02] hover:bg-muted/30 transition-colors">
-                <p className="text-[10px] font-black uppercase text-muted-foreground/50 mb-1.5 tracking-[0.2em]">Operational Name</p>
+                <p className="text-[10px] font-black uppercase text-muted-foreground/50 mb-1.5 tracking-[0.2em]">Full Name</p>
                 <p className="text-sm font-bold text-foreground">{kyc.full_name}</p>
               </div>
               <div className="p-5 rounded-2xl bg-muted/20 border border-black/[0.02] hover:bg-muted/30 transition-colors">
-                <p className="text-[10px] font-black uppercase text-muted-foreground/50 mb-1.5 tracking-[0.2em]">Contact Node</p>
+                <p className="text-[10px] font-black uppercase text-muted-foreground/50 mb-1.5 tracking-[0.2em]">Phone Number</p>
                 <p className="text-sm font-bold text-foreground">{kyc.phone_number}</p>
               </div>
               <div className="p-5 rounded-2xl bg-muted/20 border border-black/[0.02] hover:bg-muted/30 transition-colors sm:col-span-2">
@@ -271,10 +271,10 @@ export function LogisticsKYC() {
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
             <Truck size={20} strokeWidth={3} />
           </div>
-          <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Verification Protocol</p>
+          <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Rider Verification</p>
         </div>
-        <h1 className="text-4xl font-black text-foreground tracking-tight">Identify Verification</h1>
-        <p className="text-muted-foreground font-medium mt-2">Submit your details to start accepting delivery missions.</p>
+        <h1 className="text-4xl font-black text-foreground tracking-tight">Identity Verification</h1>
+        <p className="text-muted-foreground font-medium mt-2">Submit your details to start accepting deliveries.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
@@ -377,7 +377,7 @@ export function LogisticsKYC() {
               </Select>
             </FormField>
 
-            <FormField label="Operational Zone" className="md:col-span-2">
+            <FormField label="Delivery Area" className="md:col-span-2">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {!formData.city_id && (
                   <div className="col-span-full py-8 text-center border-2 border-dashed border-black/5 rounded-xl text-muted-foreground text-xs font-medium">
@@ -404,7 +404,7 @@ export function LogisticsKYC() {
                         <span className={cn(
                           "text-[10px] font-black uppercase tracking-widest leading-none mb-1",
                           isSelected ? "text-primary" : "text-muted-foreground"
-                        )}>Zone Unit</span>
+                        )}>Delivery Area</span>
                         <span className={cn(
                           "text-sm font-bold truncate",
                           isSelected ? "text-foreground" : "text-muted-foreground/80 group-hover:text-foreground"

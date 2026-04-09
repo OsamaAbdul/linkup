@@ -138,7 +138,7 @@ export function BuyNowModal({ product, isOpen, onClose }: BuyNowModalProps) {
                     <div className="flex gap-3 p-3 bg-amber-50 border border-amber-100 rounded-xl">
                         <ShieldCheck className="text-amber-500 fill-amber-100 flex-shrink-0" size={20} />
                         <p className="text-xs text-amber-900 leading-relaxed">
-                            <span className="font-bold">Escrow Safe:</span> Your payment is held securely until delivery is confirmed.
+                            <span className="font-bold">Safe Holding:</span> Your payment is held securely until you confirm delivery.
                         </p>
                     </div>
 
@@ -181,7 +181,7 @@ export function BuyNowModal({ product, isOpen, onClose }: BuyNowModalProps) {
                         <div className="flex items-center justify-between">
                             <h4 className="font-semibold text-sm">Payment Method</h4>
                             <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                                <ShieldCheck size={10} className="text-blue-500" /> Encrypted
+                                <ShieldCheck size={10} className="text-blue-500" /> Secure
                             </div>
                         </div>
                         <div className="relative group overflow-hidden rounded-xl border border-[#09A5DB]/20 bg-white p-3.5 transition-all">
@@ -236,7 +236,7 @@ export function BuyNowModal({ product, isOpen, onClose }: BuyNowModalProps) {
                         disabled={placeOrder.isPending}
                     >
                         {placeOrder.isPending ? <Loader2 className="animate-spin mr-2" size={18} /> : null}
-                        {placeOrder.isPending ? "Configuring..." : `Pay ₦${total.toLocaleString()}`}
+                        {placeOrder.isPending ? "Starting..." : `Pay ₦${total.toLocaleString()}`}
                     </Button>
                 </div>
             </DialogContent>

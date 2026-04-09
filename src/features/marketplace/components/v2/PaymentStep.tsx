@@ -59,7 +59,7 @@ export function PaymentStep({
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground ml-1">
               <ShoppingBag size={12} />
-              Order Review
+              Review Items
             </div>
             <div className="bg-muted/5 rounded-xl p-4 space-y-2 divide-y divide-black/[0.03]">
               {items.map((item, idx) => (
@@ -116,7 +116,7 @@ export function PaymentStep({
                   <div className="w-8 h-5 bg-muted rounded-[3px]" />
                 </div>
                 <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#09A5DB] uppercase">
-                  <Lock size={12} /> Encrypted
+                  <Lock size={12} /> Protected
                 </div>
               </div>
             </div>
@@ -126,10 +126,23 @@ export function PaymentStep({
           <div className="flex items-center gap-3 p-3 bg-amber-50/50 border border-amber-100 rounded-xl">
             <ShieldCheck className="text-amber-500 shrink-0" size={18} />
             <p className="text-[10px] text-amber-800/90 leading-tight font-bold">
-              <span className="text-amber-900 mr-1">Escrow Protection:</span>
-              Funds are held securely and only released after you confirm delivery.
+              <span className="text-amber-900 mr-1">Secure Holding:</span>
+              Your payment is held safely and only released to sellers after you confirm you've received your items.
             </p>
           </div>
+
+          {/* Multi-Seller Notification */}
+          {sellerCount > 1 && (
+            <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl space-y-2">
+              <div className="flex items-center gap-2 text-blue-700 font-black text-[10px] uppercase tracking-wider">
+                <Truck size={14} />
+                Different Deliveries
+              </div>
+              <p className="text-[10px] text-blue-800/90 leading-tight font-medium">
+                You are buying from {sellerCount} different sellers. Since each seller will ship their items separately, there are multiple delivery charges included in your total.
+              </p>
+            </div>
+          )}
 
           {/* Totals */}
           <div className="space-y-2 pt-2">

@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 
-// Step Indicator for onboarding
+// Progress Indicator for account setup
 function StepIndicator({ current, total }: { current: number; total: number }) {
   return (
     <div className="flex items-center gap-2 justify-center mb-8">
@@ -36,7 +36,7 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
   );
 }
 
-// Section Header for onboarding
+// Section Header for account setup
 function SectionHeader({ title, subtitle, icon: Icon }: { title: string; subtitle: string; icon?: any }) {
   return (
     <m.div
@@ -55,7 +55,7 @@ function SectionHeader({ title, subtitle, icon: Icon }: { title: string; subtitl
   );
 }
 
-// Input Field with Icon for onboarding
+// Input Field with Icon for account setup
 function FormField({
   label, icon: Icon, children, className = ""
 }: { label: string; icon?: any; children: React.ReactNode; className?: string }) {
@@ -75,7 +75,7 @@ function FormField({
 const inputClass = "h-12 bg-secondary/50 border-border/60 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all rounded-xl text-foreground placeholder:text-muted-foreground/50";
 const inputWithIcon = `${inputClass} pl-10`;
 
-// Main roles for onboarding
+// Main roles for account setup
 const roles = [
   { id: "buyer", title: "Buyer", icon: ShoppingBag, description: "Explore marketplace, find deals, and purchase items.", gradient: "from-primary/10 to-primary/5", iconBg: "bg-primary/15 text-primary" },
   { id: "seller", title: "Seller", icon: Store, description: "Create your store, list products, and manage orders.", gradient: "from-orange-500/10 to-orange-500/5", iconBg: "bg-orange-500/15 text-orange-600" },
@@ -94,7 +94,7 @@ export default function Onboarding() {
   const [bio, setBio] = useState("");
   const [selectedRoles, setSelectedRoles] = useState<string[]>(["buyer"]);
 
-  // Logistics State for onboarding
+  // Verification State for account setup
   const [logisticsData, setLogisticsData] = useState({
     fullName: "", phoneNumber: "", homeAddress: "", dob: "",
     city_id: "", zone_id: "", zone: "", passportFile: null as File | null,
@@ -203,7 +203,7 @@ export default function Onboarding() {
         .eq("id", user!.id);
       if (zoneError) throw zoneError;
 
-      toast.success("KYC submitted! Final details next.");
+      toast.success("Verification details sent! Final details next.");
       setStep(4);
     } catch (error: any) {
       toast.error("Error: " + error.message);
@@ -212,7 +212,7 @@ export default function Onboarding() {
     }
   };
 
-  const handleLogisticsOnboarding = async (skip = false) => {
+  const handleLogisticsSetup = async (skip = false) => {
     setStepLoading(true);
     try {
       if (!skip) {
@@ -461,7 +461,7 @@ export default function Onboarding() {
             >
               <SectionHeader
                 icon={Truck}
-                title="Verification (KYC)"
+                title="Identity Verification"
                 subtitle="We need to verify your identity to get started"
               />
               <div className="bg-card border border-border/60 rounded-xl p-6 sm:p-8 shadow-sm">
@@ -495,7 +495,7 @@ export default function Onboarding() {
                       </Select>
                     </div>
                     <div className="space-y-1.5 sm:col-span-2">
-                      <Label className="text-sm font-medium text-foreground/80 ml-0.5">Operational Zone</Label>
+                      <Label className="text-sm font-medium text-foreground/80 ml-0.5">Delivery Area</Label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
                         {!logisticsData.city_id && (
                           <div className="col-span-full py-6 text-center border-2 border-dashed border-border/40 rounded-xl text-muted-foreground text-[11px] font-medium">
@@ -532,7 +532,7 @@ export default function Onboarding() {
                     </div>
                   </div>
                   <p className="text-[11px] text-muted-foreground/60 flex items-center gap-1 ml-0.5">
-                    <MapPin size={10} /> Sellers will find you based on your zone
+                    <MapPin size={10} /> Sellers will find you based on your area
                   </p>
 
                   <div className="flex gap-3 pt-2">
@@ -540,7 +540,7 @@ export default function Onboarding() {
                       <ArrowLeft size={16} />
                     </Button>
                     <Button type="submit" className="flex-1 h-12 rounded-xl font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all" disabled={isSubmitting}>
-                      {isSubmitting ? "Submitting..." : "Submit Verification"}
+                      {isSubmitting ? "Sending..." : "Submit Verification"}
                     </Button>
                   </div>
                 </form>
@@ -548,7 +548,7 @@ export default function Onboarding() {
             </m.div>
           )}
 
-          {/* Step 4: Logistics Onboarding */}
+          {/* Step 4: Logistics Final Details */}
           {step === 4 && (
             <m.div
               key="step4"
@@ -594,13 +594,13 @@ export default function Onboarding() {
                 <div className="flex gap-3 pt-2">
                   <Button
                     variant="outline"
-                    onClick={() => handleLogisticsOnboarding(true)}
+                    onClick={() => handleLogisticsSetup(true)}
                     className="h-12 rounded-xl border-border/60 font-medium text-muted-foreground"
                   >
                     Skip for now
                   </Button>
                   <Button
-                    onClick={() => handleLogisticsOnboarding(false)}
+                    onClick={() => handleLogisticsSetup(false)}
                     className="flex-1 h-12 rounded-xl font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all gap-2"
                     disabled={loading}
                   >

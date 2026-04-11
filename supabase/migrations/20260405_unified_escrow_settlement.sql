@@ -78,11 +78,12 @@ DECLARE
     v_attribution_threshold TIMESTAMP := NOW() - INTERVAL '30 days';
     v_hold_reason TEXT := 'Standard security hold for dispute resolution';
 BEGIN
-    -- STEP 1: Metadata Capture on Stage transition to awaiting_agent
+    -- STEP 1: Metadata Capture & Initial Escrow on Stage transition to awaiting_agent
     IF NEW.status = 'awaiting_agent' AND OLD.status != 'awaiting_agent' THEN
         NEW.distance_km := public.calculate_distance(NEW.pickup_lat, NEW.pickup_lng, NEW.delivery_lat, NEW.delivery_lng);
+        v_fees := public.calculate_order_fees(NEW.id);
         
-        -- Validate Promoter Attribution
+        -- Validate Promoter Attribution (Last-Click Wins within window)
         IF NEW.promoter_id IS NOT NULL THEN
             IF NOT EXISTS (
                 SELECT 1 FROM public.referrals 
@@ -94,61 +95,74 @@ BEGIN
                 NEW.promoter_id := NULL;
             END IF;
         END IF;
-        -- NOTE: Manual escrow increment removed here. It now happens on 'completed' via pending transactions.
-    END IF;
 
-    -- STEP 2: Initiate PENDING Transactions on Completion
-    IF NEW.status = 'completed' AND OLD.status != 'completed' THEN
-        NEW.settlement_due_at := NOW() + INTERVAL '48 hours';
-        NEW.settlement_status := 'pending';
-
-        -- Calculations
-        v_fees := public.calculate_order_fees(NEW.id);
+        -- NOTE: Escrow transactions are now initiated here so they reflect in user's pending balance immediately.
         
-        -- 1. Seller Pending Tx
-        SELECT id INTO v_seller_wallet_id FROM public.wallets WHERE user_id = NEW.seller_id;
+        -- 1. Seller Escrow Tx
+        SELECT id INTO v_seller_wallet_id FROM public.wallets WHERE user_id = NEW.seller_id OR seller_id = NEW.seller_id LIMIT 1;
+        IF v_seller_wallet_id IS NULL THEN
+            -- Create wallet if missing (first-time seller)
+            INSERT INTO public.wallets (user_id, seller_id, balance, escrow_balance)
+            VALUES (NEW.seller_id, NEW.seller_id, 0, 0)
+            RETURNING id INTO v_seller_wallet_id;
+        END IF;
+
         IF v_seller_wallet_id IS NOT NULL THEN
             INSERT INTO public.wallet_transactions (wallet_id, amount, type, reference, status, metadata)
             VALUES (
                 v_seller_wallet_id, 
-                (NEW.total - (v_fees->>'rider')::NUMERIC - (v_fees->>'platform')::NUMERIC - COALESCE((v_fees->>'promoter')::NUMERIC, 0)), 
+                (NEW.total - COALESCE((v_fees->>'rider')::NUMERIC, 0) - COALESCE((v_fees->>'platform')::NUMERIC, 0) - COALESCE((v_fees->>'promoter')::NUMERIC, 0)), 
                 'settlement', 
-                'Settlement: Order #' || NEW.id,
+                'Pending Settlement: Order #' || NEW.id,
                 'pending',
-                jsonb_build_object(
-                    'order_id', NEW.id,
-                    'reason', v_hold_reason,
-                    'hold_until', NEW.settlement_due_at
-                )
+                jsonb_build_object('order_id', NEW.id, 'reason', 'Order confirmed - awaiting fulfillment')
             );
         END IF;
 
-        -- 2. Promoter Pending Tx & Commission Sync
+        -- 2. Promoter Escrow Tx & Commission Sync
         IF NEW.promoter_id IS NOT NULL THEN
-            SELECT id INTO v_promoter_wallet_id FROM public.wallets WHERE user_id = NEW.promoter_id;
+            SELECT id INTO v_promoter_wallet_id FROM public.wallets WHERE user_id = NEW.promoter_id LIMIT 1;
+            IF v_promoter_wallet_id IS NULL THEN
+                -- Create wallet if missing (first-time promoter)
+                INSERT INTO public.wallets (user_id, balance, escrow_balance)
+                VALUES (NEW.promoter_id, 0, 0)
+                RETURNING id INTO v_promoter_wallet_id;
+            END IF;
+
             IF v_promoter_wallet_id IS NOT NULL THEN
                 INSERT INTO public.wallet_transactions (wallet_id, amount, type, reference, status, metadata)
                 VALUES (
                     v_promoter_wallet_id, 
                     (v_fees->>'promoter')::NUMERIC, 
                     'commission', 
-                    'Commission: Order #' || NEW.id,
+                    'Pending Commission: Order #' || NEW.id,
                     'pending',
-                    jsonb_build_object(
-                        'order_id', NEW.id,
-                        'reason', v_hold_reason,
-                        'hold_until', NEW.settlement_due_at
-                    )
+                    jsonb_build_object('order_id', NEW.id, 'reason', 'Order confirmed - awaiting fulfillment')
                 );
             END IF;
 
-            -- Keep commissions table in sync (Legacy Dashboard Support)
             INSERT INTO public.commissions (order_id, promoter_id, amount, status)
             VALUES (NEW.id, NEW.promoter_id, (v_fees->>'promoter')::NUMERIC, 'pending')
             ON CONFLICT (order_id, promoter_id) DO UPDATE SET status = 'pending', amount = EXCLUDED.amount;
         END IF;
+    END IF;
 
-        -- 3. Rider Pending Tx
+    -- STEP 2: Transition PENDING Transactions to Hold Period on Completion
+    IF NEW.status = 'completed' AND OLD.status != 'completed' THEN
+        NEW.settlement_due_at := NOW() + INTERVAL '48 hours';
+        NEW.settlement_status := 'pending';
+
+        -- Update existing pending transactions with the settlement hold details
+        UPDATE public.wallet_transactions 
+        SET metadata = metadata || jsonb_build_object(
+            'reason', v_hold_reason,
+            'hold_until', NEW.settlement_due_at
+        )
+        WHERE metadata->>'order_id' = NEW.id::TEXT 
+        AND status = 'pending';
+
+        -- 3. Rider Pending Tx (Still created on completion as rider is assigned later)
+        v_fees := public.calculate_order_fees(NEW.id);
         SELECT rider_id INTO v_rider_id FROM public.shipments WHERE order_id = NEW.id LIMIT 1;
         IF v_rider_id IS NOT NULL THEN
             SELECT id INTO v_rider_wallet_id FROM public.wallets WHERE user_id = v_rider_id;

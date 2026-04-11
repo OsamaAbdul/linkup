@@ -71,7 +71,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         queryFn: async () => {
             const { data, error } = await supabase
                 .from("cart_items")
-                .select("id, product_id, quantity, size, products(id, title, price, images, inventory, seller_id)")
+                .select("id, product_id, quantity, size, products(id, title, price, images, inventory, seller_id, zone_id)")
                 .eq("user_id", user?.id!);
             if (error) throw error;
             return (data as any) as CartItem[];
@@ -87,7 +87,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             const productIds = localCart.map(i => i.product_id);
             const { data, error } = await supabase
                 .from("products")
-                .select("id, title, price, images, inventory, seller_id")
+                .select("id, title, price, images, inventory, seller_id, zone_id")
                 .in("id", productIds);
 
             if (error) throw error;

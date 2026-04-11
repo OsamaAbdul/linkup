@@ -83,8 +83,8 @@ BEGIN
     -- 1. Calculate Distance
     IF v_shipment.pickup_latitude IS NOT NULL AND v_shipment.buyer_latitude IS NOT NULL THEN
         v_distance := public.calculate_distance(
-            v_shipment.pickup_latitude, v_shipment.pickup_longitude,
-            v_shipment.buyer_latitude, v_shipment.buyer_longitude
+            v_shipment.pickup_latitude::NUMERIC, v_shipment.pickup_longitude::NUMERIC,
+            v_shipment.buyer_latitude::NUMERIC, v_shipment.buyer_longitude::NUMERIC
         );
     END IF;
 

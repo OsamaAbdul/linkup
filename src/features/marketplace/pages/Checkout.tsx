@@ -21,6 +21,7 @@ import { CheckoutProgress } from "@/features/marketplace/components/v2/CheckoutP
 import { DeliveryStep } from "@/features/marketplace/components/v2/DeliveryStep";
 import { PaymentStep } from "@/features/marketplace/components/v2/PaymentStep";
 import { SuccessStep } from "@/features/marketplace/components/v2/SuccessStep";
+import { CrossZoneWarning } from "@/features/marketplace/components/v2/CrossZoneWarning";
 
 const DELIVERY_FEE = 1500;
 
@@ -52,6 +53,7 @@ export default function Checkout() {
   const [orderSummary, setOrderSummary] = useState<any>(null);
   const [isDetecting, setIsDetecting] = useState(false);
   const [isPaystackProcessing, setIsPaystackProcessing] = useState(false);
+  const [showCrossZoneWarning, setShowCrossZoneWarning] = useState(false);
 
   const productTotal = cartItems.reduce(
     (sum, item: any) => sum + (item.products?.price ?? 0) * item.quantity,
@@ -306,6 +308,18 @@ export default function Checkout() {
     });
   };
 
+  const hasCrossZoneItems = cartItems.some(
+    (item: any) => item.products?.zone_id && item.products.zone_id !== shipping.zone_id
+  );
+
+  const handleStep1Next = () => {
+    if (hasCrossZoneItems) {
+      setShowCrossZoneWarning(true);
+    } else {
+      setStep(2);
+    }
+  };
+
   if (cartItems.length === 0 && step < 3) {
     return (
       <AppLayout>
@@ -334,7 +348,7 @@ export default function Checkout() {
                 setShipping={setShipping}
                 cities={cities}
                 zones={zones}
-                onNext={() => setStep(2)}
+                onNext={handleStep1Next}
                 isDetecting={isDetecting}
                 onDetectLocation={handleDetectLocation}
               />
@@ -369,6 +383,15 @@ export default function Checkout() {
             )}
           </AnimatePresence>
         </div>
+
+        <CrossZoneWarning 
+          open={showCrossZoneWarning}
+          onOpenChange={setShowCrossZoneWarning}
+          onConfirm={() => {
+            setShowCrossZoneWarning(false);
+            setStep(2);
+          }}
+        />
       </div>
     </AppLayout>
   );

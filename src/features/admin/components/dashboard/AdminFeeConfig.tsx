@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/sha
 import { Label } from "@/shared/components/ui/label";
 import { Switch } from "@/shared/components/ui/switch";
 import { toast } from "sonner";
-import { Wallet, Percent, Banknote, Save, RotateCcw, ShieldCheck, Info, Map, Route } from "lucide-react";
+import { Wallet, Percent, Banknote, Save, RotateCcw, ShieldCheck, Info, Map as MapIcon, Route } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface FeeConfig {
@@ -62,9 +62,9 @@ export default function AdminFeeConfig() {
             case 'platform': return <ShieldCheck className="text-blue-500" />;
             case 'rider': return <Banknote className="text-green-500" />;
             case 'promoter': return <Percent className="text-purple-500" />;
-            case 'rider_out_of_zone': return <Map className="text-orange-500" />;
+            case 'rider_out_of_zone': return <MapIcon className="text-orange-500" />;
             case 'rider_distance': return <Route className="text-blue-600" />;
-            case 'buyer_cross_zone': return <Map className="text-red-500" />;
+            case 'buyer_cross_zone': return <MapIcon className="text-red-500" />;
             default: return <Wallet className="text-gray-500" />;
         }
     };

@@ -1,7 +1,7 @@
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
-import { CreditCard, ShieldCheck, Truck, Lock, Loader2, ChevronLeft, ShoppingBag } from "lucide-react";
+import { CreditCard, ShieldCheck, Truck, Lock, Loader2, ChevronLeft, ShoppingBag, Map as MapIcon } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface PaymentStepProps {
@@ -161,7 +161,7 @@ export function PaymentStep({
             {crossZoneFee > 0 && (
               <div className="flex justify-between items-center text-xs font-semibold">
                 <span className="text-muted-foreground flex items-center gap-1.5">
-                  <Map size={12} className="text-orange-500" /> Cross-Zone Surcharge
+                  <MapIcon size={12} className="text-orange-500" /> Cross-Zone Surcharge
                 </span>
                 <span className="text-foreground">₦{crossZoneFee.toLocaleString()}</span>
               </div>

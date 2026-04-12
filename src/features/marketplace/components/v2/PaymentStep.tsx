@@ -8,6 +8,7 @@ interface PaymentStepProps {
   items: any[];
   productTotal: number;
   deliveryFee: number;
+  crossZoneFee?: number;
   grandTotal: number;
   sellerCount: number;
   onBack: () => void;
@@ -19,6 +20,7 @@ export function PaymentStep({
   items,
   productTotal,
   deliveryFee,
+  crossZoneFee = 0,
   grandTotal,
   sellerCount,
   onBack,
@@ -156,6 +158,14 @@ export function PaymentStep({
               </span>
               <span className="text-foreground">₦{deliveryFee.toLocaleString()}</span>
             </div>
+            {crossZoneFee > 0 && (
+              <div className="flex justify-between items-center text-xs font-semibold">
+                <span className="text-muted-foreground flex items-center gap-1.5">
+                  <Map size={12} className="text-orange-500" /> Cross-Zone Surcharge
+                </span>
+                <span className="text-foreground">₦{crossZoneFee.toLocaleString()}</span>
+              </div>
+            )}
             <div className="pt-4 border-t border-dashed flex justify-between items-end">
               <div>
                 <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-0.5">Total to Pay</p>

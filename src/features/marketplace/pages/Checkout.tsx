@@ -160,13 +160,26 @@ export default function Checkout() {
   const riderFeeConfig = feeConfigs.find((f: any) => f.fee_type === "rider");
   const dynamicDefaultFee = riderFeeConfig?.flat_fee ?? DELIVERY_FEE;
 
+  // Cross-Zone Fee Calculation
+  const crossZoneFeeConfig = feeConfigs.find((f: any) => f.fee_type === "buyer_cross_zone");
+  const baseCrossZoneFee = crossZoneFeeConfig?.flat_fee ?? 0;
+  
+  // Count how many sellers are in a different zone from the shipping zone
+  const crossZoneSellerCount = Array.from(uniqueSellerIds).filter(sId => {
+    const sellerItem = cartItems.find((item: any) => item.products?.seller_id === sId);
+    const sellerZoneId = sellerItem?.products?.zone_id;
+    return sellerZoneId && shipping.zone_id && sellerZoneId !== shipping.zone_id;
+  }).length;
+
+  const crossZoneFee = baseCrossZoneFee * crossZoneSellerCount;
+
   const selectedZone = zones.find((z: any) => z.id === shipping.zone_id);
   const zoneFee = selectedZone?.delivery_fee;
   const baseDeliveryFee = (zoneFee === 1500 || zoneFee === null || zoneFee === undefined)
     ? (shipping.zone_id ? dynamicDefaultFee : 0)
     : zoneFee;
   const deliveryFee = baseDeliveryFee * sellerCount;
-  const grandTotal = productTotal + deliveryFee;
+  const grandTotal = productTotal + deliveryFee + crossZoneFee;
 
   const placeOrder = useMutation({
     mutationFn: async (paymentInfo?: PaymentInfo) => {
@@ -188,6 +201,7 @@ export default function Checkout() {
         shipping_address: shipping,
         total: grandTotal,
         delivery_fee: deliveryFee,
+        cross_zone_fee: crossZoneFee,
         payment_method: paymentInfo?.payment_method ?? "direct",
         payment_ref: paymentInfo?.payment_ref ?? null,
         payment_status: paymentInfo?.payment_status ?? null,
@@ -250,6 +264,7 @@ export default function Checkout() {
       shipping_address: shipping,
       total: grandTotal,
       delivery_fee: deliveryFee,
+      cross_zone_fee: crossZoneFee,
       zone_id: shipping.zone_id,
       city_id: shipping.city_id,
     };
@@ -366,6 +381,7 @@ export default function Checkout() {
                 }))}
                 productTotal={productTotal}
                 deliveryFee={deliveryFee}
+                crossZoneFee={crossZoneFee}
                 grandTotal={grandTotal}
                 sellerCount={sellerCount}
                 onBack={() => setStep(1)}

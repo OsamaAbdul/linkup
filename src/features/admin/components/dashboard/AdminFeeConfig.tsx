@@ -64,6 +64,7 @@ export default function AdminFeeConfig() {
             case 'promoter': return <Percent className="text-purple-500" />;
             case 'rider_out_of_zone': return <Map className="text-orange-500" />;
             case 'rider_distance': return <Route className="text-blue-600" />;
+            case 'buyer_cross_zone': return <Map className="text-red-500" />;
             default: return <Wallet className="text-gray-500" />;
         }
     };

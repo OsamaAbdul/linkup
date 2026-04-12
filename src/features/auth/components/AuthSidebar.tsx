@@ -28,7 +28,7 @@ export const AuthSidebar = () => {
         >
           <div className="rounded-xl overflow-hidden shadow-2xl shadow-black/20 border border-primary-foreground/10 mb-10">
             <img
-              src="/src/assets/link-up.png"
+              src="/link-up.png"
               alt="Linkup"
               className="w-full h-auto object-cover"
             />

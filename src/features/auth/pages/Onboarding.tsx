@@ -314,7 +314,7 @@ export default function Onboarding() {
           <div className="relative">
             <div className="absolute -inset-1.5 rounded-xl bg-primary/10 blur-lg" />
             <div className="relative rounded-xl border border-border/60 bg-card p-1.5 shadow-md">
-              <img src="/src/assets/logo.jpeg" alt="Linkup" className="h-12 w-12 rounded-xl object-cover" />
+              <img src="/logo.png" alt="Linkup" className="h-12 w-12 rounded-xl object-cover" />
             </div>
           </div>
         </m.div>

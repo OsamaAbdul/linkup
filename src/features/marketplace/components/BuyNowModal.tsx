@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { getStoredPromoterId } from "@/features/promoter/hooks/useReferral";
+import { getReferralAttribution } from "@/features/promoter/hooks/useReferral";
 
 interface BuyNowModalProps {
     product: any;
@@ -60,7 +60,7 @@ export function BuyNowModal({ product, isOpen, onClose }: BuyNowModalProps) {
             }
 
             // Resolve promoter from referral tracking
-            const resolvedPromoterId = await getStoredPromoterId();
+            const { promoter_id: resolvedPromoterId, visitor_id: resolvedVisitorId } = await getReferralAttribution();
 
             const payload = {
                 seller_id: product.seller_id,
@@ -79,6 +79,7 @@ export function BuyNowModal({ product, isOpen, onClose }: BuyNowModalProps) {
                 },
                 total: product.price,
                 promoter_id: resolvedPromoterId,
+                visitor_id: resolvedVisitorId,
             };
 
             const { data: functionData, error: functionError } = await supabase.functions.invoke('create-order', {

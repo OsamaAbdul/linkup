@@ -215,24 +215,34 @@ serve(async (req: Request) => {
         }
       }
 
-      // SECURE: Referral Verification Guard (Phase 10)
-      // We verify that a matching referral entry exists in the ledger for this buyer.
+      // SECURE: Referral Verification Guard (Phase 10/14)
+      // We verify that a matching referral entry exists in the ledger.
       let finalPromoterId = null;
       if (promoter_id) {
-        const { data: referralRecord } = await adminClient
+        console.log(`[Attribution] Verifying for promoter: ${promoter_id}`);
+        console.log(`[Attribution] Identities: User=${user.id}, Visitor=${body.visitor_id}`);
+        
+        const { data: referralRecord, error: referralLookupError } = await adminClient
           .from("referrals")
           .select("id")
           .eq("promoter_id", promoter_id)
-          .eq("buyer_id", user.id)
+          .or(`buyer_id.eq.${user.id},visitor_id.eq.${body.visitor_id}`)
           .gt("expires_at", new Date().toISOString())
           .limit(1)
           .maybeSingle();
 
+        if (referralLookupError) {
+            console.error(`[Attribution] DB Error during lookup:`, referralLookupError.message);
+        }
+
         if (referralRecord) {
+          console.log(`[Attribution] SUCCESS: Found matching referral record ${referralRecord.id}`);
           finalPromoterId = promoter_id;
         } else {
-          console.warn(`Referral Spoof Attempt Detected: Buyer ${user.id} tried to use non-existent promoter_id ${promoter_id}`);
+          console.warn(`[Attribution] FAILED: No matching click found in DB for identities provided.`);
         }
+      } else {
+        console.log(`[Attribution] SKIP: No promoter_id provided in checkout payload.`);
       }
 
       // --- Create Order for this Seller ---
@@ -313,10 +323,12 @@ serve(async (req: Request) => {
         .from("referrals")
         .update({ 
           converted_at: new Date().toISOString(), 
-          order_id: createdOrderIds[0] 
+          order_id: createdOrderIds[0],
+          status: 'conversion',
+          buyer_id: user.id // Ensure buyer_id is linked upon conversion
         })
         .eq("promoter_id", promoter_id)
-        .eq("visitor_id", user.id)
+        .or(`buyer_id.eq.${user.id},visitor_id.eq.${body.visitor_id}`)
         .is("converted_at", null);
     }
 

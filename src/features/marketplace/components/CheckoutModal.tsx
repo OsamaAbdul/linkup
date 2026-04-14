@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import Receipt from "./Receipt";
 import { cn } from "@/lib/utils";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { getStoredPromoterId } from "@/features/promoter/hooks/useReferral";
+import { getReferralAttribution } from "@/features/promoter/hooks/useReferral";
 import {
     Select,
     SelectContent,
@@ -124,8 +124,8 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
                 method: deliveryMethod
             };
 
-            // Resolve promoter_id from referral tracking
-            const resolvedPromoterId = await getStoredPromoterId();
+            // Resolve promoter attribution from referral tracking
+            const { promoter_id: resolvedPromoterId, visitor_id: resolvedVisitorId } = await getReferralAttribution();
 
             const payload = {
                 seller_id: product.seller_id,
@@ -145,6 +145,7 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
                 city_id: cityId,
                 zone_id: zoneId,
                 promoter_id: resolvedPromoterId,
+                visitor_id: resolvedVisitorId,
             };
 
             // Refresh session to ensure valid JWT

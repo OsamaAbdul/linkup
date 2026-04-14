@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/context/AuthContext";
@@ -9,15 +9,25 @@ import { Badge } from "@/shared/components/ui/badge";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { Input } from "@/shared/components/ui/input";
-import { 
-  Copy, 
-  DollarSign, 
-  MousePointerClick, 
-  ShoppingCart, 
-  TrendingUp, 
-  Link2, 
-  Package, 
-  Wallet, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger,
+} from "@/shared/components/ui/dialog";
+import { Label } from "@/shared/components/ui/label";
+import {
+  Copy,
+  DollarSign,
+  MousePointerClick,
+  ShoppingCart,
+  TrendingUp,
+  Link2,
+  Package,
+  Wallet,
   ArrowUpRight,
   Clock,
   CheckCircle2,
@@ -33,6 +43,10 @@ export default function PromoterDashboard() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [withdrawalAmount, setWithdrawalAmount] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [accountName, setAccountName] = useState("");
+  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
 
   // Get or create promoter code
   const { data: promoterCode, isLoading: codeLoading } = useQuery({
@@ -56,7 +70,7 @@ export default function PromoterDashboard() {
 
   // Commissions
   const { data: commissions = [], isLoading: commissionsLoading } = useQuery({
-    queryKey: ["promoter-commissions", user?.id],
+    queryKey: ["commissions", user?.id],
     queryFn: async () => {
       if (!user) return [];
       const { data } = await supabase
@@ -64,7 +78,9 @@ export default function PromoterDashboard() {
         .select("*")
         .eq("promoter_id", user.id)
         .order("created_at", { ascending: false });
+      console.log("this is the promoter's comission", data)
       return data ?? [];
+
     },
     enabled: !!user,
   });
@@ -84,13 +100,13 @@ export default function PromoterDashboard() {
     enabled: !!user,
   });
 
-  // Withdrawal Requests
+  // Payout Requests (Updated from legacy withdrawal_requests)
   const { data: withdrawals = [], isLoading: withdrawalsLoading } = useQuery({
     queryKey: ["promoter-withdrawals", user?.id],
     queryFn: async () => {
       if (!user) return [];
       const { data } = await (supabase
-        .from("withdrawal_requests" as any)
+        .from("payout_requests" as any)
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false }) as any);
@@ -98,6 +114,51 @@ export default function PromoterDashboard() {
     },
     enabled: !!user,
   });
+
+  // Real-time Sync
+  useEffect(() => {
+    if (!user) return;
+
+    // Listen for payout status changes
+    const payoutChannel = supabase
+      .channel('payout-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'payout_requests',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["promoter-withdrawals"] });
+          queryClient.invalidateQueries({ queryKey: ["promoter-wallet"] });
+        }
+      )
+      .subscribe();
+
+    // Listen for balance changes
+    const walletChannel = supabase
+      .channel('wallet-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'wallets',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["promoter-wallet"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(payoutChannel);
+      supabase.removeChannel(walletChannel);
+    };
+  }, [user, queryClient]);
 
   // Marketplace Products
   const { data: products = [], isLoading: productsLoading } = useQuery({
@@ -114,13 +175,13 @@ export default function PromoterDashboard() {
 
   // Withdrawal Mutation
   const withdrawalMutation = useMutation({
-    mutationFn: async (amount: number) => {
+    mutationFn: async (payload: { amount: number, bankName: string, accountNumber: string, accountName: string }) => {
       const { data, error } = await (supabase.rpc as any)("request_withdrawal", {
         p_user_id: user?.id,
-        p_amount: amount,
-        p_bank_name: "Promoter Payout", 
-        p_account_number: "N/A",
-        p_account_name: user?.email || "Promoter"
+        p_amount: payload.amount,
+        p_bank_name: payload.bankName,
+        p_account_number: payload.accountNumber,
+        p_account_name: payload.accountName
       });
       if (error) throw error;
       return data;
@@ -129,6 +190,10 @@ export default function PromoterDashboard() {
       if (data.success) {
         toast.success("Withdrawal request submitted!");
         setWithdrawalAmount("");
+        setBankName("");
+        setAccountNumber("");
+        setAccountName("");
+        setIsWithdrawModalOpen(false);
         queryClient.invalidateQueries({ queryKey: ["promoter-wallet"] });
         queryClient.invalidateQueries({ queryKey: ["promoter-withdrawals"] });
       } else {
@@ -147,19 +212,38 @@ export default function PromoterDashboard() {
       toast.error("Please enter a valid amount");
       return;
     }
-    if (wallet && amount > wallet.balance) {
-      toast.error("Insufficient balance");
+    
+    if (!bankName || !accountNumber || !accountName) {
+      toast.error("Please fill in all bank details");
       return;
     }
-    withdrawalMutation.mutate(amount);
+
+    if (accountNumber.length !== 10) {
+      toast.error("Account number must be 10 digits");
+      return;
+    }
+
+    if (wallet && amount > wallet.balance) {
+      toast.error(`Insufficient balance. You only have ₦${wallet.balance.toLocaleString()} available.`);
+      return;
+    }
+
+    withdrawalMutation.mutate({
+      amount,
+      bankName,
+      accountNumber,
+      accountName
+    });
   };
 
   // Stats calculation
-  const totalEarnings = commissions.reduce((sum: number, c: any) => sum + Number(c.amount), 0);
+  const totalEarnings = commissions.reduce((sum: number, c: any) => sum + Number(c.amount || 0), 0);
   const pendingEarnings = commissions
     .filter((c: any) => c.status === "pending")
-    .reduce((sum: number, c: any) => sum + Number(c.amount), 0);
+    .reduce((sum: number, c: any) => sum + Number(c.amount || 0), 0);
   const totalOrders = commissions.length;
+
+  console.log(`[PromoterDebug] Render Stats:`, { totalEarnings, pendingEarnings, totalOrders, commissionsCount: commissions.length });
 
   return (
     <AppLayout>
@@ -170,7 +254,7 @@ export default function PromoterDashboard() {
             <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Promoter Hub</h1>
             <p className="text-muted-foreground">Manage your promotions, track earnings, and withdraw funds.</p>
           </div>
-          
+
           <Card className="bg-primary/5 border-primary/20 shrink-0">
             <CardContent className="p-4 flex items-center gap-4">
               <div className="p-2 bg-primary/10 rounded-full">
@@ -213,10 +297,10 @@ export default function PromoterDashboard() {
                   ) : (
                     <code className="text-2xl font-black text-primary tracking-[0.2em] px-4">{promoterCode}</code>
                   )}
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="hover:bg-primary/10" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="hover:bg-primary/10"
                     onClick={() => {
                       navigator.clipboard.writeText(promoterCode || "");
                       toast.success("Code copied!");
@@ -241,7 +325,7 @@ export default function PromoterDashboard() {
                   <p className="text-2xl font-bold">₦{totalEarnings.toLocaleString()}</p>
                 </CardContent>
               </Card>
-              
+
               <Card className="hover:shadow-md transition-shadow cursor-default">
                 <CardContent className="p-6 space-y-2">
                   <div className="flex items-center justify-between">
@@ -348,9 +432,9 @@ export default function PromoterDashboard() {
                 {products.map((p: any) => (
                   <Card key={p.id} className="overflow-hidden flex flex-col hover:shadow-lg transition-all group border-muted/50">
                     <div className="relative aspect-square overflow-hidden bg-muted">
-                      <img 
-                        src={p.images?.[0] || "/placeholder.svg"} 
-                        alt={p.title} 
+                      <img
+                        src={p.images?.[0] || "/placeholder.svg"}
+                        alt={p.title}
                         className="w-full h-full object-cover transition-transform group-hover:scale-105"
                       />
                       <Badge className="absolute top-3 left-3 bg-black/60 backdrop-blur-md border-none">
@@ -367,10 +451,10 @@ export default function PromoterDashboard() {
                         <Badge variant="outline" className="text-[10px] font-normal">
                           {p.inventory} in stock
                         </Badge>
-                        <PromoteAction 
-                          productId={p.id} 
-                          productTitle={p.title} 
-                          promoterCode={promoterCode || ""} 
+                        <PromoteAction
+                          productId={p.id}
+                          productTitle={p.title}
+                          promoterCode={promoterCode || ""}
                         />
                       </div>
                     </CardContent>
@@ -393,38 +477,101 @@ export default function PromoterDashboard() {
                     <p className="text-xs text-muted-foreground uppercase font-medium">Available for Payout</p>
                     <p className="text-3xl font-black">₦{wallet?.balance?.toLocaleString() ?? "0"}</p>
                   </div>
-                  
-                  <form onSubmit={handleWithdrawal} className="space-y-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Amount to Withdraw</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">₦</span>
-                        <Input
-                          type="number"
-                          placeholder="0.00"
-                          value={withdrawalAmount}
-                          onChange={(e) => setWithdrawalAmount(e.target.value)}
-                          className="pl-8"
-                        />
-                      </div>
-                    </div>
-                    
-                    <Button 
-                      type="submit" 
-                      className="w-full h-12 gap-2" 
-                      disabled={withdrawalMutation.isPending || !wallet || wallet.balance < 1000}
-                    >
-                      {withdrawalMutation.isPending ? "Processing..." : (
-                        <>Request Withdrawal <ArrowUpRight size={18} /></>
-                      )}
-                    </Button>
-                    
-                    {!wallet || wallet.balance < 1000 ? (
-                      <p className="text-[10px] text-center text-amber-600 flex items-center justify-center gap-1">
-                        <AlertCircle size={10} /> Insufficient balance (min ₦1,000)
-                      </p>
-                    ) : null}
-                  </form>
+
+                  <Dialog open={isWithdrawModalOpen} onOpenChange={setIsWithdrawModalOpen}>
+                    <DialogTrigger asChild>
+                      <Button 
+                        className="w-full h-12 gap-2" 
+                        size="lg" 
+                        disabled={!wallet || wallet.balance < 1000}
+                      >
+                        Request Withdrawal <ArrowUpRight size={18} />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                      <DialogHeader>
+                        <DialogTitle>Withdraw Funds</DialogTitle>
+                        <DialogDescription>
+                          Earnings will be sent to your bank account after admin approval.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <form onSubmit={handleWithdrawal} className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="amount">Amount to Withdraw (₦)</Label>
+                            {wallet && (
+                              <Button 
+                                type="button" 
+                                variant="link" 
+                                className="h-auto p-0 text-[10px]" 
+                                onClick={() => setWithdrawalAmount(wallet.balance.toString())}
+                              >
+                                Use Max: ₦{wallet.balance.toLocaleString()}
+                              </Button>
+                            )}
+                          </div>
+                          <Input
+                            id="amount"
+                            type="number"
+                            placeholder="Min. 1,000"
+                            value={withdrawalAmount}
+                            onChange={(e) => setWithdrawalAmount(e.target.value)}
+                            required
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="bank">Bank Name</Label>
+                          <Input
+                            id="bank"
+                            placeholder="e.g. GTBank, Zenith"
+                            value={bankName}
+                            onChange={(e) => setBankName(e.target.value)}
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="account">Account Number</Label>
+                          <Input
+                            id="account"
+                            placeholder="10-digit number"
+                            maxLength={10}
+                            value={accountNumber}
+                            onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ''))}
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="name">Account Name</Label>
+                          <Input
+                            id="name"
+                            placeholder="Full name on account"
+                            value={accountName}
+                            onChange={(e) => setAccountName(e.target.value)}
+                            required
+                          />
+                        </div>
+
+                        <DialogFooter className="pt-4">
+                          <Button 
+                            type="submit" 
+                            className="w-full h-12" 
+                            disabled={withdrawalMutation.isPending}
+                          >
+                            {withdrawalMutation.isPending ? "Submitting..." : "Confirm Withdrawal"}
+                          </Button>
+                        </DialogFooter>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+
+                  {(!wallet || wallet.balance < 1000) && (
+                    <p className="text-[10px] text-center text-amber-600 flex items-center justify-center gap-1">
+                      <AlertCircle size={10} /> Insufficient balance (min ₦1,000)
+                    </p>
+                  )}
                 </CardContent>
               </Card>
 
@@ -449,18 +596,17 @@ export default function PromoterDashboard() {
                       {withdrawals.map((w: any) => (
                         <div key={w.id} className="flex items-center justify-between p-4 bg-muted/30 rounded-xl border border-muted/50">
                           <div className="flex items-center gap-4">
-                            <div className={`p-2 rounded-lg ${
-                              w.status === 'completed' ? 'bg-green-500/10 text-green-600' :
+                            <div className={`p-2 rounded-lg ${w.status === 'completed' ? 'bg-green-500/10 text-green-600' :
                               w.status === 'rejected' ? 'bg-red-500/10 text-red-600' :
-                              'bg-amber-500/10 text-amber-600'
-                            }`}>
+                                'bg-amber-500/10 text-amber-600'
+                              }`}>
                               {w.status === 'completed' ? <CheckCircle2 size={20} /> :
-                               w.status === 'rejected' ? <XCircle size={20} /> :
-                               <Clock size={20} />}
+                                w.status === 'rejected' ? <XCircle size={20} /> :
+                                  <Clock size={20} />}
                             </div>
                             <div>
                               <p className="font-bold">₦{Number(w.amount).toLocaleString()}</p>
-                              <p className="text-xs text-muted-foreground">{new Date(w.requested_at).toLocaleDateString()} at {new Date(w.requested_at).toLocaleTimeString()}</p>
+                              <p className="text-xs text-muted-foreground">{new Date(w.created_at).toLocaleDateString()} at {new Date(w.created_at).toLocaleTimeString()}</p>
                             </div>
                           </div>
                           <div className="text-right">

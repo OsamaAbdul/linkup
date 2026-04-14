@@ -3,9 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import {
-    AlertTriangle, ShoppingBag, Users, TrendingUp, Filter, Printer, ArrowUpRight
+    AlertTriangle, ShoppingBag, Users, TrendingUp, Filter, Printer, ArrowUpRight, Loader2, Play
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { useState } from "react";
 
 export default function AdminOverview() {
     const { data: revenueData, isLoading: isRevLoading } = useQuery({
@@ -77,6 +79,35 @@ export default function AdminOverview() {
         staleTime: 1000 * 60 * 1, // 1 minute
     });
 
+    const [isSettling, setIsSettling] = useState(false);
+
+    const handleForceSettlement = async () => {
+        if (!confirm("TESTING ONLY: Are you sure you want to move ALL escrow balances to main balances? This will process all pending transactions immediately.")) {
+            return;
+        }
+
+        try {
+            setIsSettling(true);
+            const { data, error } = await (supabase as any).rpc("test_move_all_escrow_to_balance");
+            
+            if (error) throw error;
+            
+            const result = data as any;
+            if (result.success) {
+                toast.success(result.message || "All funds released successfully");
+                // Refresh data
+                window.location.reload();
+            } else {
+                toast.error("Settlement failed");
+            }
+        } catch (error: any) {
+            console.error("Settlement Error:", error);
+            toast.error(error.message || "Failed to trigger settlement");
+        } finally {
+            setIsSettling(false);
+        }
+    };
+
     const stats = [
         { label: "Total Revenue", value: revenueData, icon: TrendingUp, loading: isRevLoading, isCurrency: true },
         { label: "Active Orders", value: activeOrdersCount, icon: ShoppingBag, loading: isActiveOrdersLoading },
@@ -92,6 +123,27 @@ export default function AdminOverview() {
                     <p className="text-muted-foreground font-medium">Real-time platform performance metrics.</p>
                 </div>
 
+                {import.meta.env.DEV && (
+                    <div className="flex items-center gap-4 animate-in slide-in-from-right-4 duration-700 delay-300">
+                        <div className="hidden md:flex flex-col items-end mr-2 text-right">
+                            <span className="text-[10px] font-black text-amber-600 uppercase tracking-tighter">Debug Mode Active</span>
+                            <span className="text-[9px] text-muted-foreground font-medium italic">Development testing tools enabled</span>
+                        </div>
+                        <Button 
+                            onClick={handleForceSettlement}
+                            disabled={isSettling}
+                            variant="outline"
+                            className="rounded-2xl border-amber-200 bg-amber-50/50 text-amber-700 hover:bg-amber-500 hover:text-white hover:border-amber-500 h-14 px-8 gap-3 font-black text-xs uppercase tracking-widest shadow-xl shadow-amber-500/10 transition-all active:scale-95 group"
+                        >
+                            {isSettling ? (
+                                <Loader2 size={18} className="animate-spin" />
+                            ) : (
+                                <Play size={18} className="fill-current group-hover:scale-110 transition-transform" />
+                            )}
+                            {isSettling ? "Settling..." : "Force Settle Escrow"}
+                        </Button>
+                    </div>
+                )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

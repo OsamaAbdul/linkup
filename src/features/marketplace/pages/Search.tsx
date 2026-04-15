@@ -15,6 +15,8 @@ import { useNavigate, Navigate } from "react-router-dom";
 import { useCart } from "@/features/marketplace/context/CartContext";
 import { toast } from "sonner";
 
+import { useCategories } from "@/shared/hooks/use-marketplace-metadata";
+
 export default function SearchPage() {
   const { user } = useAuth();
   const { addToCart } = useCart();
@@ -53,13 +55,8 @@ export default function SearchPage() {
 
   const PAGE_SIZE = 12;
 
-  const { data: dbCategories = [] } = useQuery({
-    queryKey: ["product-categories"],
-    queryFn: async () => {
-      const { data } = await (supabase as any).from("categories").select("name").order("name");
-      return (data as any[])?.map((c: any) => c.name) ?? [];
-    },
-  });
+  const { data: dbCategoriesResponse = [] } = useCategories();
+  const dbCategories = dbCategoriesResponse.map((c: any) => c.name);
 
   const allCategories = ["All", ...dbCategories];
 

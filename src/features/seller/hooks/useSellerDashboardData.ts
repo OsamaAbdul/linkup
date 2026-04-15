@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { toast } from "sonner";
 
+import { useCategories } from "@/shared/hooks/use-marketplace-metadata";
+
 export function useSellerDashboardData() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -139,13 +141,7 @@ export function useSellerDashboardData() {
     enabled: !!wallet,
   });
 
-  const { data: dbCategories = [] } = useQuery({
-    queryKey: ["product-categories", "full"],
-    queryFn: async () => {
-      const { data } = await supabase.from("categories").select("*").order("name");
-      return (data as any[]) ?? [];
-    },
-  });
+  const { data: dbCategories = [] } = useCategories();
 
   const updateProduct = useMutation({
     mutationFn: async (product: any) => {

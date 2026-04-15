@@ -34,6 +34,8 @@ const formReducer = (state: FormState, action: FormAction): FormState => {
 
 import { getAvailableSizes } from "@/features/marketplace/utils/product-sizes";
 
+import { useCategories, useCities, useZones } from "@/shared/hooks/use-marketplace-metadata";
+
 export default function Sell() {
   const { user } = useAuth();
   const { position } = useGeolocation();
@@ -66,13 +68,8 @@ export default function Sell() {
     enabled: !!user,
   });
 
-  const { data: dbCategories = [] } = useQuery({
-    queryKey: ["product-categories"],
-    queryFn: async () => {
-      const { data } = await (supabase as any).from("categories").select("name").order("name");
-      return (data as any[])?.map((c: any) => c.name) ?? [];
-    },
-  });
+  const { data: dbCategoriesResponse = [] } = useCategories();
+  const dbCategories = dbCategoriesResponse.map((c: any) => c.name);
 
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
@@ -85,25 +82,9 @@ export default function Sell() {
     enabled: !!user,
   });
 
-  const { data: cities = [] } = useQuery({
-    queryKey: ["cities"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any).from("cities").select("*").eq("is_active", true).order("name");
-      if (error) throw error;
-      return (data as any[]) || [];
-    }
-  });
+  const { data: cities = [] } = useCities();
 
-  const { data: zones = [] } = useQuery({
-    queryKey: ["zones", form.city_id],
-    queryFn: async () => {
-      if (!form.city_id) return [];
-      const { data, error } = await (supabase as any).from("delivery_zones").select("*").eq("city_id", form.city_id).eq("is_active", true).order("name");
-      if (error) throw error;
-      return (data as any[]) || [];
-    },
-    enabled: !!form.city_id
-  });
+  const { data: zones = [] } = useZones(form.city_id);
 
   // Default to profile location
   useEffect(() => {

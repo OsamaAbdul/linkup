@@ -35,13 +35,13 @@ import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
+import { useCategories, useZones } from "@/shared/hooks/use-marketplace-metadata";
+
 // Icon map for categories €” avoids importing entire lucide-react tree
 const CATEGORY_ICON_MAP: Record<string, React.ComponentType<any>> = {
   Grid, Heart, Sparkles, Shirt, Laptop, Home: HomeIcon, ShoppingBag, Apple, MapPin,
   Filter, Search, SlidersHorizontal, ChevronDown, X,
 };
-
-
 
 const TABS = ["All Products", "Health & Beauty", "Electronics", "Fashion", "Home & Kitchen", "Grocery"];
 
@@ -123,21 +123,8 @@ export default function Index() {
 
   const PAGE_SIZE = 12;
 
-  const { data: dbCategories = [] } = useQuery({
-    queryKey: ["product-categories-registry"],
-    queryFn: async () => {
-      const { data } = await (supabase as any).from("categories").select("name, icon").order("name");
-      return (data as any[]) ?? [];
-    },
-  });
-
-  const { data: zones = [] } = useQuery({
-    queryKey: ["marketplace-zones"],
-    queryFn: async () => {
-      const { data } = await supabase.from("delivery_zones").select("id, name, city_id, latitude, longitude, cities:city_id(name)").eq("is_active", true).order("name");
-      return (data as any[]) ?? [];
-    },
-  });
+  const { data: dbCategories = [] } = useCategories();
+  const { data: zones = [] } = useZones();
 
   // Automatic Zone Matching
   useEffect(() => {

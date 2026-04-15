@@ -12,6 +12,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { User, Phone, MapPin, Home, Info, Loader2, Save } from "lucide-react";
 
+import { useCities, useZones } from "@/shared/hooks/use-marketplace-metadata";
+
 export default function Profile() {
   const { user, profile, loading: authLoading, refreshProfile } = useAuth();
   const queryClient = useQueryClient();
@@ -37,30 +39,9 @@ export default function Profile() {
     }
   }, [profile]);
 
-  const { data: cities = [] } = useQuery({
-    queryKey: ["cities"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("cities").select("*").eq("is_active", true).order("name");
-      if (error) throw error;
-      return data || [];
-    },
-  });
+  const { data: cities = [] } = useCities();
 
-  const { data: zones = [] } = useQuery({
-    queryKey: ["zones", formData.city_id],
-    queryFn: async () => {
-      if (!formData.city_id) return [];
-      const { data, error } = await supabase
-        .from("delivery_zones")
-        .select("*")
-        .eq("city_id", formData.city_id)
-        .eq("is_active", true)
-        .order("name");
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!formData.city_id,
-  });
+  const { data: zones = [] } = useZones(formData.city_id);
 
   const updateProfile = useMutation({
     mutationFn: async (updatedData: typeof formData) => {

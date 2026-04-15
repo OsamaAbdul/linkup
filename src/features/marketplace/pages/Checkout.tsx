@@ -23,6 +23,8 @@ import { PaymentStep } from "@/features/marketplace/components/v2/PaymentStep";
 import { SuccessStep } from "@/features/marketplace/components/v2/SuccessStep";
 import { CrossZoneWarning } from "@/features/marketplace/components/v2/CrossZoneWarning";
 
+import { useCities, useZones } from "@/shared/hooks/use-marketplace-metadata";
+
 const DELIVERY_FEE = 1500;
 
 type PaymentInfo = {
@@ -61,35 +63,10 @@ export default function Checkout() {
   );
 
   // Fetch available cities
-  const { data: cities = [], isPending: isCitiesPending } = useQuery({
-    queryKey: ["cities"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("cities")
-        .select("*")
-        .eq("is_active", true)
-        .order("name");
-      if (error) throw error;
-      return (data as any[]) || [];
-    },
-  });
+  const { data: cities = [], isPending: isCitiesPending } = useCities();
 
   // Fetch zones for selected city
-  const { data: zones = [] } = useQuery({
-    queryKey: ["zones", shipping.city_id],
-    queryFn: async () => {
-      if (!shipping.city_id) return [];
-      const { data, error } = await (supabase as any)
-        .from("delivery_zones")
-        .select("*")
-        .eq("city_id", shipping.city_id)
-        .eq("is_active", true)
-        .order("name");
-      if (error) throw error;
-      return (data as any[]) || [];
-    },
-    enabled: !!shipping.city_id,
-  });
+  const { data: zones = [] } = useZones(shipping.city_id);
 
   // Fetch dynamic delivery fee from config
   const { data: feeConfigs = [] } = useQuery({

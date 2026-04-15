@@ -21,6 +21,8 @@ import {
     SelectValue,
 } from "@/shared/components/ui/select";
 
+import { useCities, useZones } from "@/shared/hooks/use-marketplace-metadata";
+
 interface CheckoutModalProps {
     product: any;
     isOpen: boolean;
@@ -46,29 +48,9 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
     const [isSuccess, setIsSuccess] = useState(false);
     const [orderSummary, setOrderSummary] = useState<any>(null);
 
-    const { data: cities = [] } = useQuery({
-        queryKey: ["cities"],
-        queryFn: async () => {
-            const { data, error } = await (supabase as any).from("cities").select("*").eq("is_active", true).order("name");
-            if (error) throw error;
-            return (data as any[]) || [];
-        }
-    });
+    const { data: cities = [] } = useCities();
 
-    const { data: zones = [] } = useQuery({
-        queryKey: ["zones", cityId],
-        queryFn: async () => {
-            if (!cityId) return [];
-            const { data, error } = await (supabase as any).from("delivery_zones")
-                .select("*")
-                .eq("city_id", cityId)
-                .eq("is_active", true)
-                .order("name");
-            if (error) throw error;
-            return (data as any[]) || [];
-        },
-        enabled: !!cityId
-    });
+    const { data: zones = [] } = useZones(cityId);
 
     // Fetch dynamic delivery fee from config
     const { data: feeConfigs = [] } = useQuery({

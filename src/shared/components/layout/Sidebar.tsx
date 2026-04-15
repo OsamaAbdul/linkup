@@ -13,19 +13,15 @@ import { Button } from "@/shared/components/ui/button";
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
 import Logo from "@/assets/logo.png";
 
+import { useCategories } from "@/shared/hooks/use-marketplace-metadata";
+
 export function SidebarContent() {
     const location = useLocation();
     const [searchParams, setSearchParams] = useSearchParams();
     const { user, signOut } = useAuth();
     const isOrdersPage = location.pathname === "/orders";
 
-    const { data: categories = [] } = useQuery({
-        queryKey: ["sidebar-categories"],
-        queryFn: async () => {
-            const { data } = await (supabase as any).from("categories").select("name, icon").order("name");
-            return (data as any[]) ?? [];
-        },
-    });
+    const { data: categories = [] } = useCategories();
 
     const mainNav = [
         { icon: HomeIcon, label: "Marketplace", path: "/" },

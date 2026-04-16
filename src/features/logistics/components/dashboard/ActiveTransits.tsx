@@ -42,6 +42,7 @@ export function ActiveTransits({ shipments, onViewDetails, onNavigate }: ActiveT
                             <TableHead className="font-black text-[10px] uppercase tracking-widest h-14">Pickup</TableHead>
                             <TableHead className="font-black text-[10px] uppercase tracking-widest h-14">Delivery</TableHead>
                             <TableHead className="font-black text-[10px] uppercase tracking-widest h-14">Status</TableHead>
+                            <TableHead className="font-black text-[10px] uppercase tracking-widest h-14">Cut</TableHead>
                             <TableHead className="font-black text-[10px] uppercase tracking-widest h-14 text-right pr-8">Action</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -99,6 +100,12 @@ export function ActiveTransits({ shipments, onViewDetails, onNavigate }: ActiveT
                                         )}>
                                             {s.status.replace(/_/g, " ")}
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-black text-green-600">₦{(s.delivery_fee_amount || s.delivery_fee || 0).toLocaleString()}</span>
+                                            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-tighter">Guaranteed</span>
+                                        </div>
                                     </TableCell>
                                     <TableCell className="text-right pr-8">
                                         <div className="flex items-center justify-end gap-2">

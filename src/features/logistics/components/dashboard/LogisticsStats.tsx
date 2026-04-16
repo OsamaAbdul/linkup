@@ -1,7 +1,7 @@
 import React from "react";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Radio, Truck, CheckCircle, AlertTriangle } from "lucide-react";
+import { Radio, Truck, CheckCircle, Banknote } from "lucide-react";
 
 interface LogisticsStatsProps {
     shipments: any[];
@@ -32,11 +32,14 @@ export function LogisticsStats({ shipments, broadcastMissionsCount }: LogisticsS
             bg: "bg-green-50" 
         },
         { 
-            label: "Issues", 
-            value: 0, 
-            icon: AlertTriangle, 
-            color: "text-red-600", 
-            bg: "bg-red-50" 
+            label: "Potential Cut", 
+            value: `₦${shipments
+                .filter((s: any) => s.status !== "delivered" && s.status !== "completed")
+                .reduce((acc, s) => acc + (s.delivery_fee_amount || s.delivery_fee || 0), 0)
+                .toLocaleString()}`, 
+            icon: Banknote, 
+            color: "text-indigo-600", 
+            bg: "bg-indigo-50" 
         },
     ];
 

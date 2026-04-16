@@ -29,9 +29,35 @@ export function LogisticsEarnings() {
     const [accountNumber, setAccountNumber] = useState("");
     const [accountName, setAccountName] = useState("");
 
-    // Real wallet balance — keyed by user_id (rider wallet)
+    // Earnings ledger from primary financial source — calculates balance from history
+    const { data: ledgerEntries = [], isLoading: ledgerLoading } = useQuery({
+        queryKey: ["rider-ledger", user?.id],
+        queryFn: async () => {
+            if (!user) return [];
+            // 1. Resolve all orders this rider handled
+            const { data: riderShipments } = await (supabase as any)
+                .from("shipments")
+                .select("order_id")
+                .eq("rider_id", user.id);
+            
+            const orderIds = riderShipments?.map((s: any) => s.order_id) || [];
+            if (orderIds.length === 0) return [];
+
+            // 2. Fetch breakdown from the system ledger
+            const { data: ledgers, error } = await (supabase as any)
+                .from("revenue_ledgers")
+                .select("*")
+                .in("order_id", orderIds);
+            
+            if (error) throw error;
+            return ledgers || [];
+        },
+        enabled: !!user,
+    });
+
+    // Wallet metadata — still needed for wallet_id in payout requests
     const { data: wallet } = useQuery({
-        queryKey: ["rider-wallet", user?.id],
+        queryKey: ["rider-wallet-meta", user?.id],
         queryFn: async () => {
             const { data } = await (supabase as any)
                 .from("wallets")
@@ -119,13 +145,21 @@ export function LogisticsEarnings() {
     }, [user, queryClient]);
 
     // Metrics come from REAL transaction records
-    const deliveryFees = riderTransactions.filter((t: any) => t.type === 'delivery_fee' && t.status === 'success');
-    const pendingFees = riderTransactions.filter((t: any) => t.type === 'delivery_fee' && t.status === 'pending');
+    const deliveryFees = riderTransactions.filter((t: any) => t.type === 'delivery_fee');
+    const successfulFees = deliveryFees.filter((t: any) => t.status === 'success');
+    const pendingFees = deliveryFees.filter((t: any) => t.status === 'pending');
     
-    const pendingBalance = wallet?.escrow_balance ?? 0;
-    const totalEarnings = riderTransactions
-        .filter((t: any) => t.type === 'delivery_fee')
-        .reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
+    // BALANCE CALCULATION FROM WALLET SOURCE (Most accurate for individual riders)
+    const settledEarnings = successfulFees.reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
+    const pendingEarnings = pendingFees.reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
+    
+    const totalWithdrawn = payoutRequests
+        .filter((w: any) => w.status !== "rejected")
+        .reduce((acc: number, w: any) => acc + (parseFloat(w.amount) || 0) + (parseFloat(w.fee_amount) || 0), 0);
+
+    const availableBalance = Math.max(0, settledEarnings - totalWithdrawn);
+    const settlingBalance = pendingEarnings;
+    const totalEarnings = settledEarnings + pendingEarnings;
     
     const today = new Date().toDateString();
     const todayEarnings = deliveryFees
@@ -137,11 +171,6 @@ export function LogisticsEarnings() {
     const weekEarnings = deliveryFees
         .filter((t: any) => new Date(t.created_at) >= thisWeekStart)
         .reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
-
-    const todayWithdrawn = payoutRequests
-        .filter((w: any) => new Date(w.created_at).toDateString() === today && w.status !== "rejected")
-        .reduce((acc: number, w: any) => acc + (w.amount || 0), 0);
-    const remainingDailyLimit = Math.max(0, DAILY_LIMIT - todayWithdrawn);
 
     const requestWithdrawal = useMutation({
         mutationFn: async () => {
@@ -197,27 +226,27 @@ export function LogisticsEarnings() {
                             <Wallet size={28} strokeWidth={2.5} />
                         </div>
                         <Badge className="bg-white/20 text-white border-none rounded-full px-4 font-black text-[10px] uppercase tracking-widest">
-                            Rider Wallet
+                            Rider Asset Ledger
                         </Badge>
                     </div>
-                        <div>
-                            <p className="text-xs font-black uppercase tracking-widest text-white/60">Available Balance</p>
-                            <h2 className="text-5xl font-black tracking-tighter mt-1">
-                                <span className="text-2xl opacity-60 mr-1">₦</span>
-                                {(wallet?.balance || 0).toLocaleString()}
-                            </h2>
-                            <div className="flex items-center gap-4 mt-2">
-                                <p className="text-[10px] text-white/70 font-black uppercase tracking-widest bg-white/10 px-2 py-1 rounded-lg">
-                                    ₦{pendingBalance.toLocaleString()} Settling
-                                </p>
-                                <p className="text-xs text-white/50 font-medium">
-                                    {completedShipments.length} completed deliveries
-                                </p>
-                            </div>
+                    <div>
+                        <p className="text-xs font-black uppercase tracking-widest text-white/60">Available Balance</p>
+                        <h2 className="text-5xl font-black tracking-tighter mt-1">
+                            <span className="text-2xl opacity-60 mr-1">₦</span>
+                            {availableBalance.toLocaleString()}
+                        </h2>
+                        <div className="flex items-center gap-4 mt-2">
+                            <p className="text-[10px] text-white/70 font-black uppercase tracking-widest bg-white/10 px-2 py-1 rounded-lg">
+                                ₦{settlingBalance.toLocaleString()} Settling
+                            </p>
+                            <p className="text-xs text-white/50 font-medium">
+                                {completedShipments.length} completed deliveries
+                            </p>
                         </div>
+                    </div>
                     <Button
                         onClick={() => setWithdrawOpen(true)}
-                        disabled={!wallet?.balance || wallet.balance <= 0}
+                        disabled={availableBalance <= 0}
                         className="bg-white text-primary rounded-xl h-14 px-10 font-black text-xs uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-50 gap-2"
                     >
                         <ArrowDownToLine size={16} strokeWidth={3} /> Withdraw Earnings
@@ -225,10 +254,10 @@ export function LogisticsEarnings() {
                 </CardContent>
             </Card>
 
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {[
-                    { label: "Pending Cut", value: pendingBalance, icon: Clock, color: "text-amber-600", bg: "bg-amber-50" },
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+                { label: "Pending Cut", value: settlingBalance, icon: Clock, color: "text-amber-600", bg: "bg-amber-50" },
                     { label: "Today", value: todayEarnings, icon: CreditCard, color: "text-blue-600", bg: "bg-blue-50" },
                     { label: "Total History", value: totalEarnings, icon: TrendingUp, color: "text-green-600", bg: "bg-green-50" },
                 ].map((card, i) => (
@@ -251,7 +280,7 @@ export function LogisticsEarnings() {
                 <h2 className="text-xl font-black tracking-tight flex items-center gap-2">
                     <Package size={18} strokeWidth={2.5} /> Completed Deliveries
                 </h2>
-                {deliveryFees.length === 0 ? (
+                {ledgerEntries.length === 0 ? (
                     <div className="py-14 text-center border-2 border-dashed border-black/5 rounded-xl text-muted-foreground text-sm font-medium">
                         <TrendingUp size={32} strokeWidth={1} className="mx-auto mb-3 opacity-20" />
                         No earnings history found.
@@ -351,7 +380,8 @@ export function LogisticsEarnings() {
             <PayoutRequestModal 
                 isOpen={withdrawOpen} 
                 onClose={() => setWithdrawOpen(false)} 
-                wallet={wallet} 
+                wallet={wallet}
+                balanceOverride={availableBalance} 
             />
 
             {selectedPayout && (

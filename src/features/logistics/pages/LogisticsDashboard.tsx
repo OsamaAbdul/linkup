@@ -79,11 +79,11 @@ export default function LogisticsDashboard() {
         refetchOnWindowFocus: true,
     });
 
-    // Real-time subscription for KYC status
+    // Real-time subscription for KYC status and Wallet balance
     useEffect(() => {
         if (!user?.id) return;
 
-        const channel = supabase
+        const kycChannel = supabase
             .channel(`rider-kyc-updates-${user.id}`)
             .on(
                 'postgres_changes',
@@ -100,8 +100,25 @@ export default function LogisticsDashboard() {
             )
             .subscribe();
 
+        const walletChannel = supabase
+            .channel(`rider-wallet-updates-${user.id}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'wallets',
+                    filter: `user_id=eq.${user.id}`
+                },
+                () => {
+                    queryClient.invalidateQueries({ queryKey: ["logistics-details", user.id] });
+                }
+            )
+            .subscribe();
+
         return () => {
-            supabase.removeChannel(channel);
+            supabase.removeChannel(kycChannel);
+            supabase.removeChannel(walletChannel);
         };
     }, [user?.id, queryClient]);
 

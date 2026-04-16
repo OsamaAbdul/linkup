@@ -117,10 +117,33 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                 .eq("id", shipment.id);
             if (error) throw error;
         },
-        onSuccess: () => {
+        onMutate: async (newStatus) => {
+            // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+            await queryClient.cancelQueries({ queryKey: ["shipment-details", shipment.id] });
+
+            // Snapshot the previous value
+            const previousShipment = queryClient.getQueryData(["shipment-details", shipment.id]);
+
+            // Optimistically update to the new value
+            queryClient.setQueryData(["shipment-details", shipment.id], (old: any) => ({
+                ...old,
+                status: newStatus,
+            }));
+
+            return { previousShipment };
+        },
+        onError: (err, newStatus, context) => {
+            // If the mutation fails, use the context returned from onMutate to roll back
+            queryClient.setQueryData(["shipment-details", shipment.id], context?.previousShipment);
+            toast.error("Failed to update status");
+        },
+        onSettled: () => {
+            // Always refetch after error or success to keep server state synced
             queryClient.invalidateQueries({ queryKey: ["agent-shipments"] });
+            queryClient.invalidateQueries({ queryKey: ["shipment-details", shipment.id] });
+        },
+        onSuccess: () => {
             toast.success("Shipment status updated");
-            onOpenChange(false);
         },
     });
 
@@ -192,7 +215,8 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                             <section className="space-y-3">
                                 <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                                     <Smartphone size={12} strokeWidth={3} />
-                                    Consignee Identity
+
+                                    buyer Identity
                                 </h4>
                                 <div className="bg-muted/30 p-4 rounded-2xl border border-black/[0.03]">
                                     <p className="font-black text-sm">{buyer.name}</p>
@@ -200,6 +224,23 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                                 </div>
                             </section>
                         </div>
+
+                        {/* Mission Reward */}
+                        <section className="bg-green-50/50 p-5 rounded-3xl border border-green-100 flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-2xl bg-green-600 flex items-center justify-center text-white shadow-xl shadow-green-600/20">
+                                    <Banknote size={24} strokeWidth={2.5} />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black text-green-700 uppercase tracking-widest leading-none">Your balance</p>
+                                    <p className="text-2xl font-black text-green-900 tracking-tight mt-1">₦{(activeShipment.delivery_fee_amount || activeShipment.delivery_fee || 0).toLocaleString()}</p>
+                                </div>
+                            </div>
+                            <div className="text-right hidden sm:block">
+                                <Badge className="bg-green-200 text-green-800 font-black text-[9px] uppercase tracking-widest border-none px-2 py-0.5 rounded-full">Guaranteed</Badge>
+                                <p className="text-[9px] font-black text-green-700/40 uppercase tracking-tighter mt-1">On successful delivery</p>
+                            </div>
+                        </section>
 
                         {/* Item List */}
                         <section className="space-y-3">

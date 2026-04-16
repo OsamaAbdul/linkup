@@ -36,16 +36,33 @@ export function LogisticsOverview({
             if (!data?.success) throw new Error(data?.error || "Mission already claimed");
             return data;
         },
+        onMutate: async (shipmentId) => {
+            await queryClient.cancelQueries({ queryKey: ["broadcast-missions", user?.id] });
+            await queryClient.cancelQueries({ queryKey: ["agent-shipments", user?.id] });
+
+            const previousMissions = queryClient.getQueryData(["broadcast-missions", user?.id]);
+            const previousShipments = queryClient.getQueryData(["agent-shipments", user?.id]);
+
+            // Optimistically remove from broadcast
+            queryClient.setQueryData(["broadcast-missions", user?.id], (old: any[]) => 
+                old?.filter(m => m.id !== shipmentId) || []
+            );
+
+            return { previousMissions, previousShipments };
+        },
+        onError: (error: any, shipmentId, context) => {
+            queryClient.setQueryData(["broadcast-missions", user?.id], context?.previousMissions);
+            queryClient.setQueryData(["agent-shipments", user?.id], context?.previousShipments);
+            toast.error(error.message || "Mission was already taken by another agent");
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ["agent-shipments", user?.id] });
+            queryClient.invalidateQueries({ queryKey: ["broadcast-missions", user?.id] });
+        },
         onSuccess: (data) => {
-            queryClient.invalidateQueries({ queryKey: ["agent-shipments"] });
-            queryClient.invalidateQueries({ queryKey: ["broadcast-missions"] });
             toast.success("Mission claimed! You're on it.", {
                 description: `Order #${data.order_id?.slice(-8)} is now yours.`,
             });
-        },
-        onError: (error: any) => {
-            toast.error(error.message || "Mission was already taken by another agent");
-            queryClient.invalidateQueries({ queryKey: ["broadcast-missions"] });
         },
     });
 

@@ -65,6 +65,7 @@ export default function AdminFeeConfig() {
             case 'rider_out_of_zone': return <MapIcon className="text-orange-500" />;
             case 'rider_distance': return <Route className="text-blue-600" />;
             case 'buyer_cross_zone': return <MapIcon className="text-red-500" />;
+            case 'settlement': return <Clock className="text-amber-500" />;
             default: return <Wallet className="text-gray-500" />;
         }
     };
@@ -110,38 +111,49 @@ export default function AdminFeeConfig() {
                         
                         <CardContent className="p-8 space-y-6">
                             <div className="grid grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Rate (%)</Label>
-                                    <div className="relative group/input">
-                                        <Input 
-                                            type="number" 
-                                            defaultValue={fee.rate * 100}
-                                            step="0.01"
-                                            className="font-black text-lg h-12 pr-10 rounded-xl border-black/[0.05] focus:ring-primary focus:border-primary"
-                                            onChange={(e) => {
-                                                const val = parseFloat(e.target.value) / 100;
-                                                fee.rate = isNaN(val) ? 0 : val;
-                                            }}
-                                        />
-                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-black">%</span>
+                                {fee.fee_type !== 'settlement' && (
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Rate (%)</Label>
+                                        <div className="relative group/input">
+                                            <Input 
+                                                type="number" 
+                                                defaultValue={fee.rate * 100}
+                                                step="0.01"
+                                                className="font-black text-lg h-12 pr-10 rounded-xl border-black/[0.05] focus:ring-primary focus:border-primary"
+                                                onChange={(e) => {
+                                                    const val = parseFloat(e.target.value) / 100;
+                                                    fee.rate = isNaN(val) ? 0 : val;
+                                                }}
+                                            />
+                                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-black">%</span>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
 
-                                <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Flat Fee (₦)</Label>
+                                <div className={cn("space-y-2", fee.fee_type === 'settlement' ? "col-span-2" : "")}>
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                        {fee.fee_type === 'settlement' ? "Hold Duration (Hours)" : "Flat Fee (₦)"}
+                                    </Label>
                                     <div className="relative group/input">
                                         <Input 
                                             type="number" 
                                             defaultValue={fee.flat_fee}
-                                            step="10"
+                                            step={fee.fee_type === 'settlement' ? "24" : "10"}
                                             className="font-black text-lg h-12 pr-10 rounded-xl border-black/[0.05] focus:ring-primary focus:border-primary"
                                             onChange={(e) => {
                                                 const val = parseFloat(e.target.value);
                                                 fee.flat_fee = isNaN(val) ? 0 : val;
                                             }}
                                         />
-                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-black">₦</span>
+                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-black">
+                                            {fee.fee_type === 'settlement' ? "H" : "₦"}
+                                        </span>
                                     </div>
+                                    {fee.fee_type === 'settlement' && (
+                                        <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mt-2 flex items-center gap-1">
+                                            <RotateCcw size={10} /> Applying changes updates all pending!
+                                        </p>
+                                    )}
                                 </div>
                             </div>
 

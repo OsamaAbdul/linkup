@@ -15,9 +15,10 @@ interface PayoutRequestModalProps {
     isOpen: boolean;
     onClose: () => void;
     wallet: any;
+    balanceOverride?: number;
 }
 
-export function PayoutRequestModal({ isOpen, onClose, wallet }: PayoutRequestModalProps) {
+export function PayoutRequestModal({ isOpen, onClose, wallet, balanceOverride }: PayoutRequestModalProps) {
     const { user } = useAuth();
     const queryClient = useQueryClient();
     const [amount, setAmount] = useState("");
@@ -63,7 +64,8 @@ export function PayoutRequestModal({ isOpen, onClose, wallet }: PayoutRequestMod
 
     const withdrawalAmount = Number(amount) || 0;
     const totalDeduction = withdrawalAmount + fee;
-    const isInsufficient = totalDeduction > (wallet?.balance ?? 0);
+    const currentBalance = balanceOverride !== undefined ? balanceOverride : (wallet?.balance ?? 0);
+    const isInsufficient = totalDeduction > currentBalance;
 
     const payoutMutation = useMutation({
         mutationFn: async (payload: any) => {
@@ -118,7 +120,7 @@ export function PayoutRequestModal({ isOpen, onClose, wallet }: PayoutRequestMod
                     <div className="mt-8 bg-white/10 backdrop-blur-md rounded-2xl p-4 flex items-center justify-between">
                         <div>
                             <p className="text-[10px] font-black uppercase tracking-widest text-white/60">Available Balance</p>
-                            <p className="text-2xl font-black">₦{wallet?.balance?.toLocaleString()}</p>
+                            <p className="text-2xl font-black">₦{currentBalance.toLocaleString()}</p>
                         </div>
                         <Wallet className="text-white/40" size={32} />
                     </div>

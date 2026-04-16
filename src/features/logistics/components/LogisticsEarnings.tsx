@@ -54,7 +54,6 @@ export function LogisticsEarnings() {
                     id,
                     order_id,
                     delivery_fee,
-                    earnings,
                     zone,
                     created_at,
                     orders!inner(total, status, updated_at, buyer_id)

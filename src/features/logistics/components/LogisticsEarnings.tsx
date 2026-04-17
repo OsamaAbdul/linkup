@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/context/AuthContext";
@@ -9,12 +9,15 @@ import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/shared/components/ui/dialog";
-import { TrendingUp, Calendar, CreditCard, Wallet, ArrowDownToLine, Loader2, CheckCircle, Package, Clock } from "lucide-react";
+import { TrendingUp, Calendar, CreditCard, Wallet, ArrowDownToLine, Loader2, CheckCircle, Package, Clock, Download } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import html2canvas from "html2canvas";
 import { PayoutRequestModal } from "@/features/seller/components/PayoutRequestModal";
-import { PayoutReceiptModal } from "@/features/seller/components/PayoutReceiptModal";
+import { AnimatedTicket } from "@/shared/components/ui/ticket-confirmation-card";
 import { format } from "date-fns";
+import { WithdrawalTracker } from "./WithdrawalTracker";
+import { Route, Banknote } from "lucide-react";
 
 const DAILY_LIMIT = 50000;
 
@@ -23,6 +26,27 @@ export function LogisticsEarnings() {
     const queryClient = useQueryClient();
     const [withdrawOpen, setWithdrawOpen] = useState(false);
     const [selectedPayout, setSelectedPayout] = useState<any>(null);
+    const receiptRef = useRef<HTMLDivElement>(null);
+
+    const handleDownloadReceipt = async () => {
+        if (!receiptRef.current || !selectedPayout) return;
+        try {
+            const canvas = await html2canvas(receiptRef.current, {
+                scale: 3,
+                useCORS: true,
+                backgroundColor: null,
+                logging: false,
+            });
+            const image = canvas.toDataURL("image/png", 1.0);
+            const link = document.createElement("a");
+            link.download = `receipt-${selectedPayout.id.slice(0, 8)}.png`;
+            link.href = image;
+            link.click();
+            toast.success("Receipt downloaded successfully");
+        } catch (err) {
+            toast.error("Failed to generate receipt image");
+        }
+    };
     const [receiptOpen, setReceiptOpen] = useState(false);
     const [amount, setAmount] = useState("");
     const [bankName, setBankName] = useState("");
@@ -39,7 +63,7 @@ export function LogisticsEarnings() {
                 .from("shipments")
                 .select("order_id")
                 .eq("rider_id", user.id);
-            
+
             const orderIds = riderShipments?.map((s: any) => s.order_id) || [];
             if (orderIds.length === 0) return [];
 
@@ -48,7 +72,7 @@ export function LogisticsEarnings() {
                 .from("revenue_ledgers")
                 .select("*")
                 .in("order_id", orderIds);
-            
+
             if (error) throw error;
             return ledgers || [];
         },
@@ -149,11 +173,11 @@ export function LogisticsEarnings() {
     const deliveryFees = riderTransactions.filter((t: any) => t.type === 'delivery_fee');
     const successfulFees = deliveryFees.filter((t: any) => t.status === 'success');
     const pendingFees = deliveryFees.filter((t: any) => t.status === 'pending');
-    
+
     // BALANCE CALCULATION FROM WALLET SOURCE (Most accurate for individual riders)
     const settledEarnings = successfulFees.reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
     const pendingEarnings = pendingFees.reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
-    
+
     const totalWithdrawn = payoutRequests
         .filter((w: any) => w.status !== "rejected")
         .reduce((acc: number, w: any) => acc + (parseFloat(w.amount) || 0) + (parseFloat(w.fee_amount) || 0), 0);
@@ -161,12 +185,12 @@ export function LogisticsEarnings() {
     const availableBalance = Math.max(0, settledEarnings - totalWithdrawn);
     const settlingBalance = pendingEarnings;
     const totalEarnings = settledEarnings + pendingEarnings;
-    
+
     const today = new Date().toDateString();
     const todayEarnings = deliveryFees
         .filter((t: any) => new Date(t.created_at).toDateString() === today)
         .reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
-        
+
     const thisWeekStart = new Date();
     thisWeekStart.setDate(thisWeekStart.getDate() - thisWeekStart.getDay());
     const weekEarnings = deliveryFees
@@ -227,40 +251,43 @@ export function LogisticsEarnings() {
                             <Wallet size={28} strokeWidth={2.5} />
                         </div>
                         <Badge className="bg-white/20 text-white border-none rounded-full px-4 font-black text-[10px] uppercase tracking-widest">
-                            Earnings Summary
+                            Wallet Summary
                         </Badge>
                     </div>
                     <div>
-                        <p className="text-xs font-black uppercase tracking-widest text-white/60">Available Balance</p>
+                        <p className="text-xs font-black uppercase tracking-widest text-white/60">Available to Withdraw</p>
                         <h2 className="text-5xl font-black tracking-tighter mt-1">
                             <span className="text-2xl opacity-60 mr-1">₦</span>
                             {availableBalance.toLocaleString()}
                         </h2>
                         <div className="flex items-center gap-4 mt-2">
                             <p className="text-[10px] text-white/70 font-black uppercase tracking-widest bg-white/10 px-2 py-1 rounded-lg">
-                                ₦{settlingBalance.toLocaleString()} Held for Security
+                                ₦{settlingBalance.toLocaleString()} Security Hold
                             </p>
                             <p className="text-xs text-white/50 font-medium">
-                                {completedShipments.length} completed deliveries
+                                {completedShipments.length} completed missions
                             </p>
                         </div>
                     </div>
-                    <Button
-                        onClick={() => setWithdrawOpen(true)}
-                        disabled={availableBalance <= 0}
-                        className="bg-white text-primary rounded-xl h-14 px-10 font-black text-xs uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-50 gap-2"
-                    >
-                        <ArrowDownToLine size={16} strokeWidth={3} /> Withdraw Earnings
-                    </Button>
+                    <div className="w-full sm:w-auto pt-2">
+                        <Button
+                            onClick={() => setWithdrawOpen(true)}
+                            disabled={availableBalance <= 0}
+                            className="bg-white text-primary rounded-xl h-14 px-4 sm:px-10 w-full sm:w-auto font-black text-xs uppercase tracking-wider sm:tracking-widest shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 gap-2 overflow-hidden"
+                        >
+                            <ArrowDownToLine size={16} strokeWidth={3} className="shrink-0" />
+                            <span className="truncate">Cash Out Earnings</span>
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-                { label: "Locked Earnings", value: settlingBalance, icon: Clock, color: "text-amber-600", bg: "bg-amber-50" },
+            {/* Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[
+                    { label: "Security Hold", value: settlingBalance, icon: Clock, color: "text-amber-600", bg: "bg-amber-50" },
                     { label: "Earned Today", value: todayEarnings, icon: CreditCard, color: "text-blue-600", bg: "bg-blue-50" },
-                    { label: "Life History", value: totalEarnings, icon: TrendingUp, color: "text-green-600", bg: "bg-green-50" },
+                    { label: "Total Lifetime", value: totalEarnings, icon: TrendingUp, color: "text-green-600", bg: "bg-green-50" },
                 ].map((card, i) => (
                     <Card key={i} className="border-none shadow-sm rounded-xl">
                         <CardContent className="p-8 flex items-center gap-5">
@@ -279,7 +306,7 @@ export function LogisticsEarnings() {
             {/* Completed Deliveries Table */}
             <section className="space-y-4">
                 <h2 className="text-xl font-black tracking-tight flex items-center gap-2">
-                    <Package size={18} strokeWidth={2.5} /> Completed Deliveries
+                    <Package size={18} strokeWidth={2.5} /> Mission History
                 </h2>
                 {ledgerEntries.length === 0 ? (
                     <div className="py-14 text-center border-2 border-dashed border-black/5 rounded-xl text-muted-foreground text-sm font-medium">
@@ -302,7 +329,7 @@ export function LogisticsEarnings() {
                                     <TableRow key={t.id} className="border-black/[0.03]">
                                         <TableCell className="pl-8">
                                             <Badge variant="outline" className={cn("font-black text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full", t.status === 'pending' ? "border-amber-200 text-amber-700 bg-amber-50" : "border-green-200 text-green-700 bg-green-50")}>
-                                                Delivery Fee
+                                                Mission Payment
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-xs font-bold">{t.reference || "Order Fee"}</TableCell>
@@ -344,7 +371,7 @@ export function LogisticsEarnings() {
                                     <TableHead className="font-black text-[10px] uppercase tracking-widest h-14">Bank Details</TableHead>
                                     <TableHead className="font-black text-[10px] uppercase tracking-widest h-14">Amount</TableHead>
                                     <TableHead className="font-black text-[10px] uppercase tracking-widest h-14 text-center">Status</TableHead>
-                                    <TableHead className="font-black text-[10px] uppercase tracking-widest h-14 pr-8 text-right">Action</TableHead>
+                                    <TableHead className="font-black text-[10px] uppercase tracking-widest h-14 pr-8 text-right">Progress</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -361,12 +388,13 @@ export function LogisticsEarnings() {
                                         </TableCell>
                                         <TableCell className="text-center">{statusBadge(p.status)}</TableCell>
                                         <TableCell className="text-right pr-8">
-                                            <Button 
-                                                variant="ghost" size="sm" 
-                                                className="h-8 px-3 rounded-lg font-black text-[9px] uppercase tracking-widest hover:bg-primary/5 text-primary"
+                                            <Button
+                                                variant="ghost" size="sm"
+                                                className="h-8 px-3 rounded-lg font-black text-[9px] uppercase tracking-widest hover:bg-primary/5 text-primary gap-2"
                                                 onClick={() => handleViewReceipt(p)}
                                             >
-                                                Receipt
+                                                <Route size={12} strokeWidth={3} />
+                                                Track & Receipt
                                             </Button>
                                         </TableCell>
                                     </TableRow>
@@ -378,20 +406,85 @@ export function LogisticsEarnings() {
             )}
 
             {/* Premium Payout Modals */}
-            <PayoutRequestModal 
-                isOpen={withdrawOpen} 
-                onClose={() => setWithdrawOpen(false)} 
+            <PayoutRequestModal
+                isOpen={withdrawOpen}
+                onClose={() => setWithdrawOpen(false)}
                 wallet={wallet}
-                balanceOverride={availableBalance} 
+                balanceOverride={availableBalance}
             />
 
-            {selectedPayout && (
-                <PayoutReceiptModal
-                    isOpen={receiptOpen}
-                    onClose={() => setReceiptOpen(false)}
-                    request={selectedPayout}
-                />
-            )}
+            <Dialog open={receiptOpen} onOpenChange={setReceiptOpen}>
+                <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto no-scrollbar rounded-3xl p-0 border-none bg-[#F9FAFB] shadow-2xl">
+                    {selectedPayout && (
+                        <div className="flex flex-col w-full">
+                            {/* Tracker Section */}
+                            <div className="p-8 bg-white border-b border-black/[0.04]">
+                                <div className="flex items-center justify-between mb-8">
+                                    <div>
+                                        <h2 className="text-xl font-black tracking-tight uppercase">Payout Tracker</h2>
+                                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Ref: #{selectedPayout.id.slice(0, 8)}</p>
+                                    </div>
+                                    <Badge className="bg-blue-600 text-white border-none rounded-full px-3 py-1 font-black text-[9px] uppercase tracking-widest">
+                                        Live Status
+                                    </Badge>
+                                </div>
+                                <WithdrawalTracker
+                                    status={selectedPayout.status}
+                                    amount={selectedPayout.amount}
+                                    reason={selectedPayout.metadata?.reason}
+                                />
+                            </div>
+
+                            {/* Receipt Section (Only if completed) */}
+                            <div className="p-8 flex flex-col items-center gap-6">
+                                {selectedPayout.status === 'completed' ? (
+                                    <>
+                                        <div className="text-center mb-2">
+                                            <h3 className="text-sm font-black uppercase tracking-tight">Official Receipt</h3>
+                                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Secured Transmission</p>
+                                        </div>
+                                        <div className="scale-[0.9] sm:scale-100 origin-top">
+                                            <AnimatedTicket
+                                                ref={receiptRef}
+                                                ticketId={selectedPayout.id.substring(0, 13).toUpperCase()}
+                                                amount={selectedPayout.amount}
+                                                date={new Date(selectedPayout.created_at)}
+                                                cardHolder={selectedPayout.account_name || user?.email || "Partner"}
+                                                last4Digits={selectedPayout.account_number?.slice(-4) || "****"}
+                                                barcodeValue={selectedPayout.id.replace(/-/g, '').substring(0, 14)}
+                                            />
+                                        </div>
+                                        <Button
+                                            onClick={handleDownloadReceipt}
+                                            className="w-full h-12 rounded-2xl font-black uppercase tracking-widest bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-600/20"
+                                        >
+                                            <Download size={18} className="mr-2" />
+                                            Download Receipt
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <div className="py-10 text-center space-y-4">
+                                        <div className="w-16 h-16 rounded-2xl bg-black/[0.03] flex items-center justify-center text-black/20 mx-auto">
+                                            <Banknote size={32} strokeWidth={1} />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-muted-foreground">Receipt unavailable until funds arrive.</p>
+                                            <p className="text-[10px] font-medium text-muted-foreground/60 mt-1">Track the progress above for updates.</p>
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => setReceiptOpen(false)}
+                                            className="rounded-xl border-black/[0.05] text-[10px] font-black uppercase tracking-widest h-10 px-6"
+                                        >
+                                            Close Tracker
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

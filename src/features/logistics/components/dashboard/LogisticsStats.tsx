@@ -11,28 +11,28 @@ interface LogisticsStatsProps {
 export function LogisticsStats({ shipments, broadcastMissionsCount }: LogisticsStatsProps) {
     const stats = [
         { 
-            label: "Available Missions", 
+            label: "Open Missions", 
             value: broadcastMissionsCount, 
             icon: Radio, 
             color: "text-blue-600", 
             bg: "bg-blue-50" 
         },
         { 
-            label: "In Transit", 
+            label: "On the Road", 
             value: shipments.filter((s: any) => s.status === "picked_up").length, 
             icon: Truck, 
             color: "text-amber-600", 
             bg: "bg-amber-50" 
         },
         { 
-            label: "Delivered Today", 
+            label: "Missions Finished", 
             value: shipments.filter((s: any) => s.status === "delivered" && new Date(s.updated_at).toDateString() === new Date().toDateString()).length, 
             icon: CheckCircle, 
             color: "text-green-600", 
             bg: "bg-green-50" 
         },
         { 
-            label: "Potential Cut", 
+            label: "Estimated Pay", 
             value: `₦${shipments
                 .filter((s: any) => s.status !== "delivered" && s.status !== "completed")
                 .reduce((acc, s) => acc + (s.delivery_fee_amount || s.delivery_fee || 0), 0)

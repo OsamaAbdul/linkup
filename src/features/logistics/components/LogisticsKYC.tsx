@@ -7,22 +7,22 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/sha
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Button } from "@/shared/components/ui/button";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from "@/shared/components/ui/select";
-import { 
-  User, 
-  Phone, 
-  Home, 
-  Calendar, 
-  Upload, 
-  Truck, 
-  CheckCircle2, 
-  AlertTriangle, 
+import {
+  User,
+  Phone,
+  Home,
+  Calendar,
+  Upload,
+  Truck,
+  CheckCircle2,
+  AlertTriangle,
   Clock,
   MapPin,
   ShieldCheck
@@ -76,7 +76,7 @@ export function LogisticsKYC() {
   });
 
   useEffect(() => {
-    console.log("LogisticsKYC: kyc data for user", user?.id, ":", kyc);
+
   }, [kyc, user?.id]);
 
   // Fetch Cities and Zones
@@ -118,7 +118,7 @@ export function LogisticsKYC() {
     if (!formData.idCardFile) { toast.error("NIN/Voter's Card photograph is required"); return; }
     if (!formData.ninNumber) { toast.error("NIN number is required"); return; }
     if (!formData.zone_id) { toast.error("Operational zone is required"); return; }
-    
+
     setIsSubmitting(true);
     try {
       // 1. Upload Documents
@@ -151,13 +151,13 @@ export function LogisticsKYC() {
           status: 'pending',
           updated_at: new Date().toISOString()
         });
-      
+
       if (kycError) throw kycError;
 
       // 3. Update profile zone info
       const { error: profileError } = await (supabase as any)
         .from("profiles")
-        .update({ 
+        .update({
           zone: formData.zone,
           city_id: formData.city_id,
           zone_id: formData.zone_id,
@@ -179,7 +179,7 @@ export function LogisticsKYC() {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Checking status...</p>
+        <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Checking Profile Status...</p>
       </div>
     );
   }
@@ -196,41 +196,41 @@ export function LogisticsKYC() {
           )}>
             {/* Background pattern */}
             <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
-                <div className="absolute top-0 left-0 w-full h-full" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+              <div className="absolute top-0 left-0 w-full h-full" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px' }} />
             </div>
 
-            <motion.div 
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: "spring", damping: 12 }}
-                className={cn(
-                    "w-20 h-20 rounded-2xl flex items-center justify-center shadow-2xl mb-4 relative z-10",
-                    isVerified ? "bg-green-500 text-white shadow-green-500/20" : "bg-blue-600 text-white shadow-blue-600/20"
-                )}
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", damping: 12 }}
+              className={cn(
+                "w-20 h-20 rounded-2xl flex items-center justify-center shadow-2xl mb-4 relative z-10",
+                isVerified ? "bg-green-500 text-white shadow-green-500/20" : "bg-blue-600 text-white shadow-blue-600/20"
+              )}
             >
               {isVerified ? <CheckCircle2 size={40} strokeWidth={2.5} /> : <Clock size={40} strokeWidth={2.5} />}
             </motion.div>
             <div className="relative z-10 text-center">
-                <Badge variant="outline" className={cn(
-                    "rounded-full px-4 py-1 border-none text-[10px] font-black uppercase tracking-[0.2em]",
-                    isVerified ? "bg-green-500/10 text-green-600" : "bg-blue-500/10 text-blue-600"
-                )}>
-                    {isVerified ? "Account Verified" : "Review Pending"}
-                </Badge>
+              <Badge variant="outline" className={cn(
+                "rounded-full px-4 py-1 border-none text-[10px] font-black uppercase tracking-[0.2em]",
+                isVerified ? "bg-green-500/10 text-green-600" : "bg-blue-500/10 text-blue-600"
+              )}>
+                {isVerified ? "Profile Confirmed" : "Review in Progress"}
+              </Badge>
             </div>
           </div>
-          
+
           <CardHeader className="text-center p-10 pt-8">
             <CardTitle className="text-4xl font-black tracking-tight uppercase italic mb-2">
-              {isVerified ? "Verified Rider" : "Review in Progress"}
+              {isVerified ? "Verified Partner" : "Verification in Progress"}
             </CardTitle>
             <CardDescription className="text-base font-medium max-w-sm mx-auto leading-relaxed text-muted-foreground/80">
-              {isVerified 
-                ? "Your identity has been confirmed. You are now authorized to accept delivery orders." 
+              {isVerified
+                ? "Your identity has been confirmed. You are now authorized to accept and start missions."
                 : "We are currently reviewing your documents. This process usually completes within 24-48 hours."}
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent className="p-10 pt-0 flex flex-col items-center gap-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
               <div className="p-5 rounded-2xl bg-muted/20 border border-black/[0.02] hover:bg-muted/30 transition-colors">
@@ -246,10 +246,10 @@ export function LogisticsKYC() {
                 <p className="text-sm font-bold text-foreground tracking-widest">{kyc.nin_number || 'ENC_HIDDEN'}</p>
               </div>
             </div>
-            
+
             {!isVerified && (
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 className="rounded-xl h-12 px-8 font-black text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all"
                 onClick={() => queryClient.invalidateQueries({ queryKey: ["rider-kyc-status"] })}
               >
@@ -271,99 +271,99 @@ export function LogisticsKYC() {
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
             <Truck size={20} strokeWidth={3} />
           </div>
-          <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Rider Verification</p>
+          <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Partner Verification</p>
         </div>
-        <h1 className="text-4xl font-black text-foreground tracking-tight">Identity Verification</h1>
-        <p className="text-muted-foreground font-medium mt-2">Submit your details to start accepting deliveries.</p>
+        <h1 className="text-4xl font-black text-foreground tracking-tight">Identity Check</h1>
+        <p className="text-muted-foreground font-medium mt-2">Submit your basic details to start accepting missions.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
         <Card className="rounded-xl border-none shadow-xl shadow-black/[0.02] bg-white p-8 md:p-10">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormField label="Legal Full Name" icon={User}>
-              <Input 
-                value={formData.fullName} 
-                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} 
-                placeholder="John Doe" 
-                className={inputClass} 
-                required 
+              <Input
+                value={formData.fullName}
+                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                placeholder="John Doe"
+                className={inputClass}
+                required
               />
             </FormField>
-            
+
             <FormField label="Phone Number" icon={Phone}>
-              <Input 
-                value={formData.phoneNumber} 
-                onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })} 
-                placeholder="+234..." 
-                className={inputClass} 
-                required 
+              <Input
+                value={formData.phoneNumber}
+                onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                placeholder="+234..."
+                className={inputClass}
+                required
               />
             </FormField>
 
             <FormField label="Home Address" icon={Home} className="md:col-span-2">
-              <Input 
-                value={formData.homeAddress} 
-                onChange={(e) => setFormData({ ...formData, homeAddress: e.target.value })} 
-                placeholder="123 Street Name, Neighborhood" 
-                className={inputClass} 
-                required 
+              <Input
+                value={formData.homeAddress}
+                onChange={(e) => setFormData({ ...formData, homeAddress: e.target.value })}
+                placeholder="123 Street Name, Neighborhood"
+                className={inputClass}
+                required
               />
             </FormField>
 
             <FormField label="Date of Birth" icon={Calendar}>
-              <Input 
-                type="date" 
-                value={formData.dob} 
-                onChange={(e) => setFormData({ ...formData, dob: e.target.value })} 
-                className={cn(inputClass, "block")} 
-                required 
+              <Input
+                type="date"
+                value={formData.dob}
+                onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                className={cn(inputClass, "block")}
+                required
               />
             </FormField>
 
             <FormField label="NIN Number" icon={ShieldCheck}>
-              <Input 
-                value={formData.ninNumber} 
-                onChange={(e) => setFormData({ ...formData, ninNumber: e.target.value })} 
-                placeholder="11-digit NIN" 
-                className={inputClass} 
+              <Input
+                value={formData.ninNumber}
+                onChange={(e) => setFormData({ ...formData, ninNumber: e.target.value })}
+                placeholder="11-digit NIN"
+                className={inputClass}
                 maxLength={11}
-                required 
+                required
               />
             </FormField>
 
             <FormField label="Passport Photograph" icon={Upload}>
               <div className="relative">
-                <Input 
-                  type="file" 
-                  accept="image/*" 
-                  onChange={(e) => setFormData({ ...formData, passportFile: e.target.files?.[0] || null })} 
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setFormData({ ...formData, passportFile: e.target.files?.[0] || null })}
                   className={cn(
-                    inputClass, 
+                    inputClass,
                     "pt-3 file:mr-3 file:rounded-lg file:border-0 file:bg-primary/10 file:text-primary file:text-[10px] file:font-black file:uppercase file:tracking-widest cursor-pointer"
-                  )} 
-                  required 
+                  )}
+                  required
                 />
               </div>
             </FormField>
 
             <FormField label="NIN / Voter's Card (Photo)" icon={Upload}>
               <div className="relative">
-                <Input 
-                  type="file" 
-                  accept="image/*" 
-                  onChange={(e) => setFormData({ ...formData, idCardFile: e.target.files?.[0] || null })} 
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setFormData({ ...formData, idCardFile: e.target.files?.[0] || null })}
                   className={cn(
-                    inputClass, 
+                    inputClass,
                     "pt-3 file:mr-3 file:rounded-lg file:border-0 file:bg-primary/10 file:text-primary file:text-[10px] file:font-black file:uppercase file:tracking-widest cursor-pointer"
-                  )} 
-                  required 
+                  )}
+                  required
                 />
               </div>
             </FormField>
 
             <FormField label="Primary City">
-              <Select 
-                value={formData.city_id} 
+              <Select
+                value={formData.city_id}
                 onValueChange={(v) => setFormData({ ...formData, city_id: v, zone_id: "", zone: "" })}
               >
                 <SelectTrigger className={inputClass}>
@@ -395,8 +395,8 @@ export function LogisticsKYC() {
                       onClick={() => setFormData({ ...formData, zone_id: zone.id, zone: zone.name })}
                       className={cn(
                         "relative p-4 rounded-xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 group",
-                        isSelected 
-                          ? "border-primary bg-primary/5 shadow-lg shadow-primary/5" 
+                        isSelected
+                          ? "border-primary bg-primary/5 shadow-lg shadow-primary/5"
                           : "border-black/[0.03] bg-muted/20 hover:border-black/10 hover:bg-muted/30"
                       )}
                     >
@@ -430,12 +430,12 @@ export function LogisticsKYC() {
             </p>
           </div>
 
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             className="w-full mt-8 rounded-xl h-14 font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-primary/20 bg-primary hover:bg-primary/90 transition-all active:scale-[0.98]"
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Uploading Documents..." : "Submit Verification Request"}
+            {isSubmitting ? "Sending Information..." : "Submit Profile for Review"}
           </Button>
         </Card>
       </form>

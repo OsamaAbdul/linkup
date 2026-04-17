@@ -29,8 +29,8 @@ export function ActiveTransits({ shipments, onViewDetails, onNavigate }: ActiveT
                     <Truck size={16} strokeWidth={2.5} />
                 </div>
                 <div>
-                    <h2 className="text-xl font-black tracking-tight">Active Transits</h2>
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Real-time mission tracking</p>
+                    <h2 className="text-xl font-black tracking-tight">Missions in Progress</h2>
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Real-time status of your active work</p>
                 </div>
             </div>
 
@@ -39,10 +39,10 @@ export function ActiveTransits({ shipments, onViewDetails, onNavigate }: ActiveT
                     <TableHeader className="bg-muted/30">
                         <TableRow className="border-none hover:bg-transparent">
                             <TableHead className="font-black text-[10px] uppercase tracking-widest h-14 pl-8">Order ID</TableHead>
-                            <TableHead className="font-black text-[10px] uppercase tracking-widest h-14">Pickup</TableHead>
-                            <TableHead className="font-black text-[10px] uppercase tracking-widest h-14">Delivery</TableHead>
+                            <TableHead className="font-black text-[10px] uppercase tracking-widest h-14">From</TableHead>
+                            <TableHead className="font-black text-[10px] uppercase tracking-widest h-14">To</TableHead>
                             <TableHead className="font-black text-[10px] uppercase tracking-widest h-14">Status</TableHead>
-                            <TableHead className="font-black text-[10px] uppercase tracking-widest h-14">Cut</TableHead>
+                            <TableHead className="font-black text-[10px] uppercase tracking-widest h-14">Earning</TableHead>
                             <TableHead className="font-black text-[10px] uppercase tracking-widest h-14 text-right pr-8">Action</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -50,7 +50,7 @@ export function ActiveTransits({ shipments, onViewDetails, onNavigate }: ActiveT
                         {shipments.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={5} className="h-32 text-center text-muted-foreground font-medium">
-                                    No active transits. Claim a mission above to get started!
+                                    No active missions. Accept a mission above to get started!
                                 </TableCell>
                             </TableRow>
                         ) : shipments.map((s: any) => {
@@ -98,7 +98,9 @@ export function ActiveTransits({ shipments, onViewDetails, onNavigate }: ActiveT
                                                                     s.status === "delivered" ? "bg-green-100 text-green-700" :
                                                                         "bg-amber-100 text-amber-700"
                                         )}>
-                                            {s.status.replace(/_/g, " ")}
+                                            {s.status === 'accepted' ? 'Ready' : 
+                                             s.status === 'picked_up' ? 'In Transit' :
+                                             s.status.replace(/_/g, " ")}
                                         </Badge>
                                     </TableCell>
                                     <TableCell>

@@ -175,7 +175,7 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                                     Mission Details
                                 </DialogTitle>
                                 <DialogDescription className="text-[11px] font-bold text-muted-foreground pt-1">
-                                    Track and manage Shipment #{shipment.id.slice(-8)}
+                                    Track and manage Mission #{shipment.id.slice(-8)}
                                 </DialogDescription>
                             </div>
                             <Badge className={cn(
@@ -189,7 +189,9 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                                                         activeShipment.status === 'arrived_at_destination' ? 'bg-cyan-100 text-cyan-700' :
                                                             'bg-green-100 text-green-700'
                             )}>
-                                {activeShipment.status.replace(/_/g, ' ')}
+                                {activeShipment.status === 'assigned' ? 'New Mission' : 
+                                 activeShipment.status === 'accepted' ? 'Ready' : 
+                                 activeShipment.status.replace(/_/g, ' ')}
                             </Badge>
                         </div>
                     </DialogHeader>
@@ -216,7 +218,7 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                                 <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                                     <Smartphone size={12} strokeWidth={3} />
 
-                                    buyer Identity
+                                    Customer Identity
                                 </h4>
                                 <div className="bg-muted/30 p-4 rounded-2xl border border-black/[0.03]">
                                     <p className="font-black text-sm">{buyer.name}</p>
@@ -232,7 +234,7 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                                     <Banknote size={24} strokeWidth={2.5} />
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-black text-green-700 uppercase tracking-widest leading-none">Your balance</p>
+                                    <p className="text-[10px] font-black text-green-700 uppercase tracking-widest leading-none">Mission Reward</p>
                                     <p className="text-2xl font-black text-green-900 tracking-tight mt-1">₦{(activeShipment.delivery_fee_amount || activeShipment.delivery_fee || 0).toLocaleString()}</p>
                                 </div>
                             </div>
@@ -256,7 +258,7 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                         <section className="space-y-3">
                             <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                                 <ArrowRight size={12} strokeWidth={3} />
-                                Path Trace
+                                Delivery Route
                             </h4>
                             <div className="space-y-4 relative before:absolute before:left-[11px] before:top-4 before:bottom-4 before:w-[2px] before:bg-black/5">
                                 <div className="flex items-start justify-between gap-4 z-10">
@@ -265,7 +267,7 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                                             <MapPin size={10} strokeWidth={3} />
                                         </div>
                                         <div>
-                                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-tighter">Pickup Node ({sellerInfo.name})</p>
+                                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-tighter">Pickup Location ({sellerInfo.name})</p>
                                             <p className="text-[11px] font-bold text-foreground line-clamp-2">
                                                 {getPickupAddress(activeShipment)}
                                             </p>
@@ -285,7 +287,7 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                                             <Navigation size={10} strokeWidth={3} />
                                         </div>
                                         <div>
-                                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-tighter">Delivery Node</p>
+                                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-tighter">Destination</p>
                                             <p className="text-[11px] font-bold text-foreground line-clamp-2">
                                                 {getDeliveryAddress(activeShipment)}
                                             </p>

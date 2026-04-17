@@ -47,11 +47,11 @@ export function LogisticsSidebar({
     const { signOut } = useAuth();
 
     const tabs = [
-        { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-        { id: "orders", label: "Deliveries", icon: ShoppingBag },
-        { id: "earnings", label: "Earnings", icon: Wallet },
-        { id: "verification", label: "ID Verification", icon: ShieldCheck },
-        { id: "settings", label: "Settings", icon: Settings },
+        { id: "dashboard", label: "My Home", icon: LayoutDashboard },
+        { id: "orders", label: "Accept Missions", icon: ShoppingBag },
+        { id: "earnings", label: "Wallet & Earnings", icon: Wallet },
+        { id: "verification", label: "Verify Profile", icon: ShieldCheck },
+        { id: "settings", label: "My Profile", icon: Settings },
     ];
 
 
@@ -96,7 +96,7 @@ export function LogisticsSidebar({
                                     animate={{ opacity: 1 }}
                                     className="font-black text-lg lg:text-xl tracking-tight"
                                 >
-                                    LINKUP<span className="text-blue-600"> AGENTS</span>
+                                    LINKUP<span className="text-blue-600"> PARTNERS</span>
                                 </motion.span>
                             )}
                         </div>
@@ -126,7 +126,7 @@ export function LogisticsSidebar({
                                         "text-[11px] font-black uppercase",
                                         isOnline ? "text-green-600" : "text-gray-400"
                                     )}>
-                                        {isOnline ? "Online" : "Offline"}
+                                        {isOnline ? "Open for missions" : "Taking a break"}
                                     </span>
                                 </div>
                                 <Switch

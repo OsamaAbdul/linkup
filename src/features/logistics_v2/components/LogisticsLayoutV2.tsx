@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     LayoutDashboard,
     ShoppingBag,
@@ -16,6 +16,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/shared/components/ui/button";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { NotificationDropdown } from "@/features/logistics/components/NotificationDropdown";
 
 interface NavItem {
     id: string;
@@ -24,11 +27,11 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-    { id: "dashboard", label: "Overview", icon: LayoutDashboard },
-    { id: "orders", label: "Deliveries", icon: ShoppingBag },
-    { id: "earnings", label: "Earnings", icon: Wallet },
-    { id: "verification", label: "ID Verification", icon: ShieldCheck },
-    { id: "settings", label: "Settings", icon: Settings },
+    { id: "dashboard", label: "My Home", icon: LayoutDashboard },
+    { id: "orders", label: "Accept Missions", icon: ShoppingBag },
+    { id: "earnings", label: "Wallet & Earnings", icon: Wallet },
+    { id: "verification", label: "Verify ID", icon: ShieldCheck },
+    { id: "settings", label: "My Profile", icon: Settings },
 ];
 
 export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 0, escrow_balance = 0 }: {
@@ -38,8 +41,47 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
     balance?: number;
     escrow_balance?: number;
 }) {
-    const { profile, signOut } = useAuth();
+    const { user, profile, signOut } = useAuth();
+    const queryClient = useQueryClient();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+    const { data: unreadCount = 0 } = useQuery({
+        queryKey: ["unread-notifications", user?.id],
+        queryFn: async () => {
+            if (!user) return 0;
+            const { count } = await supabase
+                .from("notifications")
+                .select("*", { count: "exact", head: true })
+                .eq("user_id", user.id)
+                .eq("read", false);
+            return count ?? 0;
+        },
+        enabled: !!user,
+    });
+
+    useEffect(() => {
+        if (!user) return;
+        const channel = supabase
+            .channel("layout-notifications")
+            .on(
+                "postgres_changes",
+                {
+                    event: "INSERT",
+                    schema: "public",
+                    table: "notifications",
+                    filter: `user_id=eq.${user.id}`,
+                },
+                () => {
+                    queryClient.invalidateQueries({ queryKey: ["unread-notifications"] });
+                    queryClient.invalidateQueries({ queryKey: ["notifications-recent"] });
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [user, queryClient]);
 
     return (
         <div className="min-h-screen bg-[#F9FAFB] flex flex-col lg:flex-row font-sans selection:bg-blue-100 selection:text-blue-900">
@@ -49,7 +91,7 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
                     <div className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-xl shadow-blue-600/20">
                         <span className="font-black text-xl">L</span>
                     </div>
-                    <span className="font-black text-xl tracking-tight uppercase">Linkup<span className="text-blue-600"> AGENT</span></span>
+                    <span className="font-black text-xl tracking-tight uppercase">Linkup<span className="text-blue-600"> PARTNER</span></span>
                 </div>
 
                 <nav className="flex-1 space-y-1.5">
@@ -77,7 +119,7 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
                         className="w-full justify-start gap-4 h-12 rounded-2xl text-red-500 hover:bg-red-50 hover:text-red-600 font-bold transition-all"
                     >
                         <LogOut size={20} />
-                        <span>Logout Account</span>
+                        <span>Logout</span>
                     </Button>
                 </div>
             </aside>
@@ -91,12 +133,25 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
                     <span className="font-black text-lg tracking-tight uppercase">Linkup</span>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <button className="relative p-2 text-muted-foreground transition-colors hover:text-foreground">
-                        <Bell size={22} strokeWidth={2.2} />
-                        <span className="absolute top-2 right-2 w-2 h-2 bg-blue-600 rounded-full border-2 border-white" />
+                <div className="flex items-center gap-2">
+                    <button 
+                        onClick={signOut}
+                        className="p-2 text-red-500 transition-colors hover:text-red-600 active:scale-95"
+                        title="Logout"
+                    >
+                        <LogOut size={22} strokeWidth={2.2} />
                     </button>
-                    <Avatar className="h-9 w-9 border border-black/[0.04] shadow-sm">
+                    <NotificationDropdown>
+                        <button className="relative p-2 text-muted-foreground transition-colors hover:text-foreground">
+                            <Bell size={22} strokeWidth={2.2} />
+                            {unreadCount > 0 && (
+                                <span className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-[8px] font-bold text-white shadow-lg border-2 border-white animate-in zoom-in duration-300">
+                                    {unreadCount > 9 ? "9+" : unreadCount}
+                                </span>
+                            )}
+                        </button>
+                    </NotificationDropdown>
+                    <Avatar className="h-9 w-9 border border-black/[0.04] shadow-sm ml-1">
                         <AvatarImage src={profile?.avatar_url || ""} />
                         <AvatarFallback className="bg-blue-50 text-blue-600 font-black text-xs uppercase">
                             {profile?.display_name?.charAt(0) || "U"}
@@ -134,20 +189,34 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
 
                         {escrow_balance > 0 && (
                             <div className="flex items-center gap-2 mr-4 bg-amber-50/50 px-4 py-2 rounded-2xl border border-amber-100/50">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 mr-2">Held for safety</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 mr-2">Security Hold</span>
                                 <span className="text-sm font-black text-amber-700">₦ {escrow_balance.toLocaleString()}</span>
                             </div>
                         )}
 
-                        <button className="relative p-2.5 bg-white border border-black/[0.05] rounded-xl text-muted-foreground hover:text-blue-600 hover:border-blue-100 hover:shadow-sm transition-all">
-                            <Bell size={18} strokeWidth={2.5} />
-                            <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-blue-600 rounded-full border-2 border-white" />
+                        <button 
+                            onClick={signOut}
+                            className="p-2.5 bg-white border border-black/[0.05] rounded-xl text-red-500 hover:text-red-600 hover:border-red-100 hover:shadow-sm transition-all"
+                            title="Logout"
+                        >
+                            <LogOut size={18} strokeWidth={2.5} />
                         </button>
+
+                        <NotificationDropdown>
+                            <button className="relative p-2.5 bg-white border border-black/[0.05] rounded-xl text-muted-foreground hover:text-blue-600 hover:border-blue-100 hover:shadow-sm transition-all group">
+                                <Bell size={18} strokeWidth={2.5} />
+                                {unreadCount > 0 && (
+                                    <span className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-[8px] font-bold text-white shadow-lg border-2 border-white animate-in zoom-in duration-300">
+                                        {unreadCount > 9 ? "9+" : unreadCount}
+                                    </span>
+                                )}
+                            </button>
+                        </NotificationDropdown>
 
                         <div className="flex items-center gap-3 group cursor-pointer pl-6 border-l border-black/[0.04]">
                             <div className="text-right">
-                                <p className="text-sm font-black leading-tight group-hover:text-blue-600 transition-colors uppercase tracking-tight">{profile?.display_name || "Agent"}</p>
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none mt-1">Verified Logistics</p>
+                                <p className="text-sm font-black leading-tight group-hover:text-blue-600 transition-colors uppercase tracking-tight">{profile?.display_name || "Partner"}</p>
+                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none mt-1">Verified Partner</p>
                             </div>
                             <Avatar className="h-10 w-10 border border-black/[0.04] shadow-md group-hover:scale-105 transition-transform duration-300">
                                 <AvatarImage src={profile?.avatar_url || ""} />
@@ -170,22 +239,22 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
             </main>
 
             {/* Mobile Bottom Navigation */}
-            <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-20 bg-white/95 backdrop-blur-xl border-t border-black/[0.04] px-4 flex items-center justify-around z-[60] pb-2">
+            <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-[72px] bg-white/95 backdrop-blur-xl border-t border-black/[0.04] px-1 flex items-center justify-between z-[60] pb-safe">
                 {navItems.map((item) => (
                     <button
                         key={item.id}
                         onClick={() => onTabChange(item.id)}
                         className={cn(
-                            "flex flex-col items-center gap-1.5 px-3 py-2 rounded-2xl transition-all relative",
+                            "flex flex-col flex-1 items-center justify-center gap-1.5 h-full rounded-2xl transition-all relative overflow-hidden",
                             activeTab === item.id ? "text-blue-600" : "text-muted-foreground"
                         )}
                     >
-                        <item.icon size={22} strokeWidth={activeTab === item.id ? 2.5 : 2} />
-                        <span className="text-[10px] font-black uppercase tracking-widest leading-none">{item.label}</span>
+                        <item.icon size={20} strokeWidth={activeTab === item.id ? 2.5 : 2} className="shrink-0" />
+                        <span className="text-[8px] font-black uppercase tracking-wider leading-none w-full text-center truncate px-0.5">{item.label}</span>
                         {activeTab === item.id && (
                             <motion.div
                                 layoutId="mobile-nav-pill"
-                                className="absolute -top-1 w-8 h-1 bg-blue-600 rounded-full"
+                                className="absolute top-0 w-8 h-1 bg-blue-600 rounded-b-full"
                             />
                         )}
                     </button>

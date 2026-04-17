@@ -25,7 +25,7 @@ export function LogisticsOverview({
     const queryClient = useQueryClient();
     const [viewingOrder, setViewingOrder] = useState<any>(null);
 
-    //  Claim a broadcast mission
+    //  Accept an available mission
     const claimMissionMutation = useMutation({
         mutationFn: async (shipmentId: string) => {
             const { data, error } = await (supabase as any).rpc("claim_order_mission", {
@@ -33,7 +33,7 @@ export function LogisticsOverview({
                 p_rider_id: user?.id,
             });
             if (error) throw error;
-            if (!data?.success) throw new Error(data?.error || "Mission already claimed");
+            if (!data?.success) throw new Error(data?.error || "Mission already accepted");
             return data;
         },
         onMutate: async (shipmentId) => {
@@ -53,15 +53,15 @@ export function LogisticsOverview({
         onError: (error: any, shipmentId, context) => {
             queryClient.setQueryData(["broadcast-missions", user?.id], context?.previousMissions);
             queryClient.setQueryData(["agent-shipments", user?.id], context?.previousShipments);
-            toast.error(error.message || "Mission was already taken by another agent");
+            toast.error(error.message || "Mission was already taken by another partner");
         },
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ["agent-shipments", user?.id] });
             queryClient.invalidateQueries({ queryKey: ["broadcast-missions", user?.id] });
         },
         onSuccess: (data) => {
-            toast.success("Mission claimed! You're on it.", {
-                description: `Order #${data.order_id?.slice(-8)} is now yours.`,
+            toast.success("Mission Accepted! You're on it.", {
+                description: `Order #${data.order_id?.slice(-8)} is now assigned to you.`,
             });
         },
     });
@@ -136,7 +136,7 @@ export function LogisticsOverview({
                     
                     if (payload.eventType === "INSERT" && (payload.new as any).status === "broadcast") {
                         toast("📡 New Mission Available!", {
-                            description: "A new order just entered the broadcast pool.",
+                            description: "A new mission has entered the pool.",
                             action: {
                                 label: "View",
                                 onClick: () => console.log("Navigate to missions")

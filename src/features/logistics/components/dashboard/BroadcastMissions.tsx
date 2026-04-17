@@ -42,8 +42,8 @@ export function BroadcastMissions({
                     <Radio size={16} strokeWidth={2.5} />
                 </div>
                 <div>
-                    <h2 className="text-xl font-black tracking-tight">Available Missions</h2>
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Open to all agents in your zone first to claim wins</p>
+                    <h2 className="text-xl font-black tracking-tight">Missions Pool</h2>
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Available to all partners in your zone</p>
                 </div>
                 {missions.length > 0 && (
                     <span className="ml-auto px-3 py-1 rounded-full bg-blue-500 text-white text-[10px] font-black uppercase tracking-widest animate-pulse">
@@ -63,16 +63,16 @@ export function BroadcastMissions({
                         <AlertTriangle size={32} strokeWidth={2.5} />
                     </div>
                     <div className="flex-1 space-y-1">
-                        <p className="text-sm font-black text-amber-900 uppercase tracking-widest leading-none">KYC Verification Required</p>
+                        <p className="text-sm font-black text-amber-900 uppercase tracking-widest leading-none">Official ID Needed</p>
                         <p className="text-xs font-medium text-amber-700 leading-relaxed max-w-lg">
-                            You need to complete your KYC submission in the Verification tab before you can claim delivery missions.
+                            Please verify your identity in the Verify Profile tab before you can accept new missions.
                         </p>
                     </div>
                     <Button
                         onClick={onVerificationClick}
                         className="rounded-xl h-12 px-8 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-amber-600/20 active:scale-95 transition-all w-full md:w-auto"
                     >
-                        Complete KYC
+                        Verify Identity
                     </Button>
                 </motion.div>
             )}
@@ -97,8 +97,8 @@ export function BroadcastMissions({
                         className="py-10 text-center border-2 border-dashed border-black/5 rounded-xl text-muted-foreground text-sm font-medium"
                     >
                         <Radio size={32} strokeWidth={1} className="mx-auto mb-3 opacity-20" />
-                        <p className="font-bold">Listening for missions in {profile?.zone?.split(" (")[0] || "your zone"}...</p>
-                        <p className="text-[10px] opacity-60">New missions will appear here automatically.</p>
+                        <p className="font-bold">Looking for missions in {profile?.zone?.split(" (")[0] || "your area"}...</p>
+                        <p className="text-[10px] opacity-60">Refreshing automatically to find you more work.</p>
                     </motion.div>
                 ) : (
                     <div className="grid gap-4">
@@ -201,12 +201,12 @@ export function BroadcastMissions({
                                             {isKycVerified ? (
                                                 <>
                                                     <Zap size={14} strokeWidth={3} />
-                                                    Claim Mission
+                                                    Accept Mission
                                                 </>
                                             ) : (
                                                 <>
                                                     <Clock size={14} strokeWidth={3} />
-                                                    {kycStatus === "pending" ? "Awaiting Verification" : "Complete Profile"}
+                                                    {kycStatus === "pending" ? "Reviewing Profile" : "ID Needed"}
                                                 </>
                                             )}
                                         </Button>

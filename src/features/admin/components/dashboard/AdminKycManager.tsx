@@ -123,14 +123,14 @@ export default function AdminKycManager() {
     }
   };
 
-  if (isLoading) return <div className="p-12 text-center text-muted-foreground font-bold bg-white rounded-xl">Loading KYC Verifications...</div>;
+  if (isLoading) return <div className="p-12 text-center text-muted-foreground font-bold bg-white rounded-xl">Checking member identities...</div>;
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-black tracking-tight uppercase">KYC Verifications</h2>
-          <p className="text-sm text-muted-foreground font-medium">Review and identify verification requests for marketplace roles.</p>
+          <h2 className="text-3xl font-black tracking-tight uppercase">Identity Checks</h2>
+          <p className="text-sm text-muted-foreground font-medium">Check and approve new sellers and delivery agents.</p>
         </div>
         <Tabs value={kycType} onValueChange={(v: any) => setKycType(v)} className="w-full sm:w-auto">
           <TabsList className="grid grid-cols-2 w-full sm:w-[300px] h-11 bg-white/50 backdrop-blur-sm border-none p-1 rounded-xl shadow-sm">
@@ -159,7 +159,7 @@ export default function AdminKycManager() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {verifications.length === 0 && (
-                <tr><td colSpan={6} className="px-8 py-16 text-center text-muted-foreground font-medium uppercase tracking-widest text-xs">No verification requests found.</td></tr>
+                <tr><td colSpan={6} className="px-8 py-16 text-center text-muted-foreground font-medium uppercase tracking-widest text-xs">No identity checks to do right now.</td></tr>
               )}
               {verifications.map((v: any) => (
                 <tr key={v.id} className="hover:bg-gray-50/30 transition-colors group">
@@ -218,10 +218,10 @@ export default function AdminKycManager() {
               </div>
               <div>
                 <DialogTitle className="text-2xl font-black tracking-tight text-foreground">
-                  Verification Details
+                  Identity Details
                 </DialogTitle>
                 <DialogDescription className="text-muted-foreground font-medium pt-1">
-                  Review {kycType === 'seller' ? 'seller' : 'rider'} KYC information
+                  Check {kycType === 'seller' ? 'seller' : 'rider'} identity information
                 </DialogDescription>
               </div>
             </div>
@@ -243,7 +243,7 @@ export default function AdminKycManager() {
                 </div>
                 {kycType === 'logistics' && (
                   <div>
-                    <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest mb-1">NIN Number</p>
+                    <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest mb-1">National ID (NIN)</p>
                     <p className="font-bold text-sm text-foreground">{selectedVerification.nin_number || ''}</p>
                   </div>
                 )}
@@ -263,7 +263,7 @@ export default function AdminKycManager() {
 
               {/* Identity Documents */}
               <div className="space-y-3">
-                <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">Verification Documents</p>
+                <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest">Proof of Identity</p>
                 <div className="grid grid-cols-2 gap-4">
                   {kycType === 'seller' ? (
                     <>
@@ -317,7 +317,7 @@ export default function AdminKycManager() {
 
               {selectedVerification.bank_details && (
                 <div className="border-t border-gray-100 pt-6">
-                  <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest mb-4">Bank Registry</p>
+                  <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest mb-4">Payment Details</p>
                   <div className="grid grid-cols-2 gap-4 bg-muted/30 p-4 rounded-xl border border-black/[0.03]">
                     <div>
                       <p className="text-[10px] font-bold text-muted-foreground uppercase opacity-60">Bank</p>

@@ -127,18 +127,19 @@ export function LogisticsEarnings() {
         if (!user) return;
         const ch = supabase
             .channel(`rider-earnings-rt-${user.id}`)
-            .on("postgres_changes", { event: "UPDATE", schema: "public", table: "wallets" },
-                () => queryClient.invalidateQueries({ queryKey: ["rider-wallet", user.id] }))
-            .on("postgres_changes", { event: "UPDATE", schema: "public", table: "shipments" },
-                () => queryClient.invalidateQueries({ queryKey: ["rider-completed-shipments", user.id] }))
-            .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders" },
-                (payload) => {
-                    if ((payload.new as any).status === "completed") {
-                        queryClient.invalidateQueries({ queryKey: ["rider-wallet", user.id] });
-                        queryClient.invalidateQueries({ queryKey: ["rider-completed-shipments", user.id] });
-                    }
+            .on("postgres_changes", { event: "*", schema: "public", table: "wallets", filter: `user_id=eq.${user.id}` },
+                () => {
+                    queryClient.invalidateQueries({ queryKey: ["rider-wallet-meta", user.id] });
+                    queryClient.invalidateQueries({ queryKey: ["logistics-details", user.id] });
                 })
-            .on("postgres_changes", { event: "*", schema: "public", table: "payout_requests" },
+            .on("postgres_changes", { event: "*", schema: "public", table: "wallet_transactions" },
+                () => {
+                    queryClient.invalidateQueries({ queryKey: ["rider-transactions", wallet?.id] });
+                    queryClient.invalidateQueries({ queryKey: ["logistics-details", user.id] });
+                })
+            .on("postgres_changes", { event: "UPDATE", schema: "public", table: "shipments", filter: `rider_id=eq.${user.id}` },
+                () => queryClient.invalidateQueries({ queryKey: ["rider-completed-shipments", user.id] }))
+            .on("postgres_changes", { event: "*", schema: "public", table: "payout_requests", filter: `user_id=eq.${user.id}` },
                 () => queryClient.invalidateQueries({ queryKey: ["rider-payout-requests", user.id] }))
             .subscribe();
         return () => { supabase.removeChannel(ch); };
@@ -226,7 +227,7 @@ export function LogisticsEarnings() {
                             <Wallet size={28} strokeWidth={2.5} />
                         </div>
                         <Badge className="bg-white/20 text-white border-none rounded-full px-4 font-black text-[10px] uppercase tracking-widest">
-                            Rider Asset Ledger
+                            Earnings Summary
                         </Badge>
                     </div>
                     <div>
@@ -237,7 +238,7 @@ export function LogisticsEarnings() {
                         </h2>
                         <div className="flex items-center gap-4 mt-2">
                             <p className="text-[10px] text-white/70 font-black uppercase tracking-widest bg-white/10 px-2 py-1 rounded-lg">
-                                ₦{settlingBalance.toLocaleString()} Settling
+                                ₦{settlingBalance.toLocaleString()} Held for Security
                             </p>
                             <p className="text-xs text-white/50 font-medium">
                                 {completedShipments.length} completed deliveries
@@ -257,9 +258,9 @@ export function LogisticsEarnings() {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-                { label: "Pending Cut", value: settlingBalance, icon: Clock, color: "text-amber-600", bg: "bg-amber-50" },
-                    { label: "Today", value: todayEarnings, icon: CreditCard, color: "text-blue-600", bg: "bg-blue-50" },
-                    { label: "Total History", value: totalEarnings, icon: TrendingUp, color: "text-green-600", bg: "bg-green-50" },
+                { label: "Locked Earnings", value: settlingBalance, icon: Clock, color: "text-amber-600", bg: "bg-amber-50" },
+                    { label: "Earned Today", value: todayEarnings, icon: CreditCard, color: "text-blue-600", bg: "bg-blue-50" },
+                    { label: "Life History", value: totalEarnings, icon: TrendingUp, color: "text-green-600", bg: "bg-green-50" },
                 ].map((card, i) => (
                     <Card key={i} className="border-none shadow-sm rounded-xl">
                         <CardContent className="p-8 flex items-center gap-5">

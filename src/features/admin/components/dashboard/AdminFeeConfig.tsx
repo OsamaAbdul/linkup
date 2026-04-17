@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/sha
 import { Label } from "@/shared/components/ui/label";
 import { Switch } from "@/shared/components/ui/switch";
 import { toast } from "sonner";
-import { Wallet, Percent, Banknote, Save, RotateCcw, ShieldCheck, Info, Map as MapIcon, Route } from "lucide-react";
+import { Wallet, Percent, Banknote, Save, RotateCcw, ShieldCheck, Info, Map as MapIcon, Route, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface FeeConfig {
@@ -78,14 +78,14 @@ export default function AdminFeeConfig() {
                         <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                             <Wallet size={24} />
                         </div>
-                        Financial Controller
+                        Payment & Fee Settings
                     </h2>
-                    <p className="text-muted-foreground font-medium text-sm ml-1">Configure platform rates, logistics payouts, and promoter commissions.</p>
+                    <p className="text-muted-foreground font-medium text-sm ml-1">Set the rates for the platform, shipping, and marketing.</p>
                 </div>
                 
                 <div className="flex items-center gap-2 bg-blue-50/50 px-4 py-2 rounded-2xl border border-blue-100">
                     <Info size={16} className="text-blue-600" />
-                    <span className="text-[11px] font-black text-blue-700 uppercase tracking-widest">Global Rates</span>
+                    <span className="text-[11px] font-black text-blue-700 uppercase tracking-widest">Platform Fees</span>
                 </div>
             </div>
 
@@ -132,7 +132,7 @@ export default function AdminFeeConfig() {
 
                                 <div className={cn("space-y-2", fee.fee_type === 'settlement' ? "col-span-2" : "")}>
                                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                                        {fee.fee_type === 'settlement' ? "Hold Duration (Hours)" : "Flat Fee (₦)"}
+                                        {fee.fee_type === 'settlement' ? "Waiting Time (Hours)" : "Fixed Charge (₦)"}
                                     </Label>
                                     <div className="relative group/input">
                                         <Input 
@@ -189,12 +189,12 @@ export default function AdminFeeConfig() {
                         <Banknote size={32} strokeWidth={1.5} />
                     </div>
                     <div className="max-w-md mx-auto">
-                        <h4 className="text-lg font-black uppercase tracking-tight">Calculation Logic</h4>
+                        <h4 className="text-lg font-black uppercase tracking-tight">How we calculate fees</h4>
                         <p className="text-sm text-muted-foreground font-medium">
-                            System fees are calculated as: 
+                            The system works out costs like this:
                             <br />
                             <code className="bg-black/5 px-2 py-1 rounded-md text-primary font-black mt-2 inline-block">
-                                (Order Subtotal × Rate) + Flat Fee
+                                (Order Total × Rate) + Fixed Charge
                             </code>
                         </p>
                     </div>

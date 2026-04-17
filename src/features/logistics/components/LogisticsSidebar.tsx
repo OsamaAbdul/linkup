@@ -48,9 +48,9 @@ export function LogisticsSidebar({
 
     const tabs = [
         { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-        { id: "orders", label: "Orders", icon: ShoppingBag },
+        { id: "orders", label: "Deliveries", icon: ShoppingBag },
         { id: "earnings", label: "Earnings", icon: Wallet },
-        { id: "verification", label: "Verification", icon: ShieldCheck },
+        { id: "verification", label: "ID Verification", icon: ShieldCheck },
         { id: "settings", label: "Settings", icon: Settings },
     ];
 
@@ -69,8 +69,9 @@ export function LogisticsSidebar({
                         width: isCollapsed ? 80 : 280,
                         x: isOpen ? 0 : (typeof window !== 'undefined' && window.innerWidth < 1024 ? -280 : 0)
                     }}
+                    transition={{ type: "spring", stiffness: 400, damping: 40, mass: 1 }}
                     className={cn(
-                        "fixed left-0 top-0 h-screen bg-white border-r border-black/[0.05] z-50 flex flex-col transition-all duration-300 ease-in-out",
+                        "fixed left-0 top-0 h-screen bg-white border-r border-black/[0.05] z-50 flex flex-col",
                         "lg:flex",
                         isOpen ? "flex shadow-2xl" : "hidden lg:flex"
                     )}

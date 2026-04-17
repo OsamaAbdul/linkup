@@ -10,7 +10,7 @@ function ForceReleaseButton() {
   const [loading, setLoading] = useState(false);
 
   const handleForceRelease = async () => {
-    if (!confirm("Are you sure you want to FORCE release all pending funds? This bypasses the 48-hour hold period and is meant for testing only.")) {
+    if (!confirm("Are you sure you want to PAY all sellers now? This will send all held money immediately without waiting for the 48-hour period.")) {
       return;
     }
 
@@ -47,7 +47,7 @@ function ForceReleaseButton() {
       ) : (
         <AlertTriangle size={14} />
       )}
-      Force Release All Pending Funds
+      Pay All Sellers Now
     </Button>
   );
 }
@@ -65,7 +65,7 @@ export default function AdminPaymentsSection() {
           onClick={() => setActiveTab("orders")}
         >
           <CreditCard size={14} className="mr-2" />
-          Order Payments
+          Money Received
         </Button>
         <Button
           variant={activeTab === "payouts" ? "default" : "ghost"}
@@ -74,7 +74,7 @@ export default function AdminPaymentsSection() {
           onClick={() => setActiveTab("payouts")}
         >
           <Landmark size={14} className="mr-2" />
-          Seller Payouts
+          Money Sent to Sellers
         </Button>
       </div>
 

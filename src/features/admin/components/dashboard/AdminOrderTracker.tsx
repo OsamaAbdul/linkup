@@ -41,7 +41,7 @@ export default function AdminOrderTracker() {
         staleTime: 1000 * 60 * 2, // 2 minutes
     });
 
-    if (isLoading) return <div className="p-12 text-center text-muted-foreground font-bold bg-white rounded-xl">Global Order Tracker Loading...</div>;
+    if (isLoading) return <div className="p-12 text-center text-muted-foreground font-bold bg-white rounded-xl">Loading all orders...</div>;
 
     const renderOrderDetails = (order: any) => {
         if (!order) return null;
@@ -72,7 +72,7 @@ export default function AdminOrderTracker() {
                     <div className="space-y-4">
                         <div className="flex items-center gap-2 text-muted-foreground font-bold text-[10px] uppercase tracking-widest">
                             <User size={14} className="text-primary" />
-                            Customer Identification
+                            Customer Info
                         </div>
                         <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                             <p className="font-bold text-sm">{(order.profiles as any)?.display_name || "Guest"}</p>
@@ -82,11 +82,11 @@ export default function AdminOrderTracker() {
                     <div className="space-y-4">
                         <div className="flex items-center gap-2 text-muted-foreground font-bold text-[10px] uppercase tracking-widest">
                             <Calendar size={14} className="text-primary" />
-                            Temporal Marker
+                            Date & Time
                         </div>
                         <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                             <p className="font-bold text-sm">{new Date(order.created_at).toLocaleString()}</p>
-                            <p className="text-[10px] font-medium text-muted-foreground mt-1 text-primary lowercase tracking-tighter">System Recorded</p>
+                            <p className="text-[10px] font-medium text-muted-foreground mt-1 text-primary lowercase tracking-tighter">Order Placement Time</p>
                         </div>
                     </div>
                 </div>
@@ -95,7 +95,7 @@ export default function AdminOrderTracker() {
                 <div className="space-y-4">
                     <div className="flex items-center gap-2 text-muted-foreground font-bold text-[10px] uppercase tracking-widest">
                         <Bike size={14} className="text-primary" />
-                        Rider identification
+                        Delivery Agent Info
                     </div>
                     {rider ? (
                         <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 flex items-center justify-between group">
@@ -118,13 +118,13 @@ export default function AdminOrderTracker() {
                                 </div>
                             </div>
                             <Badge className="bg-primary text-white border-none font-black text-[8px] uppercase tracking-widest px-2">
-                                Active Agent
+                                Delivery Partner
                             </Badge>
                         </div>
                     ) : (
                         <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 border-dashed text-center">
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">No Rider Assigned Yet</p>
-                            <p className="text-[9px] text-muted-foreground mt-1 italic">Waiting for an agent to claim this broadcast.</p>
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">No Agent Assigned Yet</p>
+                            <p className="text-[9px] text-muted-foreground mt-1 italic">Waiting for a driver to take the order.</p>
                         </div>
                     )}
                 </div>
@@ -132,15 +132,15 @@ export default function AdminOrderTracker() {
                 <div className="space-y-4">
                     <div className="flex items-center gap-2 text-muted-foreground font-bold text-[10px] uppercase tracking-widest">
                         <Package size={14} className="text-primary" />
-                        Manifest Contents ({items.length} Units)
+                        Package Items ({items.length})
                     </div>
                     <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
                         <table className="w-full text-left text-xs">
                             <thead>
                                 <tr className="bg-gray-50 border-b border-gray-100 text-[10px] font-black uppercase text-muted-foreground">
-                                    <th className="px-4 py-3">Item Descriptor</th>
+                                    <th className="px-4 py-3">Product Name</th>
                                     <th className="px-4 py-3 text-center">Qty</th>
-                                    <th className="px-4 py-3 text-right">Valuation</th>
+                                    <th className="px-4 py-3 text-right">Price</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
@@ -154,7 +154,7 @@ export default function AdminOrderTracker() {
                             </tbody>
                             <tfoot>
                                 <tr className="bg-indigo-50/50">
-                                    <td colSpan={2} className="px-4 py-4 font-black uppercase text-[10px] tracking-widest">Aggregate Valuation</td>
+                                    <td colSpan={2} className="px-4 py-4 font-black uppercase text-[10px] tracking-widest">Total Price</td>
                                     <td className="px-4 py-4 text-right font-black text-primary text-sm">₦{(order.total || 0).toLocaleString()}</td>
                                 </tr>
                             </tfoot>
@@ -165,7 +165,7 @@ export default function AdminOrderTracker() {
                 <div className="space-y-4">
                     <div className="flex items-center gap-2 text-muted-foreground font-bold text-[10px] uppercase tracking-widest">
                         <MapPin size={14} className="text-primary" />
-                        Logistic Delivery Address
+                        Shipping Address
                     </div>
                     <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                         <p className="text-sm font-medium leading-relaxed">
@@ -184,7 +184,7 @@ export default function AdminOrderTracker() {
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-black">Global Order Overview</h2>
+                <h2 className="text-2xl font-black">All Orders</h2>
                 <Badge className="bg-primary/10 text-primary border-none">{orders?.length} Total Orders</Badge>
             </div>
 
@@ -217,7 +217,7 @@ export default function AdminOrderTracker() {
                                                 <div className="flex items-center gap-3">
                                                     <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0 border-2 border-white shadow-sm overflow-hidden">
                                                         {rider.avatar_url ? (
-                                                            <img src={rider.avatar_url} className="h-full w-full object-cover" />
+                                                            <img src={rider.avatar_url} className="h-full w-full object-cover" alt={rider.display_name || "Agent"} />
                                                         ) : (
                                                             rider.display_name?.charAt(0) || "R"
                                                         )}
@@ -298,7 +298,7 @@ export default function AdminOrderTracker() {
                         <DialogHeader>
                             <div className="flex items-center justify-between mb-2">
                                 <Badge className="bg-primary text-white border-none font-black text-[9px] uppercase tracking-widest rounded-full py-1">
-                                    Order Analysis
+                                    Order Summary
                                 </Badge>
                                 <Badge variant="outline" className="border-primary/20 text-primary font-bold text-[10px] rounded-xl px-3 py-1">
                                     ST-OR-{selectedOrder?.id?.slice(0, 5).toUpperCase()}
@@ -308,7 +308,7 @@ export default function AdminOrderTracker() {
                                 Order Details
                             </DialogTitle>
                             <DialogDescription className="text-xs font-medium text-muted-foreground">
-                                Total breakdown of order manifest, logistics endpoint, and customer data.
+                                Full list of items, shipping location, and customer details.
                             </DialogDescription>
                         </DialogHeader>
                     </div>

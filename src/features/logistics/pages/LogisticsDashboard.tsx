@@ -185,7 +185,7 @@ export default function LogisticsDashboard() {
             />
 
             <div className={cn(
-                "flex-1 flex flex-col transition-all duration-300 ease-in-out w-full",
+                "flex-1 flex flex-col w-full transition-none",
                 "lg:ml-0",
                 !isCollapsed ? "lg:ml-[280px]" : "lg:ml-[80px]"
             )}>

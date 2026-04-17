@@ -116,14 +116,14 @@ export function AdminPayoutManager() {
                                 <Settings2 className="text-primary" size={20} />
                             </div>
                             <div>
-                                <h3 className="text-lg font-black tracking-tight">Withdrawal Configuration</h3>
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Policy orchestration & fee structures</p>
+                                <h3 className="text-lg font-black tracking-tight">Payout Settings</h3>
+                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Manage how and when sellers get paid.</p>
                             </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Flat Withdrawal Fee (₦)</Label>
+                                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Payout Fee (₦)</Label>
                                 <Input 
                                     type="number" 
                                     value={feeInput} 
@@ -148,14 +148,14 @@ export function AdminPayoutManager() {
                             className="bg-primary text-white h-12 px-8 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
                         >
                             <Save size={16} className="mr-2" />
-                            {updateSettingsMutation.isPending ? "Syncing..." : "Update Global Policies"}
+                            {updateSettingsMutation.isPending ? "Saving..." : "Save Payment Rules"}
                         </Button>
                     </div>
                 </Card>
 
                 <div className="space-y-4">
                     <div className="p-6 rounded-2xl bg-emerald-50 border border-emerald-100/50">
-                        <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest mb-1">Total Fee Revenue</p>
+                        <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest mb-1">Total Platform Income</p>
                         <p className="text-2xl font-black text-emerald-900 tracking-tight">
                             ₦{requests.filter(r => r.status === 'completed').reduce((sum, r) => sum + r.fee_amount, 0).toLocaleString()}
                         </p>
@@ -173,7 +173,7 @@ export function AdminPayoutManager() {
             <Card className="rounded-3xl border-none shadow-2xl shadow-black/[0.03] overflow-hidden bg-white">
                 <div className="p-6 border-b border-black/[0.03] flex items-center justify-between">
                     <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
-                        <Clock size={14} /> Payout Queue
+                        <Clock size={14} /> Waiting List
                     </h3>
                     <Badge variant="outline" className="rounded-full px-3 py-1 border-primary/20 text-primary font-bold">{requests.length} Requests</Badge>
                 </div>
@@ -181,8 +181,8 @@ export function AdminPayoutManager() {
                     <table className="w-full text-left">
                         <thead>
                             <tr className="bg-gray-50/50">
-                                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">User & Role</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Amount & Fee</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Member Info</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Total & Fee</th>
                                 <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Bank Details</th>
                                 <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Status</th>
                                 <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right">Actions</th>
@@ -263,7 +263,7 @@ export function AdminPayoutManager() {
                             ))}
                             {requests.length === 0 && (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-16 text-center text-muted-foreground font-bold italic">No payout requests in the queue.</td>
+                                    <td colSpan={5} className="px-6 py-16 text-center text-muted-foreground font-bold italic">No one is waiting for a payment.</td>
                                 </tr>
                             )}
                         </tbody>

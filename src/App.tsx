@@ -32,6 +32,7 @@ import Messages from "@/features/user/pages/Messages";
 import Chat from "@/features/user/pages/Chat";
 import PromoterDashboard from "@/features/promoter/pages/PromoterDashboard";
 import ResetPassword from "@/features/auth/pages/ResetPassword";
+import LogisticsDashboardV2 from "@/features/logistics_v2/pages/LogisticsDashboardV2";
 
 import { persistQueryClient } from "@tanstack/react-query-persist-client";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
@@ -84,6 +85,7 @@ const App = () => (
                 <Route path="/onboarding" element={<ProtectedRoute requireOnboarding={false}><Onboarding /></ProtectedRoute>} />
                 <Route path="/logistics" element={<Logistics />} />
                 <Route path="/logistics-dashboard" element={<ProtectedRoute><LogisticsDashboard /></ProtectedRoute>} />
+                <Route path="/logistics-v2" element={<ProtectedRoute><LogisticsDashboardV2 /></ProtectedRoute>} />
                 <Route path="/promoter-dashboard" element={<ProtectedRoute><PromoterDashboard /></ProtectedRoute>} />
                 <Route path="/seller-verification" element={<ProtectedRoute><SellerVerification /></ProtectedRoute>} />
                 <Route path="/admin-auth" element={<AdminAuth />} />

@@ -73,7 +73,7 @@ export default function AdminIssueManager() {
             if (error) throw error;
         },
         onSuccess: () => {
-            toast.success("Security ticket updated successfully");
+            toast.success("Complaint status updated successfully");
             queryClient.invalidateQueries({ queryKey: ["admin-issues-list"] });
         }
     });
@@ -81,15 +81,14 @@ export default function AdminIssueManager() {
     if (issuesLoading) return (
         <div className="p-20 text-center bg-white rounded-[3rem] shadow-sm animate-pulse">
             <AlertCircle className="mx-auto h-12 w-12 text-primary opacity-20 mb-4" />
-            <p className="font-black text-xl uppercase tracking-widest text-primary/40">Wait, loading all issues and fixes...</p>
+            <p className="font-black text-xl uppercase tracking-widest text-primary/40">Checking all reports and problems...</p>
         </div>
     );
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="flex flex-col gap-1">
-                <h2 className="text-3xl font-black tracking-tight">Manage Disputes and Settlements</h2>
-
+                <h2 className="text-3xl font-black tracking-tight">Manage Problems & Payouts</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -129,7 +128,7 @@ export default function AdminIssueManager() {
                                 {issue.product_id && (
                                     <Badge variant="outline" className="rounded-xl bg-primary/5 border-primary/10 text-[10px] font-bold text-primary flex items-center w-full gap-2 py-2 px-4">
                                         <AlertCircle className="w-4 h-4" />
-                                        Linked Asset: <span className="font-black underline decoration-2 underline-offset-4">{issue.products?.title || "Unknown Product"}</span>
+                                        Linked Product: <span className="font-black underline decoration-2 underline-offset-4">{issue.products?.title || "Unknown Product"}</span>
                                     </Badge>
                                 )}
 
@@ -152,23 +151,21 @@ export default function AdminIssueManager() {
                                 <div className="space-y-1">
                                     <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-1.5"><User size={10} /> Reported By</p>
                                     <div className="flex items-center justify-between">
-                                        <p className="text-xs font-bold text-foreground">{issue.reporter?.display_name || "Nexus Client"}</p>
+                                        <p className="text-xs font-bold text-foreground">{issue.reporter?.display_name || "Customer Name"}</p>
                                         <div className="flex gap-2">
-                                            {/* Phone numbers require separate fetching or manual handling for now */}
                                         </div>
                                     </div>
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-1.5"><Store size={10} /> Against Seller</p>
                                     <div className="flex items-center justify-between">
-                                        <p className="text-xs font-bold text-foreground">{issue.seller?.display_name || "Merchant Node"}</p>
+                                        <p className="text-xs font-bold text-foreground">{issue.seller?.display_name || "Seller Name"}</p>
                                         <div className="flex gap-2">
-                                            {/* Phone numbers require separate fetching or manual handling for now */}
                                         </div>
                                     </div>
                                 </div>
                                 <div className="space-y-1 col-span-2">
-                                    <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-1.5"><Clock size={10} /> Transmission Date</p>
+                                    <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-1.5"><Clock size={10} /> Report Date</p>
                                     <p className="text-xs font-bold text-foreground">{format(new Date(issue.created_at), "MMMM d, yyyy HH:mm")}</p>
                                 </div>
                             </div>
@@ -180,19 +177,19 @@ export default function AdminIssueManager() {
                                         onClick={() => resolveIssueMutation.mutate({ id: issue.id, status: 'resolved' })}
                                         disabled={resolveIssueMutation.isPending}
                                     >
-                                        <Check size={16} className="mr-2 stroke-[3px]" /> Resolve Ticket
+                                        <Check size={16} className="mr-2 stroke-[3px]" /> Fixed it
                                     </Button>
                                 ) : (
-                                    <Badge className="flex-1 justify-center rounded-xl h-12 bg-emerald-50 text-emerald-700 font-black uppercase text-[11px] tracking-widest border-2 border-emerald-100">Operation Restored</Badge>
+                                    <Badge className="flex-1 justify-center rounded-xl h-12 bg-emerald-50 text-emerald-700 font-black uppercase text-[11px] tracking-widest border-2 border-emerald-100">Problem Solved</Badge>
                                 )}
                                 <Button
                                     variant="outline"
                                     className="rounded-xl h-12 font-black text-[11px] uppercase tracking-widest border-2 hover:bg-black hover:text-white transition-colors"
                                     onClick={() => {
-                                        toast.info(`Rapid Intel tracking established for Issue #${issue.id.slice(0, 8)}`);
+                                        toast.info(`Tracking found for issue #${issue.id.slice(0, 8)}`);
                                     }}
                                 >
-                                    Intel
+                                    Details
                                 </Button>
                             </div>
                         </CardContent>

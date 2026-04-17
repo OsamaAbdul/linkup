@@ -60,12 +60,12 @@ export default function AdminDisputeManager() {
                 p_admin_notes: notes
             });
             if (error) throw error;
-            if (!data?.success) throw new Error(data?.error || "Resolution protocol failed");
+            if (!data?.success) throw new Error(data?.error || "Could not complete the refund/release.");
             return data;
         },
         onSuccess: () => {
-            toast.success("Dispute resolved successfully", {
-                description: "Financial nodes have been updated and settlement status synchronized.",
+            toast.success("Conflict resolved successfully", {
+                description: "Payments have been updated and money has been moved.",
             });
             setIsResolveModalOpen(false);
             setSelectedDispute(null);
@@ -88,7 +88,7 @@ export default function AdminDisputeManager() {
         <div className="flex items-center justify-center min-h-[400px] animate-pulse">
             <div className="flex flex-col items-center gap-4 text-primary/40 text-xs font-black uppercase tracking-widest">
                 <Scale size={48} className="animate-bounce" />
-                Synchronizing Judicial Ledger...
+                Checking problem reports...
             </div>
         </div>
     );
@@ -100,10 +100,10 @@ export default function AdminDisputeManager() {
                     <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center text-white shadow-lg shadow-red-200">
                         <Scale size={20} />
                     </div>
-                    <h2 className="text-3xl font-black tracking-tight">Dispute Resolution Center</h2>
+                    <h2 className="text-3xl font-black tracking-tight">Order Conflicts</h2>
                 </div>
                 <p className="text-muted-foreground font-medium max-w-2xl">
-                    Adjudicate financial conflicts between buyers and sellers. Resolving a dispute will automatically trigger refunds or release frozen settlements.
+                    Resolve money problems between buyers and sellers. Solving a conflict will automatically return money to the buyer or release it to the seller.
                 </p>
             </div>
 
@@ -111,8 +111,8 @@ export default function AdminDisputeManager() {
                 {disputes?.length === 0 ? (
                     <Card className="border-none shadow-sm rounded-[2.5rem] bg-white p-20 flex flex-col items-center justify-center text-center">
                         <CheckCircle2 size={64} className="text-emerald-400 opacity-20 mb-6" />
-                        <h3 className="text-2xl font-black mb-2 tracking-tight">Judicial Clean Slate</h3>
-                        <p className="text-muted-foreground font-medium">All commercial exchanges are currently operating within nominal parameters.</p>
+                        <h3 className="text-2xl font-black mb-2 tracking-tight">No Conflicts</h3>
+                        <p className="text-muted-foreground font-medium">All orders are currently running smoothly without any problems.</p>
                     </Card>
                 ) : (
                     disputes?.map((dispute: any) => (
@@ -143,13 +143,13 @@ export default function AdminDisputeManager() {
                                             </div>
                                             <h3 className="text-xl font-black tracking-tight mb-2 group-hover:text-red-600 transition-colors">{dispute.title}</h3>
                                             <p className="text-sm font-medium text-muted-foreground leading-relaxed italic border-l-2 border-red-100 pl-4">
-                                                "{dispute.description || "No intelligence provided by the initiator."}"
+                                                "{dispute.description || "No details provided by the customer."}"
                                             </p>
                                         </div>
 
                                         <div className="bg-gray-50 rounded-xl p-4 space-y-3">
                                             <div className="flex items-center justify-between">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Order Valuation</span>
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Order Amount</span>
                                                 <span className="text-lg font-black text-foreground">₦{dispute.order?.total?.toLocaleString()}</span>
                                             </div>
                                             <div className="flex items-center justify-between">
@@ -163,10 +163,10 @@ export default function AdminDisputeManager() {
                                     <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-6 pb-4 lg:pb-0 lg:border-r border-black/[0.03]">
                                         <div className="space-y-4">
                                             <p className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                                                <ShieldAlert size={14} /> Initiator (Buyer)
+                                                <ShieldAlert size={14} /> Reported by (Buyer)
                                             </p>
                                             <div>
-                                                <p className="text-[10px] font-black uppercase text-muted-foreground mb-1 tracking-widest">Buyer Initiator</p>
+                                                <p className="text-[10px] font-black uppercase text-muted-foreground mb-1 tracking-widest">Customer who complained</p>
                                                 <div className="flex items-center gap-2">
                                                     <div className="w-6 h-6 rounded-lg bg-gray-200 overflow-hidden">
                                                         {dispute.reporter?.avatar_url && <img src={dispute.reporter.avatar_url} alt="" className="w-full h-full object-cover" />}
@@ -178,7 +178,7 @@ export default function AdminDisputeManager() {
 
                                         <div className="space-y-4">
                                             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                                                <ShoppingBag size={14} /> Accused (Seller)
+                                                <ShoppingBag size={14} /> Seller Involved
                                             </p>
                                             <div className="flex items-center gap-3">
                                                 <div className="h-12 w-12 rounded-xl bg-gray-50 border-2 border-white shadow-sm flex items-center justify-center text-muted-foreground font-black uppercase">
@@ -186,7 +186,7 @@ export default function AdminDisputeManager() {
                                                 </div>
                                                 <div>
                                                     <p className="text-sm font-black">{dispute.order?.seller?.display_name || "Merchant Node"}</p>
-                                                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">Funds Frozen</p>
+                                                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">Money Held</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -201,10 +201,10 @@ export default function AdminDisputeManager() {
                                             </div>
                                             <div className="h-8 w-px bg-black/[0.05]" />
                                             <div className="flex flex-col">
-                                                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1">Evidence Status</span>
+                                                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1">Uploaded Proof</span>
                                                 <div className="flex items-center gap-1.5 text-xs font-bold text-amber-600">
                                                     <AlertCircle size={12} />
-                                                    {dispute.evidence_url ? "Payload Received" : "Awaiting Data"}
+                                                    {dispute.evidence_url ? "Proof uploaded" : "Waiting for proof"}
                                                 </div>
                                             </div>
                                         </div>
@@ -218,21 +218,21 @@ export default function AdminDisputeManager() {
                                                     className="w-full h-12 rounded-xl bg-black text-white hover:bg-primary transition-all font-black text-[11px] uppercase tracking-widest shadow-xl shadow-black/10 group/btn"
                                                     onClick={() => handleResolveClick(dispute, "release")}
                                                 >
-                                                    Release Funds <ArrowRight size={14} className="ml-2 group-hover/btn:translate-x-1 transition-transform" />
+                                                    Pay the Seller <ArrowRight size={14} className="ml-2 group-hover/btn:translate-x-1 transition-transform" />
                                                 </Button>
                                                 <Button 
                                                     variant="outline" 
                                                     className="w-full h-12 rounded-xl border-2 border-red-100 text-red-600 hover:bg-red-50 font-black text-[11px] uppercase tracking-widest"
                                                     onClick={() => handleResolveClick(dispute, "refund")}
                                                 >
-                                                    Refund Buyer <RefreshCcw size={14} className="ml-2" />
+                                                    Refund the Buyer <RefreshCcw size={14} className="ml-2" />
                                                 </Button>
                                             </>
                                         ) : (
                                             <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6 text-center space-y-1">
                                                 <CheckCircle2 size={24} className="mx-auto text-emerald-500 mb-2" />
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 italic">Protocol Resolved</p>
-                                                <p className="text-xs font-bold">{dispute.resolution_meta?.resolution === 'refund' ? "Buyer Refunded" : "Funds Released"}</p>
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 italic">Problem Solved</p>
+                                                <p className="text-xs font-bold">{dispute.resolution_meta?.resolution === 'refund' ? "Buyer was refunded" : "Money was released"}</p>
                                             </div>
                                         )}
                                     </div>
@@ -251,20 +251,20 @@ export default function AdminDisputeManager() {
                             "text-2xl font-black",
                             resolutionType === 'refund' ? "text-red-600" : "text-emerald-600"
                         )}>
-                            {resolutionType === 'refund' ? "Confirm Neural Refund" : "Release Escrow Settlement"}
+                            {resolutionType === 'refund' ? "Confirm Refund" : "Release the Money"}
                         </DialogTitle>
                         <DialogDescription className="font-medium">
                             {resolutionType === 'refund' 
-                                ? "This will return the order valuation to the buyer and cancel the merchant's payout permanently." 
-                                : "This will confirm the commercial exchange was valid and schedule a payout to the merchant wallet."}
+                                ? "This will return the money to the buyer and cancel the seller's payment." 
+                                : "This will confirm the sale was okay and pay the seller immediately."}
                         </DialogDescription>
                     </DialogHeader>
 
                     <div className="space-y-4">
                         <div className="bg-muted p-4 rounded-2xl space-y-2">
                              <div className="flex justify-between text-[10px] font-black uppercase tracking-widest opacity-40">
-                                <span>Subject Order</span>
-                                <span>Total Valuation</span>
+                                <span>Problem Order</span>
+                                <span>Order Amount</span>
                              </div>
                              <div className="flex justify-between items-baseline">
                                 <span className="font-mono text-xs font-bold">#{selectedDispute?.order?.id.slice(0, 12).toUpperCase()}</span>
@@ -273,9 +273,9 @@ export default function AdminDisputeManager() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Judicial Reasoning</label>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Manager Notes</label>
                             <Textarea 
-                                placeholder="Explain the logic behind this resolution protocol..."
+                                placeholder="Explain why you are taking this action..."
                                 className="min-h-[120px] bg-gray-50 border-none rounded-2xl text-sm font-medium focus:ring-2 focus:ring-primary/20"
                                 value={resolutionNotes}
                                 onChange={(e) => setResolutionNotes(e.target.value)}
@@ -289,7 +289,7 @@ export default function AdminDisputeManager() {
                             className="rounded-xl h-12 font-black uppercase tracking-widest text-[11px]" 
                             onClick={() => setIsResolveModalOpen(false)}
                         >
-                            Abort
+                            Cancel
                         </Button>
                         <Button 
                             className={cn(
@@ -303,7 +303,7 @@ export default function AdminDisputeManager() {
                                 notes: resolutionNotes
                             })}
                         >
-                            {resolveMutation.isPending ? "Syncing..." : "Finalize Resolution"}
+                            {resolveMutation.isPending ? "Processing..." : "Finish Problem"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

@@ -124,10 +124,10 @@ export default function AdminLogisticsManager() {
                         <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                             <Settings2 size={20} strokeWidth={3} />
                         </div>
-                        <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Infrastructure</p>
+                        <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Setup</p>
                     </div>
-                    <h1 className="text-4xl font-black text-foreground tracking-tight">Logistics Management</h1>
-                    <p className="text-muted-foreground font-medium mt-1">Configure vehicles, cities, and operational zones.</p>
+                    <h1 className="text-4xl font-black text-foreground tracking-tight">Delivery & Shipping</h1>
+                    <p className="text-muted-foreground font-medium mt-1">Manage delivery regions and transport types.</p>
                 </div>
             </div>
 
@@ -149,8 +149,8 @@ export default function AdminLogisticsManager() {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <Card className="lg:col-span-1 rounded-2xl border-none shadow-xl shadow-black/[0.02] bg-white h-fit">
                             <CardHeader>
-                                <CardTitle className="text-xl font-black uppercase tracking-tight italic">Add New Vehicle</CardTitle>
-                                <CardDescription className="text-xs font-bold uppercase tracking-widest opacity-60">System Catalog Unit</CardDescription>
+                                <CardTitle className="text-xl font-black uppercase tracking-tight italic">Add Transport</CardTitle>
+                                <CardDescription className="text-xs font-bold uppercase tracking-widest opacity-60">Vehicle Information</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">
@@ -181,7 +181,7 @@ export default function AdminLogisticsManager() {
                                 {loadingVehicles ? (
                                     <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>
                                 ) : vehicleTypes.length === 0 ? (
-                                    <div className="p-12 text-center text-muted-foreground font-bold italic">No vehicles registered in system.</div>
+                                    <div className="p-12 text-center text-muted-foreground font-bold italic">No transport types added yet.</div>
                                 ) : (
                                     vehicleTypes.map((v: any) => (
                                         <div key={v.id} className="p-6 flex items-center justify-between hover:bg-gray-50/50 transition-colors group">
@@ -216,7 +216,7 @@ export default function AdminLogisticsManager() {
                         <Card className="lg:col-span-1 rounded-2xl border-none shadow-xl shadow-black/[0.02] bg-white h-fit">
                             <CardHeader>
                                 <CardTitle className="text-xl font-black uppercase tracking-tight italic">New Zone</CardTitle>
-                                <CardDescription className="text-xs font-bold uppercase tracking-widest opacity-60">Geographic Node</CardDescription>
+                                <CardDescription className="text-xs font-bold uppercase tracking-widest opacity-60">Delivery Area</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">
@@ -268,7 +268,7 @@ export default function AdminLogisticsManager() {
                                                 </div>
                                                 <div>
                                                     <p className="font-black text-foreground">{z.name}</p>
-                                                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{z.cities?.name || 'Local'} Cluster</p>
+                                                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{z.cities?.name || 'Local'} Group</p>
                                                 </div>
                                             </div>
                                             <Button 
@@ -293,7 +293,7 @@ export default function AdminLogisticsManager() {
                         <Card className="lg:col-span-1 rounded-2xl border-none shadow-xl shadow-black/[0.02] bg-white h-fit">
                             <CardHeader>
                                 <CardTitle className="text-xl font-black uppercase tracking-tight italic">New Region</CardTitle>
-                                <CardDescription className="text-xs font-bold uppercase tracking-widest opacity-60">System Territory</CardDescription>
+                                <CardDescription className="text-xs font-bold uppercase tracking-widest opacity-60">Active Areas</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">

@@ -52,7 +52,7 @@ export default function AdminSystemHistory() {
         window.print();
     };
 
-    if (logsLoading) return <div className="p-12 text-center text-muted-foreground font-bold bg-white rounded-xl">Audit Logs & History Loading...</div>;
+    if (logsLoading) return <div className="p-12 text-center text-muted-foreground font-bold bg-white rounded-xl">Loading activity list...</div>;
 
     const actionTypes = Array.from(new Set(logs?.map(l => l.action) || []));
 
@@ -60,7 +60,7 @@ export default function AdminSystemHistory() {
         <div className="space-y-6 print:p-0">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 no-print">
                 <div className="space-y-4 flex-1">
-                    <h2 className="text-2xl font-black">Audit Protocol Registry</h2>
+                    <h2 className="text-2xl font-black">System Activity Records</h2>
                     <div className="flex flex-wrap gap-4">
                         <div className="relative w-64">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
@@ -77,7 +77,7 @@ export default function AdminSystemHistory() {
                             value={actionFilter}
                             onChange={(e) => setActionFilter(e.target.value)}
                         >
-                            <option value="all">All Action Protocols</option>
+                            <option value="all">All Actions</option>
                             {actionTypes.map((type: any) => (
                                 <option key={type} value={type}>{type.replace(/_/g, ' ').toUpperCase()}</option>
                             ))}
@@ -85,7 +85,7 @@ export default function AdminSystemHistory() {
                     </div>
                 </div>
                 <Button className="rounded-xl font-black bg-primary h-11 px-8 shadow-xl shadow-primary/20" onClick={handlePrint}>
-                    <Printer size={18} className="mr-2" /> Print System Report
+                    <Printer size={18} className="mr-2" /> Print Activity List
                 </Button>
             </div>
 
@@ -94,10 +94,10 @@ export default function AdminSystemHistory() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="border-b border-gray-100 bg-gray-50/50">
-                                <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Timestamp</th>
-                                <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Protocol Action</th>
-                                <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Actor</th>
-                                <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Target Reference</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Date & Time</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Action Taken</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Who did it</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">ID or Item</th>
                                 <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right">Details</th>
                             </tr>
                         </thead>
@@ -135,7 +135,7 @@ export default function AdminSystemHistory() {
                             ))}
                             {filteredLogs?.length === 0 && (
                                 <tr>
-                                    <td colSpan={5} className="p-20 text-center font-bold text-muted-foreground italic">No historical data matching your protocol filters.</td>
+                                    <td colSpan={5} className="p-20 text-center font-bold text-muted-foreground italic">No activity found for these filters.</td>
                                 </tr>
                             )}
                         </tbody>

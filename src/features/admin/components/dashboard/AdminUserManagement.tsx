@@ -76,11 +76,11 @@ export default function AdminUserManagement() {
             if (error) throw error;
         },
         onSuccess: () => {
-            toast.success("User successfully deleted from system registry");
+            toast.success("Member successfully removed from the store.");
             queryClient.invalidateQueries({ queryKey: ["admin-users-list"] });
         },
         onError: (err: any) => {
-            toast.error("Deletion protocol failed: " + err.message);
+            toast.error("Could not delete member: " + err.message);
         }
     });
 
@@ -89,14 +89,14 @@ export default function AdminUserManagement() {
         setCurrentPage(1); // Reset to first page on search
     };
 
-    if (usersLoading) return <div className="p-12 text-center text-muted-foreground font-bold bg-white rounded-xl">Loading all users...</div>;
+    if (usersLoading) return <div className="p-12 text-center text-muted-foreground font-bold bg-white rounded-xl">Checking members list...</div>;
 
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-black">User Registry</h2>
-                    <p className="text-sm text-muted-foreground font-medium">Manage Buyers, Sellers, Promoters, and Logistics Agents.</p>
+                    <h2 className="text-2xl font-black">Member List</h2>
+                    <p className="text-sm text-muted-foreground font-medium">Manage everyone who uses the platform.</p>
                 </div>
 
                 <div className="flex items-center gap-4">
@@ -105,7 +105,7 @@ export default function AdminUserManagement() {
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                             <input
                                 type="text"
-                                placeholder="Universal search..."
+                                placeholder="Search by name or role..."
                                 className="w-full h-11 bg-white border-none rounded-xl pl-12 pr-4 text-sm font-medium shadow-sm focus:ring-2 focus:ring-primary/20 transition-all"
                                 value={searchQuery}
                                 onChange={handleSearchChange}
@@ -114,7 +114,7 @@ export default function AdminUserManagement() {
                     </div>
                     <div className="flex items-center gap-2">
                         <Badge variant="outline" className="h-10 px-4 rounded-xl border-white bg-white/50 text-[10px] font-black uppercase tracking-widest text-muted-foreground shadow-sm">
-                            {totalCount} Total Users
+                            {totalCount} Members
                         </Badge>
                     </div>
                 </div>
@@ -125,11 +125,11 @@ export default function AdminUserManagement() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="border-b border-gray-100 bg-gray-50/50">
-                                <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">User Profile</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Member Info</th>
                                 <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Roles</th>
                                 <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Activity</th>
                                 <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Joined</th>
-                                <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right">Security</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right">Options</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
@@ -140,7 +140,7 @@ export default function AdminUserManagement() {
                                         <td className="px-8 py-6">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-primary border border-gray-200 overflow-hidden font-black text-xs">
-                                                    {u.avatar_url ? <img src={u.avatar_url} className="w-full h-full object-cover" /> : u.display_name?.[0]}
+                                                    {u.avatar_url ? <img src={u.avatar_url} className="w-full h-full object-cover" alt={u.display_name || "User"} /> : u.display_name?.[0]}
                                                 </div>
                                                 <div>
                                                     <p className="font-bold text-sm text-foreground">{u.display_name || "Unnamed User"}</p>
@@ -181,7 +181,7 @@ export default function AdminUserManagement() {
                                                 size="icon"
                                                 className="rounded-xl text-destructive hover:bg-destructive/10"
                                                 onClick={() => {
-                                                    if (confirm("ARCHIVAL PROTOCOL: Are you sure you want to delete this user? This action is irreversible.")) {
+                                                    if (confirm("Are you sure? This will permanently delete this member and cannot be undone.")) {
                                                         deleteUserMutation.mutate(u.id);
                                                     }
                                                 }}

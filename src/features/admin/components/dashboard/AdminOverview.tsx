@@ -82,7 +82,7 @@ export default function AdminOverview() {
     const [isSettling, setIsSettling] = useState(false);
 
     const handleForceSettlement = async () => {
-        if (!confirm("TESTING ONLY: Are you sure you want to move ALL escrow balances to main balances? This will process all pending transactions immediately.")) {
+        if (!confirm("TESTING ONLY: Are you sure you want to move ALL held funds to main balances? This will pay out all pending transactions immediately.")) {
             return;
         }
 
@@ -109,18 +109,18 @@ export default function AdminOverview() {
     };
 
     const stats = [
-        { label: "Total Revenue", value: revenueData, icon: TrendingUp, loading: isRevLoading, isCurrency: true },
-        { label: "Active Orders", value: activeOrdersCount, icon: ShoppingBag, loading: isActiveOrdersLoading },
+        { label: "Total Sales", value: revenueData, icon: TrendingUp, loading: isRevLoading, isCurrency: true },
+        { label: "Ongoing Orders", value: activeOrdersCount, icon: ShoppingBag, loading: isActiveOrdersLoading },
         { label: "Total Users", value: usersCount, icon: Users, loading: isUsersLoading },
-        { label: "Open Issues", value: openIssuesCount, icon: AlertTriangle, loading: isIssuesLoading },
+        { label: "Complaints", value: openIssuesCount, icon: AlertTriangle, loading: isIssuesLoading },
     ];
 
     return (
         <div className="space-y-8">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-black tracking-tight">System Overview</h1>
-                    <p className="text-muted-foreground font-medium">Real-time platform performance metrics.</p>
+                    <h1 className="text-3xl font-black tracking-tight">Platform Summary</h1>
+                    <p className="text-muted-foreground font-medium">How the store is doing right now.</p>
                 </div>
 
                 {import.meta.env.DEV && (
@@ -140,7 +140,7 @@ export default function AdminOverview() {
                             ) : (
                                 <Play size={18} className="fill-current group-hover:scale-110 transition-transform" />
                             )}
-                            {isSettling ? "Settling..." : "Force Settle Escrow"}
+                            {isSettling ? "Paying..." : "Release Held Money"}
                         </Button>
                     </div>
                 )}
@@ -175,8 +175,8 @@ export default function AdminOverview() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <Card className="lg:col-span-2 border-none shadow-sm rounded-xl bg-white overflow-hidden">
                     <CardHeader className="p-8 pb-0">
-                        <CardTitle className="text-xl font-black">Recent Critical Alerts</CardTitle>
-                        <CardDescription className="font-medium">High priority issues requiring administrative attention.</CardDescription>
+                        <CardTitle className="text-xl font-black">Urgent Updates</CardTitle>
+                        <CardDescription className="font-medium">Important tasks that need your attention.</CardDescription>
                     </CardHeader>
                     <CardContent className="p-8 space-y-4">
                         {criticalAlerts?.length === 0 ? (

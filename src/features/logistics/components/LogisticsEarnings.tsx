@@ -227,7 +227,7 @@ export function LogisticsEarnings() {
 
     const statusBadge = (status: string) => {
         const map: Record<string, string> = {
-            pending: "bg-amber-100 text-amber-700",
+            pending: "bg-orange-100 text-[#E96F28]",
             approved: "bg-blue-100 text-blue-700",
             processing: "bg-purple-100 text-purple-700",
             completed: "bg-green-100 text-green-700",
@@ -286,7 +286,7 @@ export function LogisticsEarnings() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[
                     { label: "Security Hold", value: settlingBalance, icon: Clock, color: "text-amber-600", bg: "bg-amber-50" },
-                    { label: "Earned Today", value: todayEarnings, icon: CreditCard, color: "text-blue-600", bg: "bg-blue-50" },
+                    { label: "Earned Today", value: todayEarnings, icon: CreditCard, color: "text-[#E96F28]", bg: "bg-[#FFF7F2]" },
                     { label: "Total Lifetime", value: totalEarnings, icon: TrendingUp, color: "text-green-600", bg: "bg-green-50" },
                 ].map((card, i) => (
                     <Card key={i} className="border-none shadow-sm rounded-xl">
@@ -424,7 +424,7 @@ export function LogisticsEarnings() {
                                         <h2 className="text-xl font-black tracking-tight uppercase">Payout Tracker</h2>
                                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Ref: #{selectedPayout.id.slice(0, 8)}</p>
                                     </div>
-                                    <Badge className="bg-blue-600 text-white border-none rounded-full px-3 py-1 font-black text-[9px] uppercase tracking-widest">
+                                    <Badge className="bg-[#E96F28] text-white border-none rounded-full px-3 py-1 font-black text-[9px] uppercase tracking-widest">
                                         Live Status
                                     </Badge>
                                 </div>
@@ -456,7 +456,7 @@ export function LogisticsEarnings() {
                                         </div>
                                         <Button
                                             onClick={handleDownloadReceipt}
-                                            className="w-full h-12 rounded-2xl font-black uppercase tracking-widest bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-600/20"
+                                            className="w-full h-12 rounded-2xl font-black uppercase tracking-widest bg-[#E96F28] hover:bg-orange-700 text-white shadow-xl shadow-orange-600/20"
                                         >
                                             <Download size={18} className="mr-2" />
                                             Download Receipt

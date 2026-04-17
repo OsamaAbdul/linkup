@@ -197,12 +197,12 @@ const AnimatedTicket = React.forwardRef<HTMLDivElement, TicketProps>(
           <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-background" />
           <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-background" />
 
-          <div className="p-8 flex flex-col items-center text-center bg-blue-600 rounded-t-2xl text-white">
+          <div className="p-8 flex flex-col items-center text-center bg-[#E96F28] rounded-t-2xl text-white">
               <div className="p-3 bg-white/20 rounded-full animate-in zoom-in-50 delay-300 duration-500">
                   <CheckCircleIcon className="w-10 h-10 text-white animate-in zoom-in-75 delay-500 duration-500" />
               </div>
               <h1 className="text-2xl font-black mt-4 tracking-tight">Withdrawal Confirmed</h1>
-              <p className="text-blue-100 mt-1 text-sm font-medium">
+              <p className="text-orange-100 mt-1 text-sm font-medium">
                 Funds are on the way to your bank account
               </p>
           </div>
@@ -219,8 +219,8 @@ const AnimatedTicket = React.forwardRef<HTMLDivElement, TicketProps>(
                       <p className="font-bold text-red-500">- ₦ {fee.toLocaleString()}</p>
                   </div>
                   <div className="flex justify-between items-center pt-1">
-                      <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-black text-blue-600">Net Payout</p>
-                      <p className="font-black text-2xl tracking-tighter text-blue-600">{formattedAmount}</p>
+                      <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-black text-[#E96F28]">Net Payout</p>
+                      <p className="font-black text-2xl tracking-tighter text-[#E96F28]">{formattedAmount}</p>
                   </div>
               </div>
 
@@ -235,8 +235,8 @@ const AnimatedTicket = React.forwardRef<HTMLDivElement, TicketProps>(
                   </div>
               </div>
 
-              <div className="bg-blue-50/50 p-4 border border-blue-100/50 rounded-2xl flex items-center space-x-4">
-                  <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-600/20 shrink-0">
+              <div className="bg-orange-50/50 p-4 border border-orange-100/50 rounded-2xl flex items-center space-x-4">
+                  <div className="w-10 h-10 rounded-xl bg-[#E96F28] flex items-center justify-center text-white shadow-md shadow-orange-600/20 shrink-0">
                       <Landmark className="w-5 h-5" />
                   </div>
                   <div className="min-w-0">

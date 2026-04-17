@@ -93,12 +93,12 @@ export function LogisticsHeader({
                         {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
                     </Button>
 
-                    <div className="w-10 h-10 rounded-xl bg-blue-600 lg:hidden flex items-center justify-center text-white shrink-0 shadow-lg shadow-blue-600/20">
+                    <div className="w-10 h-10 rounded-xl bg-[#E96F28] lg:hidden flex items-center justify-center text-white shrink-0 shadow-lg shadow-orange-600/20">
                         <span className="font-black text-xl">L</span>
                     </div>
                     <span className="font-black text-xl tracking-tight hidden md:block uppercase tracking-[-0.04em]">
                         {activeTab === "verification" ? "Verification" : "Linkup"}
-                        <span className="text-blue-600">.</span>
+                        <span className="text-[#E96F28]">.</span>
                     </span>
                     <div className="hidden lg:block ml-2">
                         <RoleSwitcher />
@@ -108,7 +108,7 @@ export function LogisticsHeader({
                 <div className="flex items-center gap-4">
                     <div className="hidden sm:flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-black/[0.05] shadow-sm transition-all hover:border-black/[0.1] group/stats">
                         <div className="flex flex-col items-start leading-tight">
-                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest group-hover/stats:text-blue-600 transition-colors">Agent Status</span>
+                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest group-hover/stats:text-[#E96F28] transition-colors">Agent Status</span>
                             <span className={cn(
                                 "text-[11px] font-black uppercase tracking-tight",
                                 isOnline ? "text-green-600" : "text-gray-400"
@@ -124,11 +124,11 @@ export function LogisticsHeader({
                     </div>
 
                     {(kycStatus === 'verified' || kycStatus === 'approved') && (
-                        <div className="hidden lg:flex items-center gap-2 bg-blue-50/50 px-3 py-1.5 rounded-xl border border-blue-500/10">
-                            <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                        <div className="hidden lg:flex items-center gap-2 bg-orange-50/50 px-3 py-1.5 rounded-xl border border-orange-500/10">
+                            <div className="w-5 h-5 rounded-full bg-[#E96F28] flex items-center justify-center text-white">
                                 <ShieldCheck size={12} strokeWidth={3} />
                             </div>
-                            <span className="text-[10px] font-black text-blue-700 uppercase tracking-widest">Verified</span>
+                            <span className="text-[10px] font-black text-orange-700 uppercase tracking-widest">Verified</span>
                         </div>
                     )}
 
@@ -151,18 +151,18 @@ export function LogisticsHeader({
                                 {profile?.display_name || "Agent"}
                             </span>
                             {(kycStatus === 'verified' || kycStatus === 'approved') && (
-                                <span className="text-[7px] font-black text-blue-600 uppercase tracking-widest leading-none">Verified</span>
+                                <span className="text-[7px] font-black text-[#E96F28] uppercase tracking-widest leading-none">Verified</span>
                             )}
                         </div>
                         <Button variant="ghost" size="icon" className="rounded-xl relative bg-gray-50/50 hover:bg-gray-100 transition-all border border-transparent hover:border-black/5">
                             <Bell size={18} className="text-foreground" />
-                            <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-blue-500 rounded-full border-2 border-white" />
+                            <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-[#E96F28] rounded-full border-2 border-white" />
                         </Button>
 
                         <div className="h-10 w-10 relative group cursor-pointer">
                             <Avatar className="w-10 h-10 rounded-xl border border-black/[0.05] shadow-sm group-hover:scale-105 transition-transform duration-200">
                                 <AvatarImage src={profile?.avatar_url || ""} />
-                                <AvatarFallback className="bg-blue-600/10 text-blue-600 text-[10px] font-black uppercase">
+                                <AvatarFallback className="bg-orange-600/10 text-orange-600 text-[10px] font-black uppercase">
                                     {profile?.display_name?.charAt(0) || user?.email?.[0]}
                                 </AvatarFallback>
                             </Avatar>
@@ -174,7 +174,7 @@ export function LogisticsHeader({
                                 }}
                                 disabled={uploading}
                                 className={cn(
-                                    "absolute -bottom-1 -right-1 p-1 rounded-full bg-blue-600 text-white shadow-lg border-2 border-white transition-all transform scale-100 md:scale-0 md:group-hover:scale-100",
+                                    "absolute -bottom-1 -right-1 p-1 rounded-full bg-[#E96F28] text-white shadow-lg border-2 border-white transition-all transform scale-100 md:scale-0 md:group-hover:scale-100",
                                     uploading && "scale-100 bg-gray-400"
                                 )}
                             >

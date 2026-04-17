@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/context/AuthContext";
@@ -131,7 +131,7 @@ export default function Logistics() {
                                         <div>
                                             <Badge className={cn(
                                                 "rounded-full px-3 py-0.5 text-[9px] font-black uppercase tracking-widest border-none",
-                                                s.status === 'assigned' ? 'bg-blue-100 text-blue-800' :
+                                                s.status === 'assigned' ? 'bg-orange-100 text-[#E96F28]' :
                                                     s.status === 'picked_up' ? 'bg-amber-100 text-amber-800' :
                                                         s.status === 'delivered' ? 'bg-green-100 text-green-800' : 'bg-muted text-muted-foreground'
                                             )}>
@@ -158,11 +158,11 @@ export default function Logistics() {
                                         </div>
 
                                         <div className="flex items-start gap-4">
-                                            <div className="mt-1 w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600 flex-shrink-0">
+                                            <div className="mt-1 w-8 h-8 rounded-xl bg-[#E96F28]/10 flex items-center justify-center text-[#E96F28] flex-shrink-0">
                                                 <Navigation size={16} strokeWidth={3} />
                                             </div>
                                             <div>
-                                                <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Delivery Destination</p>
+                                                <p className="text-[10px] font-black text-[#E96F28] uppercase tracking-widest mb-1">Delivery Destination</p>
                                                 <p className="text-sm font-bold text-foreground leading-tight">{(s.delivery_address as any)?.address || "Check Registry"}</p>
                                             </div>
                                         </div>
@@ -172,7 +172,7 @@ export default function Logistics() {
                                 <CardFooter className="p-8 pt-0 gap-3">
                                     {s.status === "assigned" && (
                                         <Button
-                                            className="w-full rounded-xl h-14 font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 active:scale-95 transition-transform"
+                                            className="w-full rounded-xl h-14 font-black text-xs uppercase tracking-widest shadow-xl shadow-orange-600/20 active:scale-95 transition-transform"
                                             onClick={() => {
                                                 const address = (s.delivery_address as any)?.address;
                                                 const lat = (s.delivery_address as any)?.lat;
@@ -196,7 +196,7 @@ export default function Logistics() {
                                     )}
                                     {s.status === "picked_up" && (
                                         <Button
-                                            className="w-full rounded-xl h-14 font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 bg-green-600 hover:bg-green-700 active:scale-95 transition-transform"
+                                            className="w-full rounded-xl h-14 font-black text-xs uppercase tracking-widest shadow-xl shadow-orange-600/20 bg-green-600 hover:bg-green-700 active:scale-95 transition-transform"
                                             onClick={() => {
                                                 setUpdatingId(s.id);
                                                 updateShipmentStatus.mutate({ id: s.id, status: "delivered", orderId: s.order_id });

@@ -111,7 +111,7 @@ export default function LogisticsDashboardV2() {
                         {/* Hero Section / Stats Overview (Desktop) */}
                         <div className="hidden lg:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                             {[
-                                { label: "Active Deliveries", value: "...", icon: Package, color: "text-blue-600", bg: "bg-blue-50" },
+                                { label: "Active Deliveries", value: "...", icon: Package, color: "text-[#E96F28]", bg: "bg-[#FFF7F2]" },
                                 { label: "Ready Balance", value: `₦ ${(details?.balance || 0).toLocaleString()}`, icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50" },
                                 { label: "Safety Hold", value: `₦ ${(details?.escrow_balance || 0).toLocaleString()}`, icon: Clock, color: "text-amber-600", bg: "bg-amber-50" },
                                 { label: "Distance Covered", value: "48.2km", icon: MapPin, color: "text-indigo-600", bg: "bg-indigo-50" },

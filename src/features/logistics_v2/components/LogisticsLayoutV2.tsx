@@ -84,14 +84,14 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
     }, [user, queryClient]);
 
     return (
-        <div className="min-h-screen bg-[#F9FAFB] flex flex-col lg:flex-row font-sans selection:bg-blue-100 selection:text-blue-900">
+        <div className="min-h-screen bg-[#F9FAFB] flex flex-col lg:flex-row font-sans selection:bg-orange-100 selection:text-orange-900">
             {/* Desktop Sidebar */}
             <aside className="hidden lg:flex flex-col w-72 bg-white border-r border-black/[0.04] h-screen sticky top-0 p-6 z-50">
                 <div className="flex items-center gap-3 mb-12 px-2">
-                    <div className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-xl shadow-blue-600/20">
+                    <div className="w-10 h-10 rounded-2xl bg-[#E96F28] flex items-center justify-center text-white shadow-xl shadow-orange-600/20">
                         <span className="font-black text-xl">L</span>
                     </div>
-                    <span className="font-black text-xl tracking-tight uppercase">Linkup<span className="text-blue-600"> PARTNER</span></span>
+                    <span className="font-black text-xl tracking-tight uppercase">Linkup<span className="text-[#E96F28]"> PARTNER</span></span>
                 </div>
 
                 <nav className="flex-1 space-y-1.5">
@@ -102,7 +102,7 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
                             className={cn(
                                 "w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl transition-all duration-300 group",
                                 activeTab === item.id
-                                    ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
+                                    ? "bg-[#E96F28] text-white shadow-lg shadow-orange-600/20"
                                     : "text-muted-foreground hover:bg-gray-50 hover:text-foreground"
                             )}
                         >
@@ -127,7 +127,7 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
             {/* Mobile Header */}
             <header className="lg:hidden h-18 bg-white/80 backdrop-blur-xl border-b border-black/[0.04] sticky top-0 z-[60] px-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/20">
+                    <div className="w-9 h-9 rounded-xl bg-[#E96F28] flex items-center justify-center text-white shadow-lg shadow-orange-600/20">
                         <span className="font-black text-lg">L</span>
                     </div>
                     <span className="font-black text-lg tracking-tight uppercase">Linkup</span>
@@ -145,7 +145,7 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
                         <button className="relative p-2 text-muted-foreground transition-colors hover:text-foreground">
                             <Bell size={22} strokeWidth={2.2} />
                             {unreadCount > 0 && (
-                                <span className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-[8px] font-bold text-white shadow-lg border-2 border-white animate-in zoom-in duration-300">
+                                <span className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-[#E96F28] text-[8px] font-bold text-white shadow-lg border-2 border-white animate-in zoom-in duration-300">
                                     {unreadCount > 9 ? "9+" : unreadCount}
                                 </span>
                             )}
@@ -153,7 +153,7 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
                     </NotificationDropdown>
                     <Avatar className="h-9 w-9 border border-black/[0.04] shadow-sm ml-1">
                         <AvatarImage src={profile?.avatar_url || ""} />
-                        <AvatarFallback className="bg-blue-50 text-blue-600 font-black text-xs uppercase">
+                        <AvatarFallback className="bg-[#FFF7F2] text-[#E96F28] font-black text-xs uppercase">
                             {profile?.display_name?.charAt(0) || "U"}
                         </AvatarFallback>
                     </Avatar>
@@ -203,10 +203,10 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
                         </button>
 
                         <NotificationDropdown>
-                            <button className="relative p-2.5 bg-white border border-black/[0.05] rounded-xl text-muted-foreground hover:text-blue-600 hover:border-blue-100 hover:shadow-sm transition-all group">
+                            <button className="relative p-2.5 bg-white border border-black/[0.05] rounded-xl text-muted-foreground hover:text-[#E96F28] hover:border-orange-100 hover:shadow-sm transition-all group">
                                 <Bell size={18} strokeWidth={2.5} />
                                 {unreadCount > 0 && (
-                                    <span className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-[8px] font-bold text-white shadow-lg border-2 border-white animate-in zoom-in duration-300">
+                                    <span className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-[#E96F28] text-[8px] font-bold text-white shadow-lg border-2 border-white animate-in zoom-in duration-300">
                                         {unreadCount > 9 ? "9+" : unreadCount}
                                     </span>
                                 )}
@@ -215,12 +215,12 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
 
                         <div className="flex items-center gap-3 group cursor-pointer pl-6 border-l border-black/[0.04]">
                             <div className="text-right">
-                                <p className="text-sm font-black leading-tight group-hover:text-blue-600 transition-colors uppercase tracking-tight">{profile?.display_name || "Partner"}</p>
+                                <p className="text-sm font-black leading-tight group-hover:text-[#E96F28] transition-colors uppercase tracking-tight">{profile?.display_name || "Partner"}</p>
                                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none mt-1">Verified Partner</p>
                             </div>
                             <Avatar className="h-10 w-10 border border-black/[0.04] shadow-md group-hover:scale-105 transition-transform duration-300">
                                 <AvatarImage src={profile?.avatar_url || ""} />
-                                <AvatarFallback className="bg-blue-50 text-blue-600 font-bold">U</AvatarFallback>
+                                <AvatarFallback className="bg-[#FFF7F2] text-[#E96F28] font-bold">U</AvatarFallback>
                             </Avatar>
                         </div>
                     </div>
@@ -246,7 +246,7 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
                         onClick={() => onTabChange(item.id)}
                         className={cn(
                             "flex flex-col flex-1 items-center justify-center gap-1.5 h-full rounded-2xl transition-all relative overflow-hidden",
-                            activeTab === item.id ? "text-blue-600" : "text-muted-foreground"
+                            activeTab === item.id ? "text-[#E96F28]" : "text-muted-foreground"
                         )}
                     >
                         <item.icon size={20} strokeWidth={activeTab === item.id ? 2.5 : 2} className="shrink-0" />
@@ -254,7 +254,7 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
                         {activeTab === item.id && (
                             <motion.div
                                 layoutId="mobile-nav-pill"
-                                className="absolute top-0 w-8 h-1 bg-blue-600 rounded-b-full"
+                                className="absolute top-0 w-8 h-1 bg-[#E96F28] rounded-b-full"
                             />
                         )}
                     </button>

@@ -192,7 +192,7 @@ export function LogisticsKYC() {
         <Card className="rounded-2xl border-none shadow-2xl shadow-black/[0.04] overflow-hidden bg-white">
           <div className={cn(
             "h-40 flex flex-col items-center justify-center relative overflow-hidden",
-            isVerified ? "bg-green-500/5 text-green-600" : "bg-blue-500/5 text-blue-600"
+            isVerified ? "bg-green-500/5 text-green-600" : "bg-[#E96F28]/5 text-[#E96F28]"
           )}>
             {/* Background pattern */}
             <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
@@ -205,7 +205,7 @@ export function LogisticsKYC() {
               transition={{ type: "spring", damping: 12 }}
               className={cn(
                 "w-20 h-20 rounded-2xl flex items-center justify-center shadow-2xl mb-4 relative z-10",
-                isVerified ? "bg-green-500 text-white shadow-green-500/20" : "bg-blue-600 text-white shadow-blue-600/20"
+                isVerified ? "bg-green-500 text-white shadow-green-500/20" : "bg-[#E96F28] text-white shadow-orange-600/20"
               )}
             >
               {isVerified ? <CheckCircle2 size={40} strokeWidth={2.5} /> : <Clock size={40} strokeWidth={2.5} />}
@@ -213,7 +213,7 @@ export function LogisticsKYC() {
             <div className="relative z-10 text-center">
               <Badge variant="outline" className={cn(
                 "rounded-full px-4 py-1 border-none text-[10px] font-black uppercase tracking-[0.2em]",
-                isVerified ? "bg-green-500/10 text-green-600" : "bg-blue-500/10 text-blue-600"
+                isVerified ? "bg-green-500/10 text-green-600" : "bg-[#E96F28]/10 text-[#E96F28]"
               )}>
                 {isVerified ? "Profile Confirmed" : "Review in Progress"}
               </Badge>

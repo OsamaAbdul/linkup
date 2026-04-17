@@ -30,7 +30,7 @@ export function ShipmentCardV2({ shipment, onClick }: ShipmentCardProps) {
     const getStatusStyles = (s: string) => {
         switch (s) {
             case 'pending': return "bg-amber-100 text-amber-700 border-amber-200/50";
-            case 'accepted': return "bg-blue-100 text-blue-700 border-blue-200/50";
+            case 'accepted': return "bg-orange-100 text-[#E96F28] border-orange-200/50";
             case 'started': return "bg-indigo-100 text-indigo-700 border-indigo-200/50";
             case 'arrived': return "bg-purple-100 text-purple-700 border-purple-200/50";
             case 'picked_up': return "bg-pink-100 text-pink-700 border-pink-200/50";
@@ -69,7 +69,7 @@ export function ShipmentCardV2({ shipment, onClick }: ShipmentCardProps) {
     return (
         <div 
             onClick={onClick}
-            className="w-full text-left bg-white rounded-[32px] p-6 border border-black/[0.04] shadow-sm hover:shadow-xl hover:border-blue-100 transition-all duration-300 group cursor-pointer relative overflow-hidden"
+            className="w-full text-left bg-white rounded-[32px] p-6 border border-black/[0.04] shadow-sm hover:shadow-xl hover:border-orange-100 transition-all duration-300 group cursor-pointer relative overflow-hidden"
         >
             <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-4">
@@ -96,9 +96,9 @@ export function ShipmentCardV2({ shipment, onClick }: ShipmentCardProps) {
             <div className="space-y-5 mb-6">
                 <div className="flex items-start gap-4">
                     <div className="mt-1 flex flex-col items-center gap-1">
-                        <div className="w-3 h-3 rounded-full border-2 border-blue-600 bg-white" />
+                        <div className="w-3 h-3 rounded-full border-2 border-[#E96F28] bg-white" />
                         <div className="w-0.5 h-8 bg-gray-100 rounded-full" />
-                        <div className="w-3 h-3 rounded-full bg-blue-600" />
+                        <div className="w-3 h-3 rounded-full bg-[#E96F28]" />
                     </div>
                     <div className="flex-1 space-y-4">
                         <div className="leading-tight">
@@ -118,7 +118,7 @@ export function ShipmentCardV2({ shipment, onClick }: ShipmentCardProps) {
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-1.5">
-                            <Navigation2 size={16} className="text-blue-500 fill-blue-500" />
+                            <Navigation2 size={16} className="text-[#E96F28] fill-[#E96F28]" />
                             <span className="text-sm font-black text-foreground tracking-tight">{shipment.distance_km || "0.0"} <span className="text-[10px] text-muted-foreground uppercase">km</span></span>
                         </div>
                         <div className="flex items-center gap-1.5">
@@ -127,7 +127,7 @@ export function ShipmentCardV2({ shipment, onClick }: ShipmentCardProps) {
                         </div>
                     </div>
                     
-                    <div className="flex items-center gap-1 text-blue-600 group-hover:translate-x-1 transition-transform">
+                    <div className="flex items-center gap-1 text-[#E96F28] group-hover:translate-x-1 transition-transform">
                         <span className="text-[11px] font-black uppercase tracking-widest">Route</span>
                         <ChevronRight size={16} strokeWidth={3} />
                     </div>
@@ -138,7 +138,7 @@ export function ShipmentCardV2({ shipment, onClick }: ShipmentCardProps) {
                     {isBroadcast && (
                         <Button 
                             onClick={(e) => updateStatus('accepted', e)}
-                            className="w-full h-11 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-[11px] uppercase tracking-widest shadow-lg shadow-blue-600/20"
+                            className="w-full h-11 rounded-2xl bg-[#E96F28] hover:bg-orange-700 text-white font-black text-[11px] uppercase tracking-widest shadow-lg shadow-orange-600/20"
                         >
                             Accept Mission
                         </Button>

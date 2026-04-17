@@ -103,12 +103,12 @@ export function ShipmentFeedV2() {
             {/* Search & Filter Header */}
             <div className="space-y-4">
                 <div className="relative group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-blue-600 transition-colors" size={18} />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-[#E96F28] transition-colors" size={18} />
                     <Input 
                         placeholder="Search Order Ref. or Address..." 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="h-14 pl-12 rounded-2xl border-black/[0.04] bg-white shadow-sm focus:ring-blue-600 focus:border-blue-600 transition-all font-bold tracking-tight text-sm"
+                        className="h-14 pl-12 rounded-2xl border-black/[0.04] bg-white shadow-sm focus:ring-[#E96F28] focus:border-[#E96F28] transition-all font-bold tracking-tight text-sm"
                     />
                 </div>
 
@@ -120,8 +120,8 @@ export function ShipmentFeedV2() {
                             className={cn(
                                 "whitespace-nowrap px-6 py-2.5 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all border",
                                 filterStatus === filter.value
-                                    ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-600/20"
-                                    : "bg-white border-black/[0.04] text-muted-foreground hover:border-blue-200"
+                                    ? "bg-[#E96F28] border-[#E96F28] text-white shadow-lg shadow-orange-600/20"
+                                    : "bg-white border-black/[0.04] text-muted-foreground hover:border-orange-200"
                             )}
                         >
                             {filter.label}
@@ -135,7 +135,7 @@ export function ShipmentFeedV2() {
 
             {/* Quick Stats Banner (Mobile) */}
             <div className="grid grid-cols-2 gap-3 lg:hidden">
-                <div className="bg-blue-600 rounded-3xl p-5 text-white shadow-xl shadow-blue-600/20">
+                <div className="bg-[#E96F28] rounded-3xl p-5 text-white shadow-xl shadow-orange-600/20">
                     <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">Total Payout</p>
                     <p className="text-xl font-black tracking-tight">₦ {(walletData?.balance || 0).toLocaleString()}</p>
                 </div>

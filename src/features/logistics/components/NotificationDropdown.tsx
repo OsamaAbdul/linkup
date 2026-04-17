@@ -57,7 +57,7 @@ export function NotificationDropdown({ children }: { children: React.ReactNode }
           <div className="flex items-center gap-2">
             <span className="font-black text-sm tracking-tight">Recent Alerts</span>
             {unreadCount > 0 && (
-              <span className="bg-blue-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
+              <span className="bg-[#E96F28] text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
                 {unreadCount}
               </span>
             )}
@@ -65,7 +65,7 @@ export function NotificationDropdown({ children }: { children: React.ReactNode }
           {unreadCount > 0 && (
             <button 
               onClick={() => markAllRead.mutate()}
-              className="text-[10px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-700 transition-colors"
+              className="text-[10px] font-black uppercase tracking-widest text-[#E96F28] hover:text-orange-700 transition-colors"
             >
               Mark all as read
             </button>
@@ -87,11 +87,11 @@ export function NotificationDropdown({ children }: { children: React.ReactNode }
                   key={n.id} 
                   className={cn(
                     "p-4 transition-colors relative group",
-                    n.read ? "bg-white" : "bg-blue-50/30"
+                    n.read ? "bg-white" : "bg-orange-50/30"
                   )}
                 >
                   {!n.read && (
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600" />
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#E96F28]" />
                   )}
                   <p className={cn(
                     "text-xs leading-relaxed",

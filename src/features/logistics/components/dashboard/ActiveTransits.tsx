@@ -73,14 +73,14 @@ export function ActiveTransits({ shipments, onViewDetails, onNavigate }: ActiveT
                                     </TableCell>
                                     <TableCell className="max-w-[200px]">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                                            <div className="w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center text-[#E96F28] shrink-0">
                                                 <Navigation size={12} strokeWidth={2.5} />
                                             </div>
                                             <div className="min-w-0">
                                                 <p className="text-xs font-black line-clamp-2 leading-tight">
                                                     {deliveryAddr}
                                                 </p>
-                                                <p className="text-[10px] font-bold text-blue-600 mt-1 uppercase tracking-tighter">
+                                                <p className="text-[10px] font-bold text-[#E96F28] mt-1 uppercase tracking-tighter">
                                                     {buyer.name} • {buyer.phone}
                                                 </p>
                                             </div>
@@ -93,7 +93,7 @@ export function ActiveTransits({ shipments, onViewDetails, onNavigate }: ActiveT
                                                 s.status === "out_for_pickup" ? "bg-amber-100 text-amber-700" :
                                                     s.status === "arrived_at_seller" ? "bg-orange-100 text-orange-700" :
                                                         s.status === "picked_up" ? "bg-purple-100 text-purple-700" :
-                                                            s.status === "out_for_delivery" ? "bg-blue-100 text-blue-700" :
+                                                            s.status === "out_for_delivery" ? "bg-orange-100 text-[#E96F28]" :
                                                                 s.status === "arrived_at_destination" ? "bg-cyan-100 text-cyan-700" :
                                                                     s.status === "delivered" ? "bg-green-100 text-green-700" :
                                                                         "bg-amber-100 text-amber-700"
@@ -123,7 +123,7 @@ export function ActiveTransits({ shipments, onViewDetails, onNavigate }: ActiveT
                                             {["picked_up", "out_for_delivery", "arrived_at_destination"].includes(s.status) && (
                                                 <Button
                                                     size="sm"
-                                                    className="rounded-xl h-9 bg-blue-500 hover:bg-blue-600 text-white font-black text-[10px] uppercase tracking-widest gap-2"
+                                                    className="rounded-xl h-9 bg-[#E96F28] hover:bg-orange-700 text-white font-black text-[10px] uppercase tracking-widest gap-2"
                                                     onClick={() => onNavigate(s, 'delivery')}
                                                 >
                                                     <Navigation size={12} strokeWidth={3} /> Deliver
@@ -132,7 +132,7 @@ export function ActiveTransits({ shipments, onViewDetails, onNavigate }: ActiveT
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                className="rounded-xl h-9 hover:bg-blue-50 hover:text-blue-600 font-bold"
+                                                className="rounded-xl h-9 hover:bg-orange-50 hover:text-[#E96F28] font-bold"
                                                 onClick={() => onViewDetails(s)}
                                             >
                                                 <Eye size={16} className="mr-1" /> Details

@@ -14,8 +14,8 @@ export function LogisticsStats({ shipments, broadcastMissionsCount }: LogisticsS
             label: "Open Missions", 
             value: broadcastMissionsCount, 
             icon: Radio, 
-            color: "text-blue-600", 
-            bg: "bg-blue-50" 
+            color: "text-[#E96F28]", 
+            bg: "bg-[#FFF7F2]" 
         },
         { 
             label: "On the Road", 

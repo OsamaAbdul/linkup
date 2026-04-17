@@ -96,7 +96,7 @@ export function LogisticsSidebar({
                                     animate={{ opacity: 1 }}
                                     className="font-black text-lg lg:text-xl tracking-tight"
                                 >
-                                    LINKUP<span className="text-blue-600"> PARTNERS</span>
+                                    LINKUP<span className="text-[#E96F28]"> PARTNERS</span>
                                 </motion.span>
                             )}
                         </div>
@@ -114,12 +114,12 @@ export function LogisticsSidebar({
 
                     {/* Mobile Only: Role Switcher & Status Toggle */}
                     {isOpen && (
-                        <div className="px-4 py-3 lg:hidden bg-blue-50/30 border-y border-blue-100/50 space-y-3">
+                        <div className="px-4 py-3 lg:hidden bg-orange-50/30 border-y border-orange-100/50 space-y-3">
                             <div className="space-y-1">
-                                <label className="text-[9px] font-black text-blue-600 uppercase tracking-widest pl-1">Switch Role</label>
+                                <label className="text-[9px] font-black text-[#E96F28] uppercase tracking-widest pl-1">Switch Role</label>
                                 <RoleSwitcher />
                             </div>
-                            <div className="flex items-center justify-between bg-white/50 p-2.5 rounded-xl border border-blue-200/50">
+                            <div className="flex items-center justify-between bg-white/50 p-2.5 rounded-xl border border-orange-200/50">
                                 <div className="flex flex-col">
                                     <span className="text-[9px] font-black text-muted-foreground uppercase tracking-wider">Availability</span>
                                     <span className={cn(
@@ -149,7 +149,7 @@ export function LogisticsSidebar({
                                 className={cn(
                                     "w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 group/nav",
                                     activeTab === tab.id
-                                        ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
+                                        ? "bg-[#E96F28] text-white shadow-lg shadow-orange-600/20"
                                         : "text-muted-foreground hover:bg-gray-50 hover:text-foreground"
                                 )}
                             >
@@ -158,7 +158,7 @@ export function LogisticsSidebar({
                                     strokeWidth={activeTab === tab.id ? 2.5 : 2}
                                     className={cn(
                                         "shrink-0 transition-transform group-hover/nav:scale-110",
-                                        activeTab === tab.id ? "text-white" : "text-muted-foreground group-hover/nav:text-blue-600"
+                                        activeTab === tab.id ? "text-white" : "text-muted-foreground group-hover/nav:text-[#E96F28]"
                                     )}
                                 />
                                 {(!isCollapsed || isOpen) && (

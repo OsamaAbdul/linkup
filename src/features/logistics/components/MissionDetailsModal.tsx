@@ -169,7 +169,7 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                         <div className="flex items-center justify-between gap-4">
                             <div>
                                 <DialogTitle className="text-xl font-black tracking-tight text-foreground flex items-center gap-3">
-                                    <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                                    <div className="w-9 h-9 rounded-xl bg-[#E96F28]/10 flex items-center justify-center text-[#E96F28]">
                                         <Package size={18} strokeWidth={3} />
                                     </div>
                                     Mission Details
@@ -180,12 +180,12 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                             </div>
                             <Badge className={cn(
                                 "rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-widest border-none",
-                                activeShipment.status === 'assigned' ? 'bg-blue-100 text-blue-700' :
+                                activeShipment.status === 'assigned' ? 'bg-orange-100 text-[#E96F28]' :
                                     activeShipment.status === 'accepted' ? 'bg-indigo-100 text-indigo-700' :
                                         activeShipment.status === 'out_for_pickup' ? 'bg-amber-100 text-amber-700' :
                                             activeShipment.status === 'arrived_at_seller' ? 'bg-orange-100 text-orange-700' :
                                                 activeShipment.status === 'picked_up' ? 'bg-purple-100 text-purple-700' :
-                                                    activeShipment.status === 'out_for_delivery' ? 'bg-blue-100 text-blue-700' :
+                                                    activeShipment.status === 'out_for_delivery' ? 'bg-orange-100 text-[#E96F28]' :
                                                         activeShipment.status === 'arrived_at_destination' ? 'bg-cyan-100 text-cyan-700' :
                                                             'bg-green-100 text-green-700'
                             )}>
@@ -283,7 +283,7 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                                 </div>
                                 <div className="flex items-start justify-between gap-4 z-10">
                                     <div className="flex items-start gap-4">
-                                        <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white flex-shrink-0 shadow-lg shadow-blue-600/20">
+                                        <div className="w-6 h-6 rounded-full bg-[#E96F28] flex items-center justify-center text-white flex-shrink-0 shadow-lg shadow-orange-600/20">
                                             <Navigation size={10} strokeWidth={3} />
                                         </div>
                                         <div>
@@ -295,7 +295,7 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                                     </div>
                                     <Button
                                         size="sm" variant="outline"
-                                        className="h-8 px-3 text-[9px] font-black uppercase tracking-widest border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 shrink-0 shadow-sm rounded-full"
+                                        className="h-8 px-3 text-[9px] font-black uppercase tracking-widest border-orange-200 text-[#E96F28] hover:bg-orange-50 hover:text-orange-700 shrink-0 shadow-sm rounded-full"
                                         onClick={() => handleOpenMaps('delivery')}
                                     >
                                         <Navigation size={10} className="mr-1" /> Navigate
@@ -308,7 +308,7 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                         <div className="space-y-3 pt-6 border-t border-black/[0.03] pb-6">
                             {activeShipment.status === 'assigned' && (
                                 <Button
-                                    className="w-full rounded-2xl h-12 font-black text-[10px] uppercase tracking-widest bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-600/20 active:scale-95 transition-all gap-2"
+                                    className="w-full rounded-2xl h-12 font-black text-[10px] uppercase tracking-widest bg-[#E96F28] hover:bg-orange-700 text-white shadow-xl shadow-orange-600/20 active:scale-95 transition-all gap-2"
                                     onClick={() => updateStatus.mutate('accepted')}
                                     disabled={updateStatus.isPending || shipmentLoading}
                                 >

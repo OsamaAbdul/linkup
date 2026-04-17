@@ -38,7 +38,7 @@ export function BroadcastMissions({
     return (
         <section className="space-y-4">
             <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600">
+                <div className="w-8 h-8 rounded-xl bg-[#E96F28]/10 flex items-center justify-center text-[#E96F28]">
                     <Radio size={16} strokeWidth={2.5} />
                 </div>
                 <div>
@@ -46,7 +46,7 @@ export function BroadcastMissions({
                     <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Available to all partners in your zone</p>
                 </div>
                 {missions.length > 0 && (
-                    <span className="ml-auto px-3 py-1 rounded-full bg-blue-500 text-white text-[10px] font-black uppercase tracking-widest animate-pulse">
+                    <span className="ml-auto px-3 py-1 rounded-full bg-[#E96F28] text-white text-[10px] font-black uppercase tracking-widest animate-pulse">
                         {missions.length} Live
                     </span>
                 )}
@@ -126,18 +126,18 @@ export function BroadcastMissions({
                                         "rounded-xl border p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 transition-all duration-300",
                                         isOutOfZone 
                                             ? "border-orange-500/30 bg-gradient-to-r from-orange-500/5 to-transparent shadow-orange-500/5" 
-                                            : "border-blue-500/20 bg-gradient-to-r from-blue-500/5 to-transparent shadow-blue-500/5"
+                                            : "border-orange-500/20 bg-gradient-to-r from-orange-500/5 to-transparent shadow-orange-500/5"
                                     )}
                                 >
                                     <div className="flex items-start gap-4 flex-1">
-                                        <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 font-black text-[11px] font-mono shrink-0">
+                                        <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center text-[#E96F28] font-black text-[11px] font-mono shrink-0">
                                             #{mission.order_id?.slice(-6).toUpperCase()}
                                         </div>
                                         <div className="space-y-1 min-w-0">
                                             <div className="flex items-center gap-2 flex-wrap">
                                                 <Badge className={cn(
                                                     "font-black text-[9px] uppercase tracking-wider border-none",
-                                                    isOutOfZone ? "bg-orange-100 text-orange-700" : "bg-blue-100 text-blue-700"
+                                                    isOutOfZone ? "bg-orange-100 text-orange-700" : "bg-orange-100 text-orange-700"
                                                 )}>
                                                     <Radio size={8} className="mr-1" /> {isOutOfZone ? "Global Mission" : "Local Mission"}
                                                 </Badge>
@@ -168,13 +168,13 @@ export function BroadcastMissions({
                                             </div>
                                             <div className="flex items-start gap-3">
                                                 <div className="shrink-0 mt-1">
-                                                    <Navigation size={12} className="text-blue-500" />
+                                                    <Navigation size={12} className="text-[#E96F28]" />
                                                 </div>
                                                 <div className="min-w-0">
                                                     <p className="text-sm font-black text-foreground line-clamp-1">
                                                         {deliveryAddr}
                                                     </p>
-                                                    <p className="text-[10px] font-bold text-blue-600 mt-0.5">
+                                                    <p className="text-[10px] font-bold text-[#E96F28] mt-0.5">
                                                         {buyer.name} • {buyer.phone}
                                                     </p>
                                                 </div>
@@ -185,7 +185,7 @@ export function BroadcastMissions({
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="rounded-xl h-11 px-4 hover:bg-blue-50 hover:text-blue-600 font-bold hidden sm:flex"
+                                            className="rounded-xl h-11 px-4 hover:bg-orange-50 hover:text-orange-600 font-bold hidden sm:flex"
                                             onClick={() => onViewDetails(mission)}
                                         >
                                             <Eye size={16} className="mr-2" /> Details
@@ -193,7 +193,7 @@ export function BroadcastMissions({
                                         <Button
                                             className={cn(
                                                 "rounded-xl h-12 px-8 font-black text-[10px] uppercase tracking-widest gap-2 active:scale-95 transition-all shrink-0 shadow-lg",
-                                                isKycVerified ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/20" : "bg-muted text-muted-foreground shadow-none cursor-not-allowed"
+                                                isKycVerified ? "bg-[#E96F28] hover:bg-orange-700 text-white shadow-orange-600/20" : "bg-muted text-muted-foreground shadow-none cursor-not-allowed"
                                             )}
                                             onClick={() => isKycVerified && onClaimMission(mission.id)}
                                             disabled={isClaiming || (kycStatus === "pending" && !isKycVerified)}

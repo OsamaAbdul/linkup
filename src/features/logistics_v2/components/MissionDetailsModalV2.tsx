@@ -99,7 +99,7 @@ export function MissionDetailsModalV2({ shipment, open, onOpenChange }: MissionD
 
     const statusStyles: Record<string, string> = {
         pending: "bg-amber-100 text-amber-700",
-        accepted: "bg-blue-100 text-blue-700",
+        accepted: "bg-orange-100 text-[#E96F28]",
         started: "bg-indigo-100 text-indigo-700",
         arrived: "bg-purple-100 text-purple-700",
         picked_up: "bg-pink-100 text-pink-700",
@@ -113,7 +113,7 @@ export function MissionDetailsModalV2({ shipment, open, onOpenChange }: MissionD
                     <DialogHeader>
                         <div className="flex items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-[20px] bg-primary/10 flex items-center justify-center text-primary shadow-inner">
+                                <div className="w-12 h-12 rounded-[20px] bg-[#E96F28]/10 flex items-center justify-center text-[#E96F28] shadow-inner">
                                     <Package size={24} strokeWidth={2.5} />
                                 </div>
                                 <div>
@@ -130,8 +130,8 @@ export function MissionDetailsModalV2({ shipment, open, onOpenChange }: MissionD
                     </DialogHeader>
                 </div>
 
-                <ScrollArea className="flex-1">
-                    <div className="p-8 space-y-8 pb-24">
+                <div className="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/30">
+                    <div className="p-8 space-y-8 pb-32">
                         {/* Financial Snapshot */}
                         <div className="bg-emerald-50/50 p-6 rounded-[32px] border border-emerald-100 flex items-center justify-between">
                             <div className="flex items-center gap-4">
@@ -153,14 +153,14 @@ export function MissionDetailsModalV2({ shipment, open, onOpenChange }: MissionD
                                     <Smartphone size={12} strokeWidth={3} /> Seller
                                 </p>
                                 <p className="font-black text-[15px]">{sellerInfo.name}</p>
-                                <p className="text-sm font-bold text-primary">{sellerInfo.phone}</p>
+                                <p className="text-sm font-bold text-[#E96F28]">{sellerInfo.phone}</p>
                             </div>
                             <div className="bg-muted/30 p-5 rounded-[24px] border border-black/[0.03] space-y-2">
                                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                                     <Smartphone size={12} strokeWidth={3} /> Recipient
                                 </p>
                                 <p className="font-black text-[15px]">{buyer.name}</p>
-                                <p className="text-sm font-bold text-primary">{buyer.phone}</p>
+                                <p className="text-sm font-bold text-[#E96F28]">{buyer.phone}</p>
                             </div>
                         </div>
 
@@ -169,7 +169,7 @@ export function MissionDetailsModalV2({ shipment, open, onOpenChange }: MissionD
                             <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2 px-1">
                                 <Route size={14} strokeWidth={3} /> Path Trace
                             </h4>
-                            <div className="relative space-y-8 before:absolute before:left-[23px] before:top-8 before:bottom-8 before:w-[2px] before:bg-gradient-to-b before:from-orange-500 before:to-blue-500 before:opacity-20">
+                            <div className="relative space-y-8 before:absolute before:left-[23px] before:top-8 before:bottom-8 before:w-[2px] before:bg-gradient-to-b before:from-orange-500 before:to-[#E96F28] before:opacity-20">
                                 <div className="flex items-center justify-between gap-4">
                                     <div className="flex items-start gap-4 flex-1">
                                         <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-600 shadow-sm border border-orange-100 flex-shrink-0 z-10">
@@ -186,27 +186,27 @@ export function MissionDetailsModalV2({ shipment, open, onOpenChange }: MissionD
                                 </div>
                                 <div className="flex items-center justify-between gap-4">
                                     <div className="flex items-start gap-4 flex-1">
-                                        <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-sm border border-blue-100 flex-shrink-0 z-10">
+                                        <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center text-[#E96F28] shadow-sm border border-orange-100 flex-shrink-0 z-10">
                                             <Navigation size={20} strokeWidth={2.5} />
                                         </div>
                                         <div className="pt-1">
-                                            <p className="text-[10px] font-black text-blue-700 uppercase tracking-widest mb-1">Delivery Node</p>
+                                            <p className="text-[10px] font-black text-orange-700 uppercase tracking-widest mb-1">Delivery Node</p>
                                             <p className="text-sm font-bold text-foreground line-clamp-2 leading-snug">{getDeliveryAddress(activeShipment)}</p>
                                         </div>
                                     </div>
-                                    <Button size="sm" variant="outline" className="rounded-xl font-black text-[10px] uppercase tracking-widest border-blue-200 text-blue-600 hover:bg-blue-50" onClick={() => handleOpenMaps('delivery')}>
+                                    <Button size="sm" variant="outline" className="rounded-xl font-black text-[10px] uppercase tracking-widest border-orange-200 text-[#E96F28] hover:bg-orange-50" onClick={() => handleOpenMaps('delivery')}>
                                         Map
                                     </Button>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </ScrollArea>
+                </div>
 
                 <div className="p-8 pt-4 bg-muted/20 border-t border-black/[0.03] space-y-3">
                     {/* Integrated Action Logic */}
                     {!activeShipment.rider_id && (
-                        <Button className="w-full h-14 rounded-2xl font-black text-xs uppercase tracking-[0.2em] bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-600/20" onClick={() => updateStatus.mutate('accepted')}>
+                        <Button className="w-full h-14 rounded-2xl font-black text-xs uppercase tracking-[0.2em] bg-[#E96F28] hover:bg-orange-700 text-white shadow-xl shadow-orange-600/20" onClick={() => updateStatus.mutate('accepted')}>
                             Accept Mission
                         </Button>
                     )}

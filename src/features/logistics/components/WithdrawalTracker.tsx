@@ -90,7 +90,7 @@ export function WithdrawalTracker({ status, reason, amount }: WithdrawalTrackerP
                                 <div className={cn(
                                     "relative z-10 w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-500",
                                     isCompleted ? "bg-green-600 text-white shadow-lg shadow-green-600/20" :
-                                    isCurrent ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20 animate-pulse" :
+                                    isCurrent ? "bg-[#E96F28] text-white shadow-lg shadow-orange-600/20 animate-pulse" :
                                     "bg-white border-2 border-black/[0.05] text-black/20"
                                 )}>
                                     <step.icon size={24} strokeWidth={isCurrent ? 3 : 2} />
@@ -109,13 +109,13 @@ export function WithdrawalTracker({ status, reason, amount }: WithdrawalTrackerP
                                 <div className="pt-1.5 min-w-0">
                                     <h4 className={cn(
                                         "text-sm font-black uppercase tracking-tight transition-colors",
-                                        isCurrent ? "text-blue-600" : isCompleted ? "text-foreground" : "text-muted-foreground/40"
+                                        isCurrent ? "text-[#E96F28]" : isCompleted ? "text-foreground" : "text-muted-foreground/40"
                                     )}>
                                         {step.label}
                                     </h4>
                                     <p className={cn(
                                         "text-xs font-medium leading-relaxed mt-1 transition-colors",
-                                        isCurrent ? "text-blue-900/70" : isCompleted ? "text-muted-foreground" : "text-muted-foreground/20"
+                                        isCurrent ? "text-[#E96F28]/70" : isCompleted ? "text-muted-foreground" : "text-muted-foreground/20"
                                     )}>
                                         {step.description}
                                     </p>
@@ -124,7 +124,7 @@ export function WithdrawalTracker({ status, reason, amount }: WithdrawalTrackerP
                                         <motion.div 
                                             initial={{ opacity: 0 }}
                                             animate={{ opacity: 1 }}
-                                            className="mt-3 inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-blue-50 text-blue-600 border border-blue-100"
+                                            className="mt-3 inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-[#E96F28]/10 text-[#E96F28] border border-orange-100"
                                         >
                                             <Clock size={12} className="animate-spin" />
                                             <span className="text-[10px] font-black uppercase tracking-widest">In Progress</span>

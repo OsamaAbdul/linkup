@@ -29,9 +29,9 @@ export default function AdminDashboard({ activeSection = "overview" }: AdminDash
             queryClient.prefetchQuery({
                 queryKey: ["admin-revenue"],
                 queryFn: async () => {
-                    const { data, error } = await supabase.from("orders").select("total").eq("status", "delivered");
+                    const { data, error } = await supabase.from("orders").select("total_amount").eq("status", "delivered");
                     if (error) throw error;
-                    return data?.reduce((acc, curr) => acc + (curr.total || 0), 0) || 0;
+                    return data?.reduce((acc, curr) => acc + (curr.total_amount || 0), 0) || 0;
                 },
                 staleTime: 1000 * 60 * 5,
             });

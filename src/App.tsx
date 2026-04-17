@@ -26,8 +26,6 @@ import Wishlist from "@/features/marketplace/pages/Wishlist";
 import Orders from "@/features/marketplace/pages/Orders";
 import Support from "@/features/user/pages/Support";
 import Onboarding from "@/features/auth/pages/Onboarding";
-import Logistics from "@/features/logistics/pages/Logistics";
-import LogisticsDashboard from "@/features/logistics/pages/LogisticsDashboard";
 import Messages from "@/features/user/pages/Messages";
 import Chat from "@/features/user/pages/Chat";
 import PromoterDashboard from "@/features/promoter/pages/PromoterDashboard";
@@ -83,8 +81,8 @@ const App = () => (
                 <Route path="/chat/:id" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
                 <Route path="/support" element={<Support />} />
                 <Route path="/onboarding" element={<ProtectedRoute requireOnboarding={false}><Onboarding /></ProtectedRoute>} />
-                <Route path="/logistics" element={<Logistics />} />
-                <Route path="/logistics-dashboard" element={<ProtectedRoute><LogisticsDashboard /></ProtectedRoute>} />
+                <Route path="/logistics" element={<ProtectedRoute><LogisticsDashboardV2 /></ProtectedRoute>} />
+                <Route path="/logistics-dashboard" element={<ProtectedRoute><LogisticsDashboardV2 /></ProtectedRoute>} />
                 <Route path="/logistics-v2" element={<ProtectedRoute><LogisticsDashboardV2 /></ProtectedRoute>} />
                 <Route path="/promoter-dashboard" element={<ProtectedRoute><PromoterDashboard /></ProtectedRoute>} />
                 <Route path="/seller-verification" element={<ProtectedRoute><SellerVerification /></ProtectedRoute>} />

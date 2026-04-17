@@ -12,7 +12,11 @@ BEGIN;
 -- DROP SCHEMA public CASCADE;
 -- CREATE SCHEMA public;
 
--- 2. ENUMS
+-- 2. INFRASTRUCTURE & EXTENSIONS
+CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+-- 3. ENUMS
 DO $$ BEGIN
     CREATE TYPE public.app_role AS ENUM ('buyer', 'seller', 'promoter', 'logistics', 'admin');
     CREATE TYPE public.order_status AS ENUM ('pending', 'processing', 'shipped', 'delivered', 'cancelled');
@@ -30,6 +34,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     avatar_url TEXT,
     latitude DOUBLE PRECISION,
     longitude DOUBLE PRECISION,
+    location GEOGRAPHY(POINT, 4326),
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -53,6 +58,7 @@ CREATE TABLE IF NOT EXISTS public.products (
     inventory INTEGER NOT NULL DEFAULT 0,
     latitude DOUBLE PRECISION,
     longitude DOUBLE PRECISION,
+    location GEOGRAPHY(POINT, 4326),
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -64,10 +70,27 @@ CREATE TABLE IF NOT EXISTS public.orders (
     seller_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL, -- Keep for query ease, even if items split
     status order_status DEFAULT 'pending',
     payment_status payment_status DEFAULT 'pending',
-    total_amount DECIMAL(10, 2) DEFAULT 0,
+    total DECIMAL(12, 2) DEFAULT 0,
     shipping_address JSONB,
+    payment_ref TEXT,
+    payment_method TEXT,
+    pickup_lat DOUBLE PRECISION,
+    pickup_lng DOUBLE PRECISION,
+    delivery_lat DOUBLE PRECISION,
+    delivery_lng DOUBLE PRECISION,
+    settlement_status TEXT DEFAULT 'none',
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Operational Audit Table
+CREATE TABLE IF NOT EXISTS public.order_status_history (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE NOT NULL,
+    old_status TEXT,
+    new_status TEXT NOT NULL,
+    changed_by UUID REFERENCES auth.users(id),
+    created_at TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS public.order_items (
@@ -86,9 +109,12 @@ CREATE TABLE IF NOT EXISTS public.shipments (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     order_id UUID NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
     rider_id UUID REFERENCES public.profiles(id),
+    seller_id UUID REFERENCES public.profiles(id),
     status shipment_status DEFAULT 'pending',
     pickup_address JSONB NOT NULL,
     delivery_address JSONB NOT NULL,
+    pickup_location GEOGRAPHY(POINT, 4326),
+    delivery_location GEOGRAPHY(POINT, 4326),
     tracking_code TEXT UNIQUE DEFAULT substring(md5(random()::text) from 1 for 12),
     notes TEXT,
     created_at TIMESTAMPTZ DEFAULT now(),

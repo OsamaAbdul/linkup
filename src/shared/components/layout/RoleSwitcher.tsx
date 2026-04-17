@@ -23,7 +23,7 @@ export function RoleSwitcher() {
   const roleConfig: Record<string, { label: string; icon: any; path: string; color: string }> = {
     buyer: { label: "Buyer", icon: ShoppingBag, path: "/", color: "text-primary" },
     seller: { label: "Seller", icon: Store, path: "/dashboard", color: "text-orange-500" },
-    logistics: { label: "Rider", icon: Truck, path: "/logistics-dashboard", color: "text-accent" },
+    logistics: { label: "Rider", icon: Truck, path: "/logistics", color: "text-accent" },
     promoter: { label: "Promoter", icon: Megaphone, path: "/promoter-dashboard", color: "text-purple-500" },
     admin: { label: "Admin", icon: User, path: "/admin", color: "text-red-500" },
   };

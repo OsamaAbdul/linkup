@@ -65,7 +65,7 @@ export default function AdminUserManagement() {
 
     const getUserStats = (userId: string) => {
         const userOrders = allOrders?.filter(o => o.buyer_id === userId) || [];
-        const totalSpent = userOrders.reduce((acc, curr) => acc + (curr.total || 0), 0);
+        const totalSpent = userOrders.reduce((acc, curr) => acc + (curr.total_amount || 0), 0);
         return { count: userOrders.length, totalSpent };
     };
 

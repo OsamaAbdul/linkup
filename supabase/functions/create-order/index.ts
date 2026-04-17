@@ -245,24 +245,18 @@ serve(async (req: Request) => {
         console.log(`[Attribution] SKIP: No promoter_id provided in checkout payload.`);
       }
 
-      // --- Create Order for this Seller ---
+      // --- Create Transactional Order Record ---
       const { data: order, error: orderError } = await adminClient
         .from("orders")
         .insert({
           buyer_id: user.id,
           seller_id: sId,
-          items: enrichedSellerItems, 
-          total: calculatedSubTotal || 0, // SECURE: Use server-calculated total
-          shipping_info: shipping_address || pickup_address || null,
+          total_amount: calculatedSubTotal || 0,
           status: "pending",
           promoter_id: finalPromoterId || null,
           payment_method: payment_method || null,
           payment_ref: payment_ref || null,
           payment_status: payment_status || null,
-          pickup_lat: current_pickup_lat || null,
-          pickup_lng: current_pickup_lng || null,
-          delivery_lat: delivery_lat || null,
-          delivery_lng: delivery_lng || null,
           settlement_status: "none",
         })
         .select("id")
@@ -275,6 +269,23 @@ serve(async (req: Request) => {
 
       createdOrderIds.push(order.id);
 
+      // --- Create Recipient Record (The Destination Data) ---
+      const shipAddrRaw = shipping_address || pickup_address || {};
+      const { error: recipientError } = await adminClient
+        .from("order_recipient")
+        .insert({
+          order_id: order.id,
+          full_name: shipAddrRaw.name || shipAddrRaw.full_name || user.user_metadata?.display_name || "Customer",
+          phone: shipAddrRaw.phone || user.phone || "No phone",
+          address_line: toTextAddress(shipAddrRaw),
+          city_id: city_id || null, 
+          zone_id: zone_id || null,
+          lat: delivery_lat || null,
+          lng: delivery_lng || null,
+        });
+
+      if (recipientError) console.error("RECIPIENT_INSERT_FAIL:", recipientError);
+
       // --- Create Order Items Relationship ---
       const orderItemsPayload = enrichedSellerItems.map((item) => ({
         order_id: order.id,
@@ -285,28 +296,30 @@ serve(async (req: Request) => {
         size: item.size || null,
       }));
 
-      await adminClient.from("order_items_new").insert(orderItemsPayload);
+      await adminClient.from("order_items").insert(orderItemsPayload);
 
-      // --- Create Shipment for this Seller's sub-order ---
-      const deliveryAddress = toTextAddress(shipping_address);
-      const finalPickupAddress = toTextAddress(pickup_address) || current_seller_address;
+      // --- Create Shipment Record (The Logistics Pipeline) ---
+      const deliveryAddressStr = toTextAddress(shipping_address);
+      const finalPickupAddressStr = toTextAddress(pickup_address) || current_seller_address;
 
       await adminClient.from("shipments").insert({
         order_id: order.id,
         seller_id: sId,
         status: "pending",
-        delivery_address: deliveryAddress,
-        pickup_address: finalPickupAddress,
+        delivery_address_text: deliveryAddressStr,
+        pickup_address_text: finalPickupAddressStr,
         delivery_fee_amount: delivery_fee ? (delivery_fee / sellerIds.length) : 0, 
         cross_zone_fee_amount: cross_zone_fee ? (cross_zone_fee / sellerIds.length) : 0,
         zone_id: zone_id || null,
         city_id: city_id || null,
         zone: zone || null,
         broadcast_zone: zone || null,
-        pickup_latitude: current_pickup_lat || null,
-        pickup_longitude: current_pickup_lng || null,
-        buyer_latitude: delivery_lat || null,
-        buyer_longitude: delivery_lng || null,
+        pickup_lat: current_pickup_lat || null,
+        pickup_lng: current_pickup_lng || null,
+        delivery_lat: delivery_lat || null,
+        delivery_lng: delivery_lng || null,
+        distance_km: body.distance_km || null,
+        // (Removing legacy JSONB to finalize the pure architecture)
       });
 
       // --- Notify Seller ---

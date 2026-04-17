@@ -4,15 +4,23 @@ import { Link } from "react-router-dom";
 import { AlertCircle, ArrowRight, UserCheck } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export function ProfileCompletionBanner() {
+interface ProfileCompletionBannerProps {
+  onAction?: () => void;
+}
+
+export function ProfileCompletionBanner({ onAction }: ProfileCompletionBannerProps) {
   const { profile, loading } = useAuth();
 
   if (loading || !profile) return null;
 
+  // Strict check for Registry Strength
   const isComplete = 
     profile.display_name && 
     profile.phone && 
-    profile.city_id;
+    profile.city_id &&
+    profile.latitude &&
+    profile.longitude &&
+    profile.bio;
 
   if (isComplete) return null;
 
@@ -35,15 +43,25 @@ export function ProfileCompletionBanner() {
             </div>
           </div>
           
-          <Button 
-            asChild
-            className="rounded-xl h-11 px-6 bg-amber-600 hover:bg-amber-700 text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-amber-600/20 transition-all active:scale-95 gap-2"
-          >
-            <Link to="/profile">
-              Complete Profile
-              <ArrowRight size={14} strokeWidth={3} />
-            </Link>
-          </Button>
+          {onAction ? (
+            <Button 
+                onClick={onAction}
+                className="rounded-xl h-11 px-6 bg-amber-600 hover:bg-amber-700 text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-amber-600/20 transition-all active:scale-95 gap-2"
+            >
+                Complete Profile
+                <ArrowRight size={14} strokeWidth={3} />
+            </Button>
+          ) : (
+            <Button 
+                asChild
+                className="rounded-xl h-11 px-6 bg-amber-600 hover:bg-amber-700 text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-amber-600/20 transition-all active:scale-95 gap-2"
+            >
+                <Link to="/profile">
+                Complete Profile
+                <ArrowRight size={14} strokeWidth={3} />
+                </Link>
+            </Button>
+          )}
         </div>
       </motion.div>
     </AnimatePresence>

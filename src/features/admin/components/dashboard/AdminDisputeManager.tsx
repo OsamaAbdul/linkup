@@ -38,7 +38,7 @@ export default function AdminDisputeManager() {
                     reporter: profiles!issues_reporter_profile_fkey(display_name, avatar_url),
                     order: orders(
                         id, 
-                        total, 
+                        total_amount, 
                         status, 
                         created_at,
                         seller: profiles!seller_id(display_name)
@@ -150,7 +150,7 @@ export default function AdminDisputeManager() {
                                         <div className="bg-gray-50 rounded-xl p-4 space-y-3">
                                             <div className="flex items-center justify-between">
                                                 <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Order Amount</span>
-                                                <span className="text-lg font-black text-foreground">₦{dispute.order?.total?.toLocaleString()}</span>
+                                                <span className="text-lg font-black text-foreground">₦{dispute.order?.total_amount?.toLocaleString()}</span>
                                             </div>
                                             <div className="flex items-center justify-between">
                                                 <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Order Status</span>
@@ -268,7 +268,7 @@ export default function AdminDisputeManager() {
                              </div>
                              <div className="flex justify-between items-baseline">
                                 <span className="font-mono text-xs font-bold">#{selectedDispute?.order?.id.slice(0, 12).toUpperCase()}</span>
-                                <span className="text-lg font-black">₦{selectedDispute?.order?.total?.toLocaleString()}</span>
+                                <span className="text-lg font-black">₦{selectedDispute?.order?.total_amount?.toLocaleString()}</span>
                              </div>
                         </div>
 

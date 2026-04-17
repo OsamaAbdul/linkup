@@ -23,7 +23,7 @@ export function AppLayout({ children, hideBottomNav = false }: { children: React
       if (activeRole === "seller" && path === "/") {
         navigate("/dashboard");
       } else if (activeRole === "logistics" && path === "/") {
-        navigate("/logistics-dashboard");
+        navigate("/logistics");
       } else if (activeRole === "promoter" && path === "/") {
         navigate("/promoter-dashboard");
       } else if (activeRole === "admin" && !path.startsWith("/admin")) {

@@ -55,7 +55,7 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
             if (!shipment?.id) return null;
             const { data, error } = await (supabase as any)
                 .from("shipments")
-                .select(`*, order:orders (*, buyer:profiles!buyer_id (*), seller:profiles!seller_id (*))`)
+                .select(`*, order:orders (*, order_recipient(*), buyer:profiles!buyer_id (*), seller:profiles!seller_id (*))`)
                 .eq("id", shipment.id)
                 .single();
             if (error) throw error;

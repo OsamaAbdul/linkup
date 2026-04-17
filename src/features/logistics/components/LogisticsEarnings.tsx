@@ -82,7 +82,7 @@ export function LogisticsEarnings() {
                     delivery_fee,
                     zone,
                     created_at,
-                    orders!inner(total, status, updated_at, buyer_id)
+                    orders!inner(total_amount, status, updated_at, buyer_id)
                 `)
                 .eq("rider_id", user.id)
                 .eq("orders.status", "completed")

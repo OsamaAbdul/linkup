@@ -96,14 +96,14 @@ export function LogisticsSidebar({
                                     animate={{ opacity: 1 }}
                                     className="font-black text-lg lg:text-xl tracking-tight"
                                 >
-                                    LINKUP<span className="text-blue-600">.AGENTS</span>
+                                    LINKUP<span className="text-blue-600"> AGENTS</span>
                                 </motion.span>
                             )}
                         </div>
                         {isOpen && (
-                            <Button 
-                                variant="ghost" 
-                                size="icon" 
+                            <Button
+                                variant="ghost"
+                                size="icon"
                                 onClick={() => setIsOpen?.(false)}
                                 className="lg:hidden rounded-xl w-8 h-8"
                             >

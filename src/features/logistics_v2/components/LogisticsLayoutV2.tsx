@@ -1,12 +1,12 @@
 import React, { useState } from "react";
-import { 
-    LayoutDashboard, 
-    ShoppingBag, 
-    Wallet, 
-    ShieldCheck, 
-    Settings, 
-    Bell, 
-    Menu, 
+import {
+    LayoutDashboard,
+    ShoppingBag,
+    Wallet,
+    ShieldCheck,
+    Settings,
+    Bell,
+    Menu,
     X,
     User,
     LogOut
@@ -23,7 +23,7 @@ interface NavItem {
     icon: React.ElementType;
 }
 
-const navItems: navItem[] = [
+const navItems: NavItem[] = [
     { id: "dashboard", label: "Overview", icon: LayoutDashboard },
     { id: "orders", label: "Deliveries", icon: ShoppingBag },
     { id: "earnings", label: "Earnings", icon: Wallet },
@@ -31,8 +31,8 @@ const navItems: navItem[] = [
     { id: "settings", label: "Settings", icon: Settings },
 ];
 
-export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 0, escrow_balance = 0 }: { 
-    children: React.ReactNode; 
+export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 0, escrow_balance = 0 }: {
+    children: React.ReactNode;
     activeTab: string;
     onTabChange: (tab: string) => void;
     balance?: number;
@@ -49,7 +49,7 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
                     <div className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-xl shadow-blue-600/20">
                         <span className="font-black text-xl">L</span>
                     </div>
-                    <span className="font-black text-xl tracking-tight uppercase">Linkup<span className="text-blue-600">.V2</span></span>
+                    <span className="font-black text-xl tracking-tight uppercase">Linkup<span className="text-blue-600"> AGENT</span></span>
                 </div>
 
                 <nav className="flex-1 space-y-1.5">
@@ -59,8 +59,8 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
                             onClick={() => onTabChange(item.id)}
                             className={cn(
                                 "w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl transition-all duration-300 group",
-                                activeTab === item.id 
-                                    ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" 
+                                activeTab === item.id
+                                    ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
                                     : "text-muted-foreground hover:bg-gray-50 hover:text-foreground"
                             )}
                         >
@@ -71,8 +71,8 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
                 </nav>
 
                 <div className="mt-auto pt-6 border-t border-black/[0.04]">
-                    <Button 
-                        variant="ghost" 
+                    <Button
+                        variant="ghost"
                         onClick={signOut}
                         className="w-full justify-start gap-4 h-12 rounded-2xl text-red-500 hover:bg-red-50 hover:text-red-600 font-bold transition-all"
                     >
@@ -90,7 +90,7 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
                     </div>
                     <span className="font-black text-lg tracking-tight uppercase">Linkup</span>
                 </div>
-                
+
                 <div className="flex items-center gap-3">
                     <button className="relative p-2 text-muted-foreground transition-colors hover:text-foreground">
                         <Bell size={22} strokeWidth={2.2} />
@@ -138,7 +138,7 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
                                 <span className="text-sm font-black text-amber-700">₦ {escrow_balance.toLocaleString()}</span>
                             </div>
                         )}
-                        
+
                         <button className="relative p-2.5 bg-white border border-black/[0.05] rounded-xl text-muted-foreground hover:text-blue-600 hover:border-blue-100 hover:shadow-sm transition-all">
                             <Bell size={18} strokeWidth={2.5} />
                             <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-blue-600 rounded-full border-2 border-white" />
@@ -183,7 +183,7 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
                         <item.icon size={22} strokeWidth={activeTab === item.id ? 2.5 : 2} />
                         <span className="text-[10px] font-black uppercase tracking-widest leading-none">{item.label}</span>
                         {activeTab === item.id && (
-                            <motion.div 
+                            <motion.div
                                 layoutId="mobile-nav-pill"
                                 className="absolute -top-1 w-8 h-1 bg-blue-600 rounded-full"
                             />

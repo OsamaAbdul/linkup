@@ -36,12 +36,12 @@ export function useSellerDashboardData() {
       const { data, count } = await supabase
         .from("orders")
         .select(`
-          id, status, created_at, total, shipping_address, items, city_id, zone_id,
-          cities:city_id(name),
-          delivery_zones:zone_id(name),
-          shipments (
+          id, status, created_at, total_amount, shipping_address, items, city_id, zone_id,
+          cities: city_id(name),
+          delivery_zones: zone_id(name),
+          shipments(
             id, status, tracking_code, zone, zone_id,
-            profiles:rider_id (
+            profiles: rider_id(
               display_name, avatar_url
             )
           )
@@ -301,11 +301,11 @@ export function useSellerDashboardData() {
       if (!user) return { revenue: 0, count: 0, chartData: [] };
       const { data, error } = await supabase
         .from("orders")
-        .select("total, created_at")
+        .select("total_amount, created_at")
         .eq("seller_id", user.id)
         .order("created_at", { ascending: true });
       if (error) return { revenue: 0, count: 0, chartData: [] };
-      const totalRevenue = data.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+      const totalRevenue = data.reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0);
       const chartValues = Object.entries(data.reduce((acc: Record<string, number>, o) => {
         const date = new Date(o.created_at).toLocaleDateString();
         acc[date] = (acc[date] || 0) + 1;

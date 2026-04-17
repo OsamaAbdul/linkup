@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+ï»¿import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/context/AuthContext";
@@ -27,7 +27,7 @@ export default function Logistics() {
                     order:orders (
                         id,
                         status,
-                        total,
+                        total_amount,
                         shipping_address
                     )
                 `)
@@ -141,7 +141,7 @@ export default function Logistics() {
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-sm font-black text-foreground">‚¦{s.order?.total?.toLocaleString()}</p>
+                                        <p className="text-sm font-black text-foreground">â€šÂ¦{s.order?.total_amount?.toLocaleString()}</p>
                                     </div>
                                 </CardHeader>
 

@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
 import {
-    AlertTriangle, ShoppingBag, Users, TrendingUp, Filter, Printer, ArrowUpRight, Loader2, Play
+    AlertTriangle, ShoppingBag, Users, TrendingUp, Filter, Printer, ArrowUpRight, Loader2, Play, Package
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -31,11 +31,25 @@ export default function AdminOverview() {
             const { count, error } = await supabase
                 .from("orders")
                 .select("*", { count: 'exact', head: true })
-                .not("status", "in", '("completed", "cancelled", "refunded")');
+                .not("status", "in", '("completed", "cancelled", "refunded", "delivered")');
+            if (error) throw error;
+
+
+            return count || 0;
+        },
+        staleTime: 1000 * 60 * 2,
+    });
+
+    const { data: totalOrdersCount, isLoading: isTotalOrdersLoading } = useQuery({
+        queryKey: ["admin-total-orders-count"],
+        queryFn: async () => {
+            const { count, error } = await supabase
+                .from("orders")
+                .select("*", { count: 'exact', head: true });
             if (error) throw error;
             return count || 0;
         },
-        staleTime: 1000 * 60 * 2, // 2 minutes
+        staleTime: 1000 * 60 * 5, // 5 minutes
     });
 
     const { data: usersCount, isLoading: isUsersLoading } = useQuery({
@@ -89,9 +103,9 @@ export default function AdminOverview() {
         try {
             setIsSettling(true);
             const { data, error } = await (supabase as any).rpc("test_move_all_escrow_to_balance");
-            
+
             if (error) throw error;
-            
+
             const result = data as any;
             if (result.success) {
                 toast.success(result.message || "All funds released successfully");
@@ -111,6 +125,7 @@ export default function AdminOverview() {
     const stats = [
         { label: "Total Sales", value: revenueData, icon: TrendingUp, loading: isRevLoading, isCurrency: true },
         { label: "Ongoing Orders", value: activeOrdersCount, icon: ShoppingBag, loading: isActiveOrdersLoading },
+        { label: "Total Orders", value: totalOrdersCount, icon: Package, loading: isTotalOrdersLoading },
         { label: "Total Users", value: usersCount, icon: Users, loading: isUsersLoading },
         { label: "Complaints", value: openIssuesCount, icon: AlertTriangle, loading: isIssuesLoading },
     ];
@@ -129,7 +144,7 @@ export default function AdminOverview() {
                             <span className="text-[10px] font-black text-amber-600 uppercase tracking-tighter">Debug Mode Active</span>
                             <span className="text-[9px] text-muted-foreground font-medium italic">Development testing tools enabled</span>
                         </div>
-                        <Button 
+                        <Button
                             onClick={handleForceSettlement}
                             disabled={isSettling}
                             variant="outline"
@@ -146,20 +161,20 @@ export default function AdminOverview() {
                 )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                 {stats.map((stat, i) => (
-                    <Card key={i} className="border-none shadow-sm rounded-xl bg-white group hover:shadow-xl transition-all duration-300">
-                        <CardContent className="p-8">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                                    <stat.icon size={24} strokeWidth={2.5} />
+                    <Card key={i} className="border-none shadow-sm rounded-xl bg-white group hover:shadow-md transition-all duration-300">
+                        <CardContent className="p-5">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                                    <stat.icon size={20} strokeWidth={2.5} />
                                 </div>
 
                             </div>
-                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em]">{stat.label}</p>
-                            <div className="text-3xl font-black text-foreground mt-1">
+                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.15em]">{stat.label}</p>
+                            <div className="text-xl font-black text-foreground mt-1">
                                 {stat.loading ? (
-                                    <div className="h-9 w-24 bg-gray-100 animate-pulse rounded-lg" />
+                                    <div className="h-7 w-20 bg-gray-100 animate-pulse rounded-lg" />
                                 ) : (
                                     <>
                                         {stat.isCurrency && "₦ "}

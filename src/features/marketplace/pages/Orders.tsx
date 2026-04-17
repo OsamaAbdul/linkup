@@ -33,11 +33,16 @@ export default function Orders() {
                         rider_id,
                         rider_latitude,
                         rider_longitude,
-                        buyer_latitude,
-                        buyer_longitude,
-                        pickup_address,
-                        delivery_address,
+                        delivery_lat,
+                        delivery_lng,
+                        pickup_address_text,
+                        delivery_address_text,
                         delivery_fee
+                    ),
+                    order_recipient (
+                        full_name,
+                        phone,
+                        address_line
                     ),
                     order_items (
                         product_id
@@ -175,7 +180,7 @@ export default function Orders() {
 
         const title = jsonItem?.title || `Order #${order.id.slice(0, 8)}`;
         const image = jsonItem?.image || jsonItem?.images?.[0] || "";
-        const price = order.total || 0;
+        const price = order.total_amount || 0;
         const store = "Linkup Partner";
 
         return {

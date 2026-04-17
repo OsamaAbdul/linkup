@@ -285,7 +285,7 @@ export default function Onboarding() {
 
       // Determine where to navigate
       if (selectedRoles.includes("seller")) navigate("/dashboard");
-      else if (selectedRoles.includes("logistics")) navigate("/logistics-dashboard");
+      else if (selectedRoles.includes("logistics")) navigate("/logistics");
       else navigate("/");
     } catch (err: any) {
       toast.error(err.message);

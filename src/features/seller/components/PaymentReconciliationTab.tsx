@@ -39,7 +39,7 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
     queryFn: async () => {
       let query = supabase
         .from("orders")
-        .select("id, total, status, payment_status, payment_ref, payment_method, created_at, buyer_id, seller_id, items, settlement_status")
+        .select("id, total_amount, status, payment_status, payment_ref, payment_method, created_at, buyer_id, seller_id, items, settlement_status")
         .order("created_at", { ascending: false });
 
       if (!isAdmin) {
@@ -222,7 +222,7 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
                     <td className="px-6 py-5 text-xs font-medium text-muted-foreground">
                       {new Date(o.created_at).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-5 font-black text-sm">₦{(o.total || 0).toLocaleString()}</td>
+                    <td className="px-6 py-5 font-black text-sm">₦{(o.total_amount || 0).toLocaleString()}</td>
                     <td className="px-6 py-5">
                       <Badge variant="outline" className="rounded-full text-[9px] font-black uppercase tracking-widest border-muted/30 whitespace-nowrap">
                         {o.payment_method || "direct"}
@@ -293,7 +293,7 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-muted/5 p-4 rounded-xl border border-muted/20">
                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Amount</p>
-                  <p className="text-xl font-black text-foreground">₦{(selectedOrder.total || 0).toLocaleString()}</p>
+                  <p className="text-xl font-black text-foreground">₦{(selectedOrder.total_amount || 0).toLocaleString()}</p>
                 </div>
                 <div className="bg-muted/5 p-4 rounded-xl border border-muted/20">
                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Method</p>
@@ -330,7 +330,7 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
                       verifyMutation.mutate({
                         orderId: selectedOrder.id,
                         paymentRef: selectedOrder.payment_ref,
-                        totalKobo: (selectedOrder.total || 0) * 100,
+                        totalKobo: (selectedOrder.total_amount || 0) * 100,
                       })
                     }
                     disabled={verifyMutation.isPending}

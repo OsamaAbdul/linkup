@@ -395,7 +395,7 @@ export type Database = {
           seller_id: string
           shipping_info: Json | null
           status: string
-          total: number
+          total_amount: number
           updated_at: string
           broadcast_zone: string | null
           city_id: string | null
@@ -413,7 +413,7 @@ export type Database = {
           seller_id: string
           shipping_info?: Json | null
           status?: string
-          total?: number
+          total_amount?: number
           updated_at?: string
           broadcast_zone?: string | null
           city_id?: string | null
@@ -431,7 +431,7 @@ export type Database = {
           seller_id?: string
           shipping_info?: Json | null
           status?: string
-          total?: number
+          total_amount?: number
           updated_at?: string
           broadcast_zone?: string | null
           city_id?: string | null
@@ -590,6 +590,9 @@ export type Database = {
           zone: string | null
           zone_id: string | null
           email: string | null
+          payout_bank_name: string | null
+          payout_account_number: string | null
+          payout_account_name: string | null
         }
         Insert: {
           address?: string | null
@@ -609,6 +612,9 @@ export type Database = {
           zone?: string | null
           zone_id?: string | null
           email?: string | null
+          payout_bank_name?: string | null
+          payout_account_number?: string | null
+          payout_account_name?: string | null
         }
         Update: {
           address?: string | null
@@ -628,6 +634,9 @@ export type Database = {
           zone?: string | null
           zone_id?: string | null
           email?: string | null
+          payout_bank_name?: string | null
+          payout_account_number?: string | null
+          payout_account_name?: string | null
         }
         Relationships: [
           {
@@ -1070,6 +1079,12 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      get_seller_analytics: {
+        Args: {
+          seller_uuid: string
+        }
+        Returns: Json
       }
     }
     Enums: {

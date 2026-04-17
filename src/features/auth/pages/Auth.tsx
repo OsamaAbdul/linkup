@@ -78,7 +78,7 @@ export default function Auth() {
         if (userRoles.includes("admin")) {
           navigate("/admin");
         } else if (userRoles.includes("logistics")) {
-          navigate("/logistics-dashboard");
+          navigate("/logistics");
         } else if (userRoles.includes("seller")) {
           navigate("/dashboard");
         } else {

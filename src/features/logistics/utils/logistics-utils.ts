@@ -29,28 +29,13 @@ export const ensureAddressString = (val: any): string | null => {
 export const getPickupAddress = (shipment: any) => {
     if (!shipment) return "Pickup Point";
     
-    const sellerProfile = Array.isArray(shipment.seller) ? shipment.seller[0] : shipment.seller;
-    const orderDetails = Array.isArray(shipment.order) ? shipment.order[0] : shipment.order;
-    const orderSeller = orderDetails?.seller;
+    // Priority 1: New Normalized Flat Column (shipments)
+    if (shipment.pickup_address_text) return shipment.pickup_address_text;
     
-    // Use shipment.seller or order.seller
-    const s = sellerProfile || orderSeller;
-    
-    // Priority 1: Direct shipment pickup address
-    const shipmentPickup = ensureAddressString(shipment.pickup_address);
-    if (shipmentPickup) return shipmentPickup;
-    
-    // Priority 2: Order-level pickup address (newly added JSONB column)
-    const orderPickup = ensureAddressString(orderDetails?.pickup_address);
-    if (orderPickup) return orderPickup;
-
-    // Priority 3: Seller's profile address
-    const sellerAddr = ensureAddressString(s?.address);
+    // Priority 2: Seller's profile address (Legacy fallback)
+    const seller = Array.isArray(shipment.seller) ? shipment.seller[0] : shipment.seller;
+    const sellerAddr = ensureAddressString(seller?.address);
     if (sellerAddr) return sellerAddr;
-
-    // Priority 4: Old legacy fallback in shipping_info
-    const legacyPickup = ensureAddressString(orderDetails?.shipping_info?.pickup_address);
-    if (legacyPickup) return legacyPickup;
 
     return "Pickup Point";
 };
@@ -58,38 +43,38 @@ export const getPickupAddress = (shipment: any) => {
 export const getDeliveryAddress = (shipment: any) => {
     if (!shipment) return "Drop-off Node";
     
-    const orderDetails = Array.isArray(shipment.order) ? shipment.order[0] : shipment.order;
-    const deliveryData = orderDetails?.shipping_info || shipment.delivery_address || {};
+    // Priority 1: New Normalized Flat Column (shipments)
+    if (shipment.delivery_address_text) return shipment.delivery_address_text;
     
-    const addr = ensureAddressString(deliveryData);
-    return addr || "Drop-off Node";
+    // Priority 2: order_recipient relation (Core Source of Truth)
+    const order = Array.isArray(shipment.order) ? shipment.order[0] : shipment.order;
+    const recipient = order?.order_recipient?.[0] || order?.order_recipient;
+    if (recipient?.address_line) return recipient.address_line;
+
+    return "Drop-off Node";
 };
 
 export const getBuyerContact = (shipment: any) => {
     if (!shipment?.order) return { name: "Customer", phone: "No phone" };
     
     const order = Array.isArray(shipment.order) ? shipment.order[0] : shipment.order;
-    const shippingInfo = order?.shipping_info || {};
-    const buyerProfile = order?.buyer || {};
+    const recipient = order?.order_recipient?.[0] || order?.order_recipient || {};
+    const buyerProfile = order?.buyer || (order?.profiles && !Array.isArray(order.profiles) ? order.profiles : null) || {};
     
     return {
-        name: ensureAddressString(buyerProfile.full_name) || 
+        name: recipient.full_name || 
+              ensureAddressString(buyerProfile.full_name) || 
               ensureAddressString(buyerProfile.display_name) || 
-              (shippingInfo as any)?.name || 
               "Customer",
-        phone: buyerProfile.phone || (shippingInfo as any)?.phone || "No phone"
+        phone: recipient.phone || buyerProfile.phone || "No phone"
     };
 };
 
 export const getSellerInfo = (shipment: any) => {
-    const sellerProfile = Array.isArray(shipment.seller) ? shipment.seller[0] : shipment.seller;
-    const orderDetails = Array.isArray(shipment.order) ? shipment.order[0] : shipment.order;
-    const orderSeller = orderDetails?.seller;
-    const s = sellerProfile || orderSeller;
-    
+    const seller = Array.isArray(shipment.seller) ? shipment.seller[0] : shipment.seller;
     return {
-        name: s?.display_name || s?.business_name || "Seller",
-        phone: s?.phone || "No phone provided"
+        name: seller?.display_name || seller?.business_name || "Seller",
+        phone: seller?.phone || "No phone provided"
     };
 };
 
@@ -110,31 +95,20 @@ export const generateMapsUrl = (shipment: any, mode: 'pickup' | 'delivery' = 'de
     let lat, lng, address;
 
     if (mode === 'pickup') {
-        const sellerProfile = Array.isArray(shipment.seller) ? shipment.seller[0] : shipment.seller;
-        const orderDetails = Array.isArray(shipment.order) ? shipment.order[0] : shipment.order;
-        const orderSeller = orderDetails?.seller;
-        const s = sellerProfile || orderSeller;
+        const seller = Array.isArray(shipment.seller) ? shipment.seller[0] : shipment.seller;
         
-        const orderPickup = orderDetails?.pickup_address;
-        
-        lat = shipment.pickup_latitude || 
-              (orderPickup as any)?.lat || 
-              orderDetails?.pickup_lat || 
-              s?.latitude;
-              
-        lng = shipment.pickup_longitude || 
-              (orderPickup as any)?.lng || 
-              orderDetails?.pickup_lng || 
-              s?.longitude;
-              
+        // Use standardized columns
+        lat = shipment.pickup_lat || seller?.latitude;
+        lng = shipment.pickup_lng || seller?.longitude;
         address = getPickupAddress(shipment);
     } else {
-        const o = Array.isArray(shipment.order) ? shipment.order[0] : shipment.order;
-        const deliveryData = o?.shipping_info || shipment.delivery_address || {};
+        const order = Array.isArray(shipment.order) ? shipment.order[0] : shipment.order;
+        const recipient = order?.order_recipient?.[0] || order?.order_recipient;
         
+        // Use standardized columns
+        lat = shipment.delivery_lat || recipient?.lat;
+        lng = shipment.delivery_lng || recipient?.lng;
         address = getDeliveryAddress(shipment);
-        lat = (deliveryData as any)?.lat || shipment.buyer_latitude;
-        lng = (deliveryData as any)?.lng || shipment.buyer_longitude;
     }
     
     return lat && lng

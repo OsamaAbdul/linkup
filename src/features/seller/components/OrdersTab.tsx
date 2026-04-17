@@ -94,7 +94,7 @@ export function OrdersTab({ orders, updateOrderStatus, sellerZone, sellerZoneId,
                                     <p className="text-[8px] sm:text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Settlement Total</p>
                                     <p className="text-xl sm:text-2xl font-black text-primary tracking-tighter flex items-center sm:justify-end gap-1">
                                         <span className="text-xs sm:text-sm opacity-40">₦</span>
-                                        {(o.total || 0).toLocaleString()}
+                                        {(o.total_amount || 0).toLocaleString()}
                                     </p>
                                 </div>
                             </div>

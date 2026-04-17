@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { ShipmentCardV2 } from "./ShipmentCardV2";
+import { MissionDetailsModalV2 } from "./MissionDetailsModalV2";
 import { Search, Filter, Loader2, PackageX, TrendingUp } from "lucide-react";
 import { Input } from "@/shared/components/ui/input";
 import { Button } from "@/shared/components/ui/button";
@@ -12,6 +13,8 @@ export function ShipmentFeedV2() {
     const { user } = useAuth();
     const [searchTerm, setSearchTerm] = useState("");
     const [filterStatus, setFilterStatus] = useState("all");
+    const [selectedShipment, setSelectedShipment] = useState<any>(null);
+    const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
     const statusFilters = [
         { label: "All", value: "all" },
@@ -23,22 +26,55 @@ export function ShipmentFeedV2() {
     const { data: shipments, isLoading } = useQuery({
         queryKey: ["logistics-shipments-v2", user?.id, filterStatus],
         queryFn: async () => {
-            let query = (supabase as any)
+            if (!user) return [];
+
+            // 1. Fetch My Active Assignments
+            let myAssignmentsQuery = (supabase as any)
                 .from("shipments")
                 .select("*")
-                .order("created_at", { ascending: false });
+                .eq("rider_id", user.id);
 
             if (filterStatus !== "all") {
                 if (filterStatus === "active") {
-                    query = query.in("status", ["accepted", "started", "arrived"]);
+                    myAssignmentsQuery = myAssignmentsQuery.in("status", ["accepted", "started", "arrived", "picked_up"]);
+                } else if (filterStatus === "pending") {
+                    myAssignmentsQuery = myAssignmentsQuery.eq("status", "accepted"); // Once accepted, they are pending start
                 } else {
-                    query = query.eq("status", filterStatus);
+                    myAssignmentsQuery = myAssignmentsQuery.eq("status", filterStatus);
                 }
             }
 
-            const { data, error } = await query;
-            if (error) throw error;
-            return data;
+            const { data: myData } = await myAssignmentsQuery;
+
+            // 2. Fetch Unassigned Broadcast Missions (Only if filtering for all or pending)
+            let broadcastData: any[] = [];
+            if (filterStatus === "all" || filterStatus === "pending") {
+                // Get rider's zone from profile (passed via details or refetched)
+                const { data: profile } = await (supabase as any)
+                    .from("profiles")
+                    .select("city_id, zone_id")
+                    .eq("id", user.id)
+                    .single();
+
+                let broadcastQuery = (supabase as any)
+                    .from("shipments")
+                    .select("*")
+                    .is("rider_id", null)
+                    .eq("status", "pending");
+
+                if (profile?.city_id) {
+                    broadcastQuery = broadcastQuery.eq("city_id", profile.city_id);
+                }
+
+                const { data: bData } = await broadcastQuery;
+                broadcastData = bData || [];
+            }
+
+            // Combine and sort
+            const combined = [...(myData || []), ...broadcastData];
+            return combined.sort((a: any, b: any) => 
+                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            );
         },
         enabled: !!user,
     });
@@ -131,12 +167,21 @@ export function ShipmentFeedV2() {
                             <ShipmentCardV2 
                                 key={s.id} 
                                 shipment={s} 
-                                onClick={() => console.log("Open Detail:", s.id)} 
+                                onClick={() => {
+                                    setSelectedShipment(s);
+                                    setIsDetailsOpen(true);
+                                }} 
                             />
                         ))}
                     </div>
                 )}
             </div>
+
+            <MissionDetailsModalV2 
+                open={isDetailsOpen} 
+                onOpenChange={setIsDetailsOpen} 
+                shipment={selectedShipment} 
+            />
         </div>
     );
 }

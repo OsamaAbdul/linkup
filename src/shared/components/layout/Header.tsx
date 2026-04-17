@@ -16,11 +16,15 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/features/marketplace/context/CartContext";
 import { RoleSwitcher } from "./RoleSwitcher";
+import { EditProfileModal } from "@/features/user/components/EditProfileModal";
+import { UserCog } from "lucide-react";
 import Logo from "@/assets/logo.png";
+import { useState } from "react";
 
 export function Header() {
   const { user, profile, signOut } = useAuth();
   const { totalCount } = useCart();
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const { data: unreadCount = 0 } = useQuery({
     queryKey: ["unread-notifications", user?.id],
@@ -89,51 +93,61 @@ export function Header() {
           </div>
 
           {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <div className="flex items-center gap-3 md:pl-6 md:border-l md:border-border/50 cursor-pointer group">
-                  <div className="relative">
-                    <Avatar className="h-9 w-9 md:h-10 md:w-10 border-2 border-white/20 transition-all group-hover:border-primary/50 shadow-sm">
-                      <AvatarImage src={profile?.avatar_url ?? undefined} />
-                      <AvatarFallback className="bg-primary/10 text-primary font-bold">
-                        {(profile?.display_name ?? "U")[0].toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="absolute -bottom-0.5 -right-0.5 h-3 md:h-3.5 w-3 md:w-3.5 bg-success rounded-full border-2 border-background shadow-sm" />
-                  </div>
-                  <div className="hidden md:block text-sm">
-                    <p className="font-heading font-bold leading-tight group-hover:text-primary transition-colors">
-                      {profile?.display_name ?? "User"}
-                    </p>
-                    <div className="flex items-center gap-1.5 mt-0.5 opacity-60">
-                      <div className="h-1 w-1 bg-primary rounded-full" />
-                      <p className="text-[10px] font-bold uppercase tracking-widest">Premium</p>
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <div className="flex items-center gap-3 md:pl-6 md:border-l md:border-border/50 cursor-pointer group">
+                    <div className="relative">
+                      <Avatar className="h-9 w-9 md:h-10 md:w-10 border-2 border-white/20 transition-all group-hover:border-primary/50 shadow-sm">
+                        <AvatarImage src={profile?.avatar_url ?? undefined} />
+                        <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                          {(profile?.display_name ?? "U")[0].toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="absolute -bottom-0.5 -right-0.5 h-3 md:h-3.5 w-3 md:w-3.5 bg-success rounded-full border-2 border-background shadow-sm" />
+                    </div>
+                    <div className="hidden md:block text-sm">
+                      <p className="font-heading font-bold leading-tight group-hover:text-primary transition-colors">
+                        {profile?.display_name ?? "User"}
+                      </p>
+                      <div className="flex items-center gap-1.5 mt-0.5 opacity-60">
+                        <div className="h-1 w-1 bg-primary rounded-full" />
+                        <p className="text-[10px] font-bold uppercase tracking-widest">Premium</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 glass border-white/10 rounded-xl p-2 mt-4 shadow-2xl">
-                <DropdownMenuLabel className="font-heading font-bold text-lg px-2 pt-2">Account</DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-white/5 my-2" />
-                <Link to="/profile">
-                  <DropdownMenuItem className="cursor-pointer rounded-xl py-3 px-3 focus:bg-primary/5 focus:text-primary">
-                    <User className="mr-3 h-4 w-4" />
-                    <span className="font-semibold">Profile</span>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64 glass border-white/10 rounded-xl p-2 mt-4 shadow-2xl">
+                  <DropdownMenuLabel className="font-heading font-bold text-lg px-2 pt-2">Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-white/5 my-2" />
+                  <Link to="/profile">
+                    <DropdownMenuItem className="cursor-pointer rounded-xl py-3 px-3 focus:bg-primary/5 focus:text-primary">
+                      <User className="mr-3 h-4 w-4" />
+                      <span className="font-semibold">My Registry Page</span>
+                    </DropdownMenuItem>
+                  </Link>
+                  <DropdownMenuItem 
+                    onClick={() => setIsEditModalOpen(true)}
+                    className="cursor-pointer rounded-xl py-3 px-3 focus:bg-primary/5 focus:text-primary"
+                  >
+                    <UserCog className="mr-3 h-4 w-4" />
+                    <span className="font-semibold">Quick Edit Profile</span>
                   </DropdownMenuItem>
-                </Link>
-                <Link to="/orders">
-                  <DropdownMenuItem className="cursor-pointer rounded-xl py-3 px-3 focus:bg-primary/5 focus:text-primary">
-                    <Package className="mr-3 h-4 w-4" />
-                    <span className="font-semibold">My Orders</span>
+                  <Link to="/orders">
+                    <DropdownMenuItem className="cursor-pointer rounded-xl py-3 px-3 focus:bg-primary/5 focus:text-primary">
+                      <Package className="mr-3 h-4 w-4" />
+                      <span className="font-semibold">My Orders</span>
+                    </DropdownMenuItem>
+                  </Link>
+                  <DropdownMenuSeparator className="bg-white/5 my-2" />
+                  <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-white focus:bg-destructive cursor-pointer rounded-xl py-3 px-3">
+                    <LogOut className="mr-3 h-4 w-4" />
+                    <span className="font-semibold">Logout Account</span>
                   </DropdownMenuItem>
-                </Link>
-                <DropdownMenuSeparator className="bg-white/5 my-2" />
-                <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-white focus:bg-destructive cursor-pointer rounded-xl py-3 px-3">
-                  <LogOut className="mr-3 h-4 w-4" />
-                  <span className="font-semibold">Logout Account</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <EditProfileModal open={isEditModalOpen} onOpenChange={setIsEditModalOpen} />
+            </>
           ) : (
             <Link to="/auth" className="md:pl-4 md:border-l md:border-border/50">
               <Button size="sm" className="rounded-xl px-6 md:px-7 md:h-11 font-bold shadow-lg shadow-primary/20 hover:shadow-xl transition-all">

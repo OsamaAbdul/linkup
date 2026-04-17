@@ -62,7 +62,7 @@ export function WalletTab() {
                     order_id,
                     delivery_fee,
                     created_at,
-                    orders!inner(total, status, updated_at)
+                    orders!inner(total_amount, status, updated_at)
                 `)
                 .eq("seller_id", user.id)
                 .eq("orders.status", "completed")
@@ -197,7 +197,7 @@ export function WalletTab() {
                                 </TableHeader>
                                 <TableBody>
                                     {completedShipments.map((s: any) => {
-                                        const orderTotal = s.orders?.total ?? 0;
+                                        const orderTotal = s.orders?.total_amount ?? 0;
                                         // Match with transaction if available (via metadata or reference fallback)
                                         const tx = transactions.find((t: any) =>
                                             t.type === 'settlement' &&

@@ -26,10 +26,15 @@ export default function AdminOrderTracker() {
                 .select(`
                     *,
                     profiles:buyer_id(display_name, id),
+                    order_recipient(full_name, phone, address_line, city_id, zone_id, lat, lng),
                     shipments(
                         rider_id,
-                        delivery_address,
-                        pickup_address,
+                        pickup_address_text,
+                        delivery_address_text,
+                        pickup_lat,
+                        pickup_lng,
+                        delivery_lat,
+                        delivery_lng,
                         rider:profiles!rider_id(display_name, phone, avatar_url)
                     )
                 `)
@@ -48,20 +53,7 @@ export default function AdminOrderTracker() {
         const items = order.items as any[] || [];
         const shipment = order.shipments?.[0];
 
-        // Merge shipping info from Order and Shipment records
-        const orderShipping = typeof order.shipping_address === 'string'
-            ? { address: order.shipping_address }
-            : (order.shipping_address as any || {});
-
-        const shipmentShipping = typeof shipment?.delivery_address === 'string'
-            ? { address: shipment.delivery_address }
-            : (shipment?.delivery_address as any || {});
-
-        const shipping = {
-            ...orderShipping,
-            ...shipmentShipping
-        };
-
+        const shipping = order.order_shipping?.[0] || order.order_shipping || {};
         const rider = shipment?.rider || (shipment as any)?.profiles;
 
         console.log("Logistic Synthesis:", { shipment, shipping, rider });
@@ -155,7 +147,7 @@ export default function AdminOrderTracker() {
                             <tfoot>
                                 <tr className="bg-indigo-50/50">
                                     <td colSpan={2} className="px-4 py-4 font-black uppercase text-[10px] tracking-widest">Total Price</td>
-                                    <td className="px-4 py-4 text-right font-black text-primary text-sm">₦{(order.total || 0).toLocaleString()}</td>
+                                    <td className="px-4 py-4 text-right font-black text-primary text-sm">₦{(order.total_amount || 0).toLocaleString()}</td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -169,11 +161,7 @@ export default function AdminOrderTracker() {
                     </div>
                     <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                         <p className="text-sm font-medium leading-relaxed">
-
-                            {/* Robust address synthesis from Order and Shipment meta */}
-                            {typeof shipping?.address === 'string' ? shipping.address : "Address Unspecified"}<br />
-
-
+                            {shipping.address_line || shipment?.delivery_address_text || "Address Unspecified"}
                         </p>
                     </div>
                 </div>
@@ -245,7 +233,7 @@ export default function AdminOrderTracker() {
                                         <td className="px-8 py-6 text-xs font-medium text-muted-foreground">
                                             {new Date(o.created_at).toLocaleDateString()}
                                         </td>
-                                        <td className="px-8 py-6 font-black text-sm">₦{(o.total || 0).toLocaleString()}</td>
+                                        <td className="px-8 py-6 font-black text-sm">₦{(o.total_amount || 0).toLocaleString()}</td>
                                         <td className="px-8 py-6">
                                             <Badge className={cn(
                                                 "rounded-full px-3 py-0.5 text-[9px] font-black uppercase tracking-widest border-none shadow-sm",

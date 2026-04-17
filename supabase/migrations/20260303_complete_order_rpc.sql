@@ -73,7 +73,7 @@ BEGIN
     IF v_order_total = 0 THEN
         SELECT COALESCE(SUM(price_at_purchase * quantity), 0)
         INTO v_order_total
-        FROM public.order_items_new
+        FROM public.order_items
         WHERE order_id = p_order_id;
     END IF;
 

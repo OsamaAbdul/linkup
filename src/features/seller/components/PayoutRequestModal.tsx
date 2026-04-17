@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/context/AuthContext";
@@ -25,6 +25,31 @@ export function PayoutRequestModal({ isOpen, onClose, wallet, balanceOverride }:
     const [bankName, setBankName] = useState("");
     const [accountNumber, setAccountNumber] = useState("");
     const [accountName, setAccountName] = useState("");
+    const [saveForLater, setSaveForLater] = useState(true);
+
+    // Fetch user profile for saved bank details
+    const { data: profile, isLoading: profileLoading } = useQuery({
+        queryKey: ["profile", user?.id],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from("profiles")
+                .select("payout_bank_name, payout_account_number, payout_account_name")
+                .eq("id", user?.id)
+                .single();
+            if (error) return null;
+            return data;
+        },
+        enabled: !!user?.id
+    });
+
+    // Auto-populate from profile
+    useEffect(() => {
+        if (profile) {
+            if (profile.payout_bank_name && !bankName) setBankName(profile.payout_bank_name);
+            if (profile.payout_account_number && !accountNumber) setAccountNumber(profile.payout_account_number);
+            if (profile.payout_account_name && !accountName) setAccountName(profile.payout_account_name);
+        }
+    }, [profile]);
 
     // Fetch system settings for fee and interval
     const { data: settings } = useQuery({
@@ -89,6 +114,10 @@ export function PayoutRequestModal({ isOpen, onClose, wallet, balanceOverride }:
             toast.error(`You can only request payouts every ${intervalDays} days.`);
             return;
         }
+        if (withdrawalAmount <= 0) {
+            toast.error("Please enter a valid amount greater than zero.");
+            return;
+        }
         if (isInsufficient) {
             toast.error("Insufficient balance to cover amount and fee.");
             return;
@@ -103,6 +132,21 @@ export function PayoutRequestModal({ isOpen, onClose, wallet, balanceOverride }:
             account_number: accountNumber,
             account_name: accountName,
         });
+
+        // Save for later if checked
+        if (saveForLater) {
+            supabase.from("profiles")
+                .update({
+                    payout_bank_name: bankName,
+                    payout_account_number: accountNumber,
+                    payout_account_name: accountName,
+                    updated_at: new Date().toISOString()
+                })
+                .eq("id", user?.id)
+                .then(({ error }) => {
+                    if (error) console.error("Error saving bank details to profile:", error);
+                });
+        }
     };
 
     return (
@@ -144,9 +188,17 @@ export function PayoutRequestModal({ isOpen, onClose, wallet, balanceOverride }:
                                 <Input 
                                     type="number" 
                                     placeholder="0.00" 
+                                    min="0"
+                                    step="0.01"
                                     className="h-14 pl-10 rounded-xl border-black/[0.05] bg-gray-50 focus:bg-white transition-all font-black text-lg"
                                     value={amount}
-                                    onChange={(e) => setAmount(e.target.value)}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        // Prevent negative signs or other non-numeric symbols
+                                        if (val === "" || parseFloat(val) >= 0) {
+                                            setAmount(val);
+                                        }
+                                    }}
                                     required
                                 />
                             </div>
@@ -186,6 +238,19 @@ export function PayoutRequestModal({ isOpen, onClose, wallet, balanceOverride }:
                                 required
                             />
                         </div>
+
+                        <div className="flex items-center space-x-2 pt-2">
+                            <input 
+                                type="checkbox" 
+                                id="saveForLater" 
+                                checked={saveForLater}
+                                onChange={(e) => setSaveForLater(e.target.checked)}
+                                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                            <label htmlFor="saveForLater" className="text-xs font-bold text-muted-foreground cursor-pointer">
+                                Save these details for future use
+                            </label>
+                        </div>
                     </div>
 
                     <div className="bg-gray-50 p-6 rounded-2xl border border-black/[0.03] space-y-3">
@@ -209,7 +274,7 @@ export function PayoutRequestModal({ isOpen, onClose, wallet, balanceOverride }:
 
                     <Button 
                         type="submit" 
-                        disabled={!canRequest || !amount || isInsufficient || payoutMutation.isPending}
+                        disabled={!canRequest || !amount || withdrawalAmount <= 0 || isInsufficient || payoutMutation.isPending}
                         className="w-full h-14 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
                     >
                         {payoutMutation.isPending ? "Processing..." : "Initiate Withdrawal"}

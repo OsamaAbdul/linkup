@@ -145,7 +145,7 @@ export function WalletTab() {
                                     <span className="text-xl mr-1 opacity-50 font-bold">₦</span>
                                     {(wallet?.balance ?? 0).toLocaleString()}
                                 </h2>
-                                <p className="text-[10px] text-white/50 font-medium">Total settled: ₦{totalSettled.toLocaleString()}</p>
+                                <p className="text-[10px] text-white/50 font-medium">Total earned: ₦{totalSettled.toLocaleString()}</p>
                             </div>
                             <Button
                                 onClick={() => setIsPayoutModalOpen(true)}
@@ -168,11 +168,11 @@ export function WalletTab() {
                         </div>
                     </div>
                     <div className="p-5 rounded-xl bg-white border border-black/5 shadow-xl shadow-black/[0.02] hover:shadow-2xl hover:shadow-amber-500/5 transition-all duration-500">
-                        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Pending Clearance</p>
+                        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">In Process</p>
                         <p className="text-2xl font-black text-foreground tracking-tight">₦{escrowBalance.toLocaleString()}</p>
                         <div className="flex items-center gap-1.5 text-amber-500 mt-1.5">
                             <Clock size={14} strokeWidth={3} />
-                            <span className="text-[9px] font-black uppercase tracking-widest">Waiting for buyer confirm</span>
+                            <span className="text-[9px] font-black uppercase tracking-widest">Awaiting delivery verification</span>
                         </div>
                     </div>
                 </div>
@@ -216,7 +216,7 @@ export function WalletTab() {
                                                         <span className="text-sm font-black text-green-600">+₦{payout.toLocaleString()}</span>
                                                     ) : (
                                                         <div className="flex flex-col items-end gap-1">
-                                                            <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest border-amber-200 text-amber-700 bg-amber-50">Checking Delivery</Badge>
+                                                            <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest border-amber-200 text-amber-700 bg-amber-50">Delivery in Progress</Badge>
                                                             {txMetadata?.reason && (
                                                                 <span className="text-[8px] text-muted-foreground font-medium max-w-[100px] text-right leading-tight italic">
                                                                     {txMetadata.reason}

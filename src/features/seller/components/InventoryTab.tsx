@@ -31,7 +31,7 @@ export function InventoryTab({
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div className="space-y-1">
-                    <p className="text-[9px] font-black text-primary/60 uppercase tracking-[0.2em]">Inventory Control</p>
+                    <p className="text-[9px] font-black text-primary/60 uppercase tracking-[0.2em]">Stock Management</p>
                     <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight">Active Products</h1>
                 </div>
                 <Button
@@ -39,13 +39,13 @@ export function InventoryTab({
                     onClick={onListProduct}
                 >
                     <Plus size={16} strokeWidth={3} />
-                    New Asset
+                    New Product
                 </Button>
             </div>
 
             {/* Quick Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <MetricCard title="Total Inventory" value={totalProducts} icon={Package} trend="+2 new" />
+                <MetricCard title="Total Stock" value={totalProducts} icon={Package} trend="+2 new" />
                 <MetricCard title="Active Listings" value={products.length} icon={ShieldCheck} status="verified" />
 
             </div>
@@ -58,7 +58,7 @@ export function InventoryTab({
                                 <img src={p.images[0]} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                                 : <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/30 gap-2">
                                     <Smartphone size={24} strokeWidth={1} />
-                                    <span className="text-[9px] font-black uppercase tracking-widest">No visual asset</span>
+                                    <span className="text-[9px] font-black uppercase tracking-widest">No image added</span>
                                 </div>
                             }
                             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -90,7 +90,7 @@ export function InventoryTab({
                                 size="sm"
                                 className="rounded-xl h-10 hover:bg-red-50 hover:text-red-500 text-muted-foreground transition-all"
                                 onClick={() => {
-                                    if (confirm("Execute decommissioning of this asset? This action is irreversible.")) {
+                                    if (confirm("Are you sure you want to delete this product? You cannot undo this.")) {
                                         deleteProductMutation.mutate(p.id);
                                     }
                                 }}

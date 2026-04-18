@@ -45,7 +45,12 @@ export default function Orders() {
                         address_line
                     ),
                     order_items (
-                        product_id
+                        product_id,
+                        products (
+                            title,
+                            images,
+                            price
+                        )
                     )
                 `)
                 .eq("buyer_id", user.id)
@@ -83,14 +88,18 @@ export default function Orders() {
             confirmed: "Order Confirmed",
             awaiting_agent: "Finding Courier...",
             accepted: "Courier Assigned",
+            out_for_pickup: "Heading to Seller",
+            arrived_at_seller: "Arrived at Pickup",
             picked_up: "Picked Up & In Transit",
-            out_for_delivery: "Out for Delivery",
+            out_for_delivery: "Heading to You",
+            arrived_at_destination: "Arrived at Hub",
+            shipped: "Shipped",
             delivered: "Delivered 🎉",
             completed: "Completed ✅",
             cancelled: "Cancelled",
             disputed: "Under Dispute ⚖️",
         };
-        return map[status] || status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, " ");
+        return map[status.toLowerCase()] || status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, " ");
     };
 
     const prevOrderStatuses = useRef<Record<string, string>>({});
@@ -155,12 +164,19 @@ export default function Orders() {
                 },
                 (payload) => {
                     const newStatus = (payload.new as any).status;
-                    playNotificationSound();
-                    toast({
-                        title: "Shipment Update",
-                        description: `Delivery status: ${formatStatus(newStatus)}`,
-                    });
-                    refetch();
+                    const shipmentOrderId = (payload.new as any).order_id;
+                    
+                    // Only refetch and notify if this shipment belongs to one of the user's orders
+                    const isMyOrder = rawOrders.some((o: any) => o.id === shipmentOrderId);
+                    
+                    if (isMyOrder) {
+                        playNotificationSound();
+                        toast({
+                            title: "Shipment Update",
+                            description: `Delivery status: ${formatStatus(newStatus)}`,
+                        });
+                        refetch();
+                    }
                 }
             )
             .subscribe();
@@ -174,12 +190,11 @@ export default function Orders() {
     const orders = rawOrders.map((order: any) => {
         const shipment = order.shipments?.[0];
         const orderItems = order.order_items || [];
-        const items = Array.isArray(order.items) ? order.items : [];
-        const jsonItem = items[0] || null;
         const normalizedItem = orderItems[0] || null;
+        const productData = normalizedItem?.products || null;
 
-        const title = jsonItem?.title || `Order #${order.id.slice(0, 8)}`;
-        const image = jsonItem?.image || jsonItem?.images?.[0] || "";
+        const title = productData?.title || `Order #${order.id.slice(0, 8)}`;
+        const image = productData?.images?.[0] || "";
         const price = order.total_amount || 0;
         const store = "Linkup Partner";
 
@@ -191,12 +206,12 @@ export default function Orders() {
             store,
             status: order.status,
             displayStatus: formatStatus(order.status),
-            itemsCount: items.length,
+            itemsCount: orderItems.length,
             deliveredBy: order.status === 'delivered' ? 'Linkup Logistics' : null,
             shipment,
             sellerId: order.seller_id,
-            productId: normalizedItem?.product_id || jsonItem?.product_id || jsonItem?.id, // Robust product ID mapping
-            size: jsonItem?.size // Map first item's size
+            productId: normalizedItem?.product_id,
+            size: normalizedItem?.size
         };
     });
 
@@ -225,7 +240,7 @@ export default function Orders() {
 
     const isLoadingAll = isLoading || issuesLoading;
 
-    if (isLoading) return <AppLayout><div className="flex items-center justify-center min-h-[60vh] text-primary animate-pulse font-bold tracking-widest uppercase text-xs">Loading Secure Registry...</div></AppLayout>;
+    if (isLoading) return <AppLayout><div className="flex items-center justify-center min-h-[60vh] text-primary animate-pulse font-bold tracking-widest uppercase text-xs">Loading all orders...</div></AppLayout>;
 
     return (
         <AppLayout>

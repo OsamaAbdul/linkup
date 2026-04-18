@@ -15,6 +15,7 @@ import { useAuth } from "@/features/auth/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { calculateDistance } from "../../logistics/utils/logistics-utils";
 
 interface ShipmentCardProps {
     shipment: any;
@@ -43,26 +44,65 @@ export function ShipmentCardV2({ shipment, onClick }: ShipmentCardProps) {
     const updateStatus = async (newStatus: string, e: React.MouseEvent) => {
         e.stopPropagation();
         try {
-            const updatePayload: any = { 
-                status: newStatus,
-                updated_at: new Date().toISOString()
-            };
+            // Use the Order ID as the unique link for the shipment record
+            const orderId = shipment.order_id || shipment.id;
             
-            if (newStatus === 'accepted' && !shipment.rider_id) {
-                updatePayload.rider_id = user?.id;
+            if (newStatus === 'accepted') {
+                const pickLat = shipment.pickup_lat || shipment.order?.seller?.latitude;
+                const pickLng = shipment.pickup_lng || shipment.order?.seller?.longitude;
+                const dropLat = shipment.delivery_lat || shipment.order?.order_recipient?.[0]?.lat || shipment.order?.order_recipient?.lat || shipment.order?.buyer?.latitude;
+                const dropLng = shipment.delivery_lng || shipment.order?.order_recipient?.[0]?.lng || shipment.order?.order_recipient?.lng || shipment.order?.buyer?.longitude;
+                
+                // 1. Initialize/Claim the shipment with High-Fidelity Data
+                const { error: shipError } = await supabase
+                    .from("shipments")
+                    .upsert({ 
+                        order_id: orderId,
+                        rider_id: user?.id,
+                        seller_id: shipment.seller_id || shipment.order?.seller_id,
+                        status: 'accepted',
+                        pickup_address: shipment.pickup_address_text,
+                        delivery_address: shipment.delivery_address_text,
+                        pickup_address_text: shipment.pickup_address_text,
+                        delivery_address_text: shipment.delivery_address_text,
+                        pickup_lat: pickLat,
+                        pickup_lng: pickLng,
+                        delivery_lat: dropLat,
+                        delivery_lng: dropLng,
+                        distance_km: calculateDistance(pickLat, pickLng, dropLat, dropLng),
+                        delivery_fee_amount: shipment.delivery_fee_amount || 1500,
+                        city_id: shipment.order?.city_id || shipment.order?.order_recipient?.[0]?.city_id || shipment.order?.order_recipient?.city_id,
+                        zone_id: shipment.order?.zone_id || shipment.order?.order_recipient?.[0]?.zone_id || shipment.order?.order_recipient?.zone_id,
+                        updated_at: new Date().toISOString()
+                    }, { onConflict: 'order_id' });
+
+                if (shipError) throw shipError;
+
+                // 2. Update the Order status to lock the assignment
+                const { error: orderError } = await supabase
+                    .from("orders")
+                    .update({ status: 'processing', updated_at: new Date().toISOString() })
+                    .eq("id", orderId);
+
+                if (orderError) throw orderError;
+            } else {
+                // For all other transitions, update the existing shipment record
+                const { error } = await supabase
+                    .from("shipments")
+                    .update({ 
+                        status: newStatus,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq("order_id", orderId);
+
+                if (error) throw error;
             }
-
-            const { error } = await supabase
-                .from("shipments")
-                .update(updatePayload)
-                .eq("id", shipment.id);
-
-            if (error) throw error;
             
             queryClient.invalidateQueries({ queryKey: ["logistics-shipments-v2"] });
             toast.success(`Mission updated to ${newStatus.toUpperCase()}`);
         } catch (error: any) {
-            toast.error("Status update failed: " + error.message);
+            console.error("Mission Update Failure:", error);
+            toast.error("Status update failed: " + (error.message || "Unknown error"));
         }
     };
 

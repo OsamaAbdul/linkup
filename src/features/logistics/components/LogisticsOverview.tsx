@@ -44,7 +44,7 @@ export function LogisticsOverview({
             const previousShipments = queryClient.getQueryData(["agent-shipments", user?.id]);
 
             // Optimistically remove from broadcast
-            queryClient.setQueryData(["broadcast-missions", user?.id], (old: any[]) => 
+            queryClient.setQueryData(["broadcast-missions", user?.id], (old: any[]) =>
                 old?.filter(m => m.id !== shipmentId) || []
             );
 
@@ -71,8 +71,7 @@ export function LogisticsOverview({
         queryKey: ["agent-shipments", user?.id],
         queryFn: async () => {
             const { data } = await (supabase as any)
-                .from("shipments")
-                .select(`*, order:orders (*, buyer:profiles!buyer_id (*), seller:profiles!seller_id (*))`)
+                .select(`*, order:orders (*, order_recipient (*), buyer:profiles!buyer_id (*), seller:profiles!seller_id (*))`)
                 .eq("rider_id", user?.id)
                 .order("created_at", { ascending: false });
             return (data as any[]) || [];
@@ -80,17 +79,38 @@ export function LogisticsOverview({
         enabled: !!user,
     });
 
-    // Fetch broadcast (unclaimed) missions 
+    // Fetch broadcast (unclaimed) missions (Source of Truth: Orders Table)
     const { data: broadcastMissions = [] } = useQuery({
         queryKey: ["broadcast-missions", user?.id],
         queryFn: async () => {
-            const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-            const { data } = await (supabase as any)
-                .from("shipments")
-                .select(`*, order:orders (*, buyer:profiles!buyer_id (*), seller:profiles!seller_id (*))`)
-                .or(`status.eq.broadcast,and(status.eq.accepted,updated_at.lt.${oneHourAgo},rider_id.neq.${user?.id})`)
+            const { data, error } = await (supabase as any)
+                .from("orders")
+                .select(`
+                    *, 
+                    order_recipient (*),
+                    buyer:profiles!buyer_id (*), 
+                    seller:profiles!seller_id (*),
+                    shipments!inner (*)
+                `)
+                .eq("status", "awaiting_agent")
                 .order("created_at", { ascending: false });
-            return data || [];
+
+            console.log("Missions Pool Data:", data);
+
+            if (error) {
+                console.error("Missions Pool Fetch Error:", error);
+                return [];
+            }
+
+            // Transform Orders into "Mission" format expected by the UI
+            // This maps each order to its shipment while nesting the order data
+            return (data as any[]).map(o => ({
+                ...(o.shipments?.[0] || {}),
+                order: {
+                    ...o,
+                    order_recipient: o.order_recipient
+                }
+            }));
         },
         enabled: !!user,
         refetchInterval: 8000,
@@ -124,7 +144,7 @@ export function LogisticsOverview({
         const broadcastChannel = supabase
             .channel(`broadcast-global-${user.id}`)
             .on("postgres_changes", {
-                event: "*", 
+                event: "*",
                 schema: "public",
                 table: "shipments",
             }, (payload) => {
@@ -133,7 +153,7 @@ export function LogisticsOverview({
                 if (isBroadcast) {
                     console.log("Realtime: Broadcast mission updated");
                     queryClient.invalidateQueries({ queryKey: ["broadcast-missions", user.id] });
-                    
+
                     if (payload.eventType === "INSERT" && (payload.new as any).status === "broadcast") {
                         toast("📡 New Mission Available!", {
                             description: "A new mission has entered the pool.",
@@ -166,12 +186,12 @@ export function LogisticsOverview({
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
-            <LogisticsStats 
-                shipments={shipments} 
-                broadcastMissionsCount={broadcastMissions.length} 
+            <LogisticsStats
+                shipments={shipments}
+                broadcastMissionsCount={broadcastMissions.length}
             />
 
-            <BroadcastMissions 
+            <BroadcastMissions
                 missions={broadcastMissions}
                 isKycVerified={isKycVerified}
                 kycStatus={kycStatus}
@@ -182,7 +202,7 @@ export function LogisticsOverview({
                 isClaiming={claimMissionMutation.isPending}
             />
 
-            <ActiveTransits 
+            <ActiveTransits
                 shipments={activeShipments}
                 onViewDetails={setViewingOrder}
                 onNavigate={handleOpenMaps}

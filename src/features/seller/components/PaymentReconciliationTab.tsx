@@ -145,7 +145,7 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div>
         <p className="text-[10px] font-black text-primary/60 uppercase tracking-[0.2em] mb-1">Financial Operations</p>
-        <h1 className="text-3xl md:text-5xl font-black text-foreground tracking-tight">Payment Reconciliation</h1>
+        <h1 className="text-3xl md:text-5xl font-black text-foreground tracking-tight">Payment Tracking</h1>
       </div>
 
       {/* Stats */}
@@ -204,7 +204,7 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
                 <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest min-w-[100px]">Method</th>
                 <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest min-w-[150px]">Payment Ref</th>
                 <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest min-w-[120px]">Status</th>
-                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest min-w-[100px]">Settlement</th>
+                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest min-w-[100px]">Payout Status</th>
                 <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right min-w-[80px]">Actions</th>
               </tr>
             </thead>
@@ -281,7 +281,7 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
                 </Badge>
               </div>
               <DialogTitle className="text-2xl font-black text-foreground">
-                Reconciliation Panel
+                Payment Details
               </DialogTitle>
               <DialogDescription className="text-xs font-medium text-muted-foreground">
                 View payment details and manually reconcile if needed.
@@ -320,7 +320,7 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
 
               {/* Actions */}
               <div className="space-y-3 pt-4 border-t border-muted/20">
-                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Reconciliation Actions</p>
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Payment Verification Actions</p>
 
                 {/* Re-verify via Paystack */}
                 {selectedOrder.payment_ref && selectedOrder.payment_status !== "paid" && (

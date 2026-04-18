@@ -117,10 +117,10 @@ export function ZoneBroadcastSelector({
                         </motion.div>
                         <div className="min-w-0 space-y-1">
                             <DialogTitle className="text-2xl font-bold tracking-tight">
-                                Broadcast to Zone
+                                Find Delivery Partner
                             </DialogTitle>
                             <DialogDescription className="text-muted-foreground/80 text-sm font-medium">
-                                All agents in the selected zone will receive this mission.
+                                Available partners in this area will be notified of your request.
                             </DialogDescription>
                         </div>
                     </div>
@@ -202,12 +202,12 @@ export function ZoneBroadcastSelector({
                                         <Users size={16} strokeWidth={2.5} />
                                     </div>
                                     <div>
-                                        <p className="text-xs font-black text-foreground">{zoneAgentCount} Available Agents</p>
+                                        <p className="text-xs font-black text-foreground">{zoneAgentCount} Active Partners</p>
                                         <p className="text-[10px] text-muted-foreground font-medium">In {selectedZone.split(' (')[0]}</p>
                                     </div>
                                 </div>
                                 <Badge className="bg-green-100 text-green-700 font-black text-[9px] uppercase tracking-wider border-none">
-                                    <Navigation size={8} className="mr-1" /> Live Broadcast
+                                    <Navigation size={8} className="mr-1" /> Live Request
                                 </Badge>
                             </motion.div>
                         )}
@@ -232,7 +232,7 @@ export function ZoneBroadcastSelector({
                         ) : (
                             <Radio className="mr-3" size={18} strokeWidth={3} />
                         )}
-                        {isBroadcasting ? "Broadcasting..." : "Broadcast Mission"}
+                        {isBroadcasting ? "Finding partners..." : "Find a Partner"}
                     </Button>
                 </DialogFooter>
             </DialogContent>

@@ -157,7 +157,7 @@ export function PayoutRequestModal({ isOpen, onClose, wallet, balanceOverride }:
                     <DialogHeader>
                         <DialogTitle className="text-2xl font-black tracking-tight">Withdrawal Hub</DialogTitle>
                         <DialogDescription className="text-white/70 font-medium">
-                            Request your earnings settlement securely.
+                            Withdraw your earnings to your bank account.
                         </DialogDescription>
                     </DialogHeader>
                     
@@ -175,7 +175,7 @@ export function PayoutRequestModal({ isOpen, onClose, wallet, balanceOverride }:
                         <div className="bg-amber-50 border border-amber-100 p-4 rounded-xl flex gap-3 text-amber-700">
                             <Clock className="shrink-0" size={18} />
                             <div className="text-xs font-bold leading-relaxed">
-                                Interval Constraint: You can request your next payout on {format(nextAvailableDate, "MMM d, yyyy")}.
+                                Wait Period: You can request your next payout on {format(nextAvailableDate, "MMM d, yyyy")}.
                             </div>
                         </div>
                     )}
@@ -277,7 +277,7 @@ export function PayoutRequestModal({ isOpen, onClose, wallet, balanceOverride }:
                         disabled={!canRequest || !amount || withdrawalAmount <= 0 || isInsufficient || payoutMutation.isPending}
                         className="w-full h-14 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
                     >
-                        {payoutMutation.isPending ? "Processing..." : "Initiate Withdrawal"}
+                        {payoutMutation.isPending ? "Processing..." : "Withdraw Funds"}
                     </Button>
                 </form>
             </DialogContent>

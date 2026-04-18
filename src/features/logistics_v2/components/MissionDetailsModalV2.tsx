@@ -32,7 +32,8 @@ import {
     getDeliveryAddress,
     getBuyerContact,
     getSellerInfo,
-    generateMapsUrl
+    generateMapsUrl,
+    calculateDistance
 } from "../../logistics/utils/logistics-utils";
 
 interface MissionDetailsModalV2Props {
@@ -48,13 +49,16 @@ export function MissionDetailsModalV2({ shipment, open, onOpenChange }: MissionD
         queryKey: ["shipment-details-v2", shipment?.id],
         queryFn: async () => {
             if (!shipment?.id) return null;
+            
+            // Fetch as a list with limit(1) to avoid PGRST116 coercion errors entirely
             const { data, error } = await (supabase as any)
                 .from("shipments")
                 .select(`*, order:orders (*, order_recipient(*), buyer:profiles!buyer_id (*), seller:profiles!seller_id (*))`)
-                .eq("id", shipment.id)
-                .single();
+                .or(`id.eq.${shipment.id},order_id.eq.${shipment.id}`)
+                .limit(1);
+
             if (error) throw error;
-            return data;
+            return data && data.length > 0 ? data[0] : null;
         },
         enabled: !!shipment?.id && open,
     });
@@ -73,17 +77,71 @@ export function MissionDetailsModalV2({ shipment, open, onOpenChange }: MissionD
 
     const updateStatus = useMutation({
         mutationFn: async (newStatus: string) => {
-            const { error } = await (supabase as any)
-                .from("shipments")
-                .update({ status: newStatus, updated_at: new Date().toISOString() })
-                .eq("id", activeShipment.id);
-            if (error) throw error;
+            const orderId = activeShipment?.order_id || activeShipment?.id;
+            const currentUserId = (await supabase.auth.getUser()).data.user?.id;
+
+            if (newStatus === 'accepted') {
+                const pickLat = activeShipment?.pickup_lat || activeShipment?.order?.seller?.latitude;
+                const pickLng = activeShipment?.pickup_lng || activeShipment?.order?.seller?.longitude;
+                const dropLat = activeShipment?.delivery_lat || activeShipment?.order?.order_recipient?.[0]?.lat || activeShipment?.order?.order_recipient?.lat || activeShipment?.order?.buyer?.latitude;
+                const dropLng = activeShipment?.delivery_lng || activeShipment?.order?.order_recipient?.[0]?.lng || activeShipment?.order?.order_recipient?.lng || activeShipment?.order?.buyer?.longitude;
+
+                // 1. Claim/Initialize the shipment with High-Fidelity Data
+                const { error: shipError } = await (supabase as any)
+                    .from("shipments")
+                    .upsert({ 
+                        order_id: orderId,
+                        rider_id: currentUserId,
+                        seller_id: activeShipment?.seller_id || activeShipment?.order?.seller_id,
+                        status: 'accepted',
+                        pickup_address: activeShipment?.pickup_address_text,
+                        delivery_address: activeShipment?.delivery_address_text,
+                        pickup_address_text: activeShipment?.pickup_address_text,
+                        delivery_address_text: activeShipment?.delivery_address_text,
+                        pickup_lat: pickLat,
+                        pickup_lng: pickLng,
+                        delivery_lat: dropLat,
+                        delivery_lng: dropLng,
+                        distance_km: calculateDistance(pickLat, pickLng, dropLat, dropLng),
+                        delivery_fee_amount: activeShipment?.delivery_fee_amount || 1500,
+                        city_id: activeShipment?.order?.city_id || activeShipment?.order?.order_recipient?.[0]?.city_id || activeShipment?.order?.order_recipient?.city_id,
+                        zone_id: activeShipment?.order?.zone_id || activeShipment?.order?.order_recipient?.[0]?.zone_id || activeShipment?.order?.order_recipient?.zone_id,
+                        updated_at: new Date().toISOString()
+                    }, { onConflict: 'order_id' });
+
+                if (shipError) throw shipError;
+
+                // 2. Lock the Order
+                const { error: orderError } = await (supabase as any)
+                    .from("orders")
+                    .update({ status: 'processing', updated_at: new Date().toISOString() })
+                    .eq("id", orderId);
+
+                if (orderError) throw orderError;
+            } else {
+                // Regular status update
+                const { error } = await (supabase as any)
+                    .from("shipments")
+                    .update({ 
+                        status: newStatus, 
+                        updated_at: new Date().toISOString() 
+                    })
+                    .eq("order_id", orderId);
+
+                if (error) throw error;
+            }
         },
         onSuccess: () => {
+            const orderId = activeShipment?.order_id || activeShipment?.id;
             queryClient.invalidateQueries({ queryKey: ["logistics-shipments-v2"] });
-            queryClient.invalidateQueries({ queryKey: ["shipment-details-v2", activeShipment.id] });
+            queryClient.invalidateQueries({ queryKey: ["shipment-details-v2", shipment?.id] });
+            queryClient.invalidateQueries({ queryKey: ["shipment-details-v2", orderId] });
             toast.success("Mission updated successfully");
         },
+        onError: (error: any) => {
+            console.error("Mission Update Error:", error);
+            toast.error("Failed to update mission: " + (error.message || "Unknown error"));
+        }
     });
 
     if (!shipment) return null;
@@ -119,12 +177,12 @@ export function MissionDetailsModalV2({ shipment, open, onOpenChange }: MissionD
                                 <div>
                                     <DialogTitle className="text-2xl font-black tracking-tight text-foreground">Mission Control</DialogTitle>
                                     <DialogDescription className="text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-70">
-                                        ID: #{activeShipment.id.slice(-8)}
+                                        Ref: #{(activeShipment?.order?.id || activeShipment?.id || 'pending').slice(-8)}
                                     </DialogDescription>
                                 </div>
                             </div>
-                            <Badge className={cn("rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-widest border-none", statusStyles[activeShipment.status] || "bg-gray-100 uppercase")}>
-                                {activeShipment.status.replace(/_/g, ' ')}
+                            <Badge className={cn("rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-widest border-none", statusStyles[activeShipment?.status || 'pending'] || "bg-[#E96F28] text-white")}>
+                                {activeShipment?.status === 'awaiting_agent' ? 'AVAILABLE' : (activeShipment?.status || 'POOL').replace(/_/g, ' ')}
                             </Badge>
                         </div>
                     </DialogHeader>
@@ -140,7 +198,7 @@ export function MissionDetailsModalV2({ shipment, open, onOpenChange }: MissionD
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest leading-none mb-1">Guaranteed Payout</p>
-                                    <p className="text-3xl font-black text-emerald-950 tracking-tighter">₦{(activeShipment.delivery_fee_amount || 0).toLocaleString()}</p>
+                                    <p className="text-3xl font-black text-emerald-950 tracking-tighter">₦{(activeShipment?.delivery_fee_amount || activeShipment?.order?.total_amount || 0).toLocaleString()}</p>
                                 </div>
                             </div>
                             <ShieldCheck size={32} className="text-emerald-200" />

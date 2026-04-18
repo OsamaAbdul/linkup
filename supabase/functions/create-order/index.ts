@@ -251,7 +251,7 @@ serve(async (req: Request) => {
         .insert({
           buyer_id: user.id,
           seller_id: sId,
-          total_amount: calculatedSubTotal || 0,
+          total_amount: (calculatedSubTotal + (delivery_fee ? (delivery_fee / sellerIds.length) : 0) + (cross_zone_fee ? (cross_zone_fee / sellerIds.length) : 0)) || 0,
           status: "pending",
           promoter_id: finalPromoterId || null,
           payment_method: payment_method || null,
@@ -264,7 +264,7 @@ serve(async (req: Request) => {
 
       if (orderError) {
         console.error(`ORDER_INSERT_FAIL for seller ${sId}:`, orderError);
-        continue;
+        throw new Error(`Failed to create order for seller ${sId}: ${orderError.message}`);
       }
 
       createdOrderIds.push(order.id);
@@ -284,7 +284,10 @@ serve(async (req: Request) => {
           lng: delivery_lng || null,
         });
 
-      if (recipientError) console.error("RECIPIENT_INSERT_FAIL:", recipientError);
+      if (recipientError) {
+        console.error("RECIPIENT_INSERT_FAIL:", recipientError);
+        throw new Error(`Failed to save recipient data: ${recipientError.message}`);
+      }
 
       // --- Create Order Items Relationship ---
       const orderItemsPayload = enrichedSellerItems.map((item) => ({

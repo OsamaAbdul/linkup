@@ -36,9 +36,26 @@ export function useSellerDashboardData() {
       const { data, count } = await supabase
         .from("orders")
         .select(`
-          id, status, created_at, total_amount, shipping_address, items, city_id, zone_id,
-          cities: city_id(name),
-          delivery_zones: zone_id(name),
+          id, status, created_at, total_amount, 
+          order_items (
+            id,
+            product_id,
+            quantity,
+            price_at_purchase,
+            products (
+              title,
+              images
+            )
+          ),
+          order_recipient (
+            full_name,
+            phone,
+            address_line,
+            city_id,
+            zone_id,
+            cities: city_id (name),
+            delivery_zones: zone_id (name)
+          ),
           shipments(
             id, status, tracking_code, zone, zone_id,
             profiles: rider_id(
@@ -52,6 +69,7 @@ export function useSellerDashboardData() {
       return { data: (data as any[]) ?? [], count: count ?? 0 };
     },
     enabled: !!user,
+    refetchInterval: 15000,
   });
 
   const { data: sellerProfile } = useQuery({
@@ -192,27 +210,25 @@ export function useSellerDashboardData() {
       const { error: orderError } = await supabase
         .from("orders")
         .update({
-          status: "awaiting_agent",
-          broadcast_zone: zone,
-          zone_id: zoneId,
-          city_id: cityId
+          status: "awaiting_agent"
         })
         .eq("id", id);
       if (orderError) throw orderError;
 
       const { error: shipmentError } = await supabase
         .from("shipments")
-        .update({
+        .upsert({
+          order_id: id,
           zone: zone,
           zone_id: zoneId,
           city_id: cityId,
           status: "broadcast",
-          pickup_address: pickupAddress,
+          pickup_address_text: pickupAddress,
           pickup_time: pickupTime ? new Date(pickupTime).toISOString() : null,
-          pickup_latitude: lat,
-          pickup_longitude: lng,
-        })
-        .eq("order_id", id);
+          pickup_lat: lat,
+          pickup_lng: lng,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'order_id' });
 
       if (shipmentError) {
         console.error("Secondary Shipment Update Error (Non-Critical):", shipmentError);
@@ -235,7 +251,12 @@ export function useSellerDashboardData() {
         .from("profiles")
         .update({
           display_name: formData.display_name,
-          phone: formData.phone
+          phone: formData.phone,
+          bio: formData.bio,
+          email: formData.email,
+          payout_bank_name: formData.payout_bank_name,
+          payout_account_number: formData.payout_account_number,
+          payout_account_name: formData.payout_account_name
         })
         .eq("user_id", user.id);
       if (profileError) throw profileError;

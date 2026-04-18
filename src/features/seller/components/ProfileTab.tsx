@@ -1,13 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
-import { CheckCircle2, AlertCircle, Edit2, MapPin, Building2, User, Phone, Map, Save, X } from "lucide-react";
+import { CheckCircle2, AlertCircle, Edit2, MapPin, Building2, User, Phone, Map, Save, X, Mail, Landmark } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { Label } from "@/shared/components/ui/label";
 import { format } from "date-fns";
+import { CompleteProfileModal } from "./CompleteProfileModal";
+import { Progress } from "@/shared/components/ui/progress";
+import { cn } from "@/lib/utils";
 
 interface ProfileTabProps {
     profile: any;
@@ -21,8 +24,32 @@ export function ProfileTab({ profile, onUpdate, isUpdating }: ProfileTabProps) {
         display_name: profile?.display_name || "",
         phone: profile?.phone || profile?.verification?.phone_number || "",
         business_name: profile?.verification?.business_name || "",
-        business_address: profile?.verification?.business_address || ""
+        business_address: profile?.verification?.business_address || "",
+        bio: profile?.bio || "",
+        email: profile?.email || "",
+        payout_bank_name: profile?.payout_bank_name || "",
+        payout_account_number: profile?.payout_account_number || "",
+        payout_account_name: profile?.payout_account_name || ""
     });
+
+    const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
+
+    // Auto-trigger modal if essential fields are missing
+    const isProfileIncomplete = 
+        !profile.display_name || 
+        !profile.email || 
+        !profile.bio || 
+        !profile.payout_bank_name || 
+        !profile.payout_account_number || 
+        !profile.payout_account_name;
+
+    useEffect(() => {
+        if (isProfileIncomplete) {
+            // Delay slightly to ensure smooth entrance
+            const timer = setTimeout(() => setIsCompleteModalOpen(true), 1500);
+            return () => clearTimeout(timer);
+        }
+    }, [isProfileIncomplete]);
 
     if (!profile) return null;
 
@@ -45,10 +72,27 @@ export function ProfileTab({ profile, onUpdate, isUpdating }: ProfileTabProps) {
             display_name: profile?.display_name || "",
             phone: profile?.phone || profile?.verification?.phone_number || "",
             business_name: profile?.verification?.business_name || "",
-            business_address: profile?.verification?.business_address || ""
+            business_address: profile?.verification?.business_address || "",
+            bio: profile?.bio || "",
+            email: profile?.email || "",
+            payout_bank_name: profile?.payout_bank_name || "",
+            payout_account_number: profile?.payout_account_number || "",
+            payout_account_name: profile?.payout_account_name || ""
         });
         setIsEditing(false);
     };
+
+    const completionStats = [
+        { label: "Display Name", value: !!profile.display_name },
+        { label: "Bio / About", value: !!profile.bio },
+        { label: "Business Email", value: !!profile.email },
+        { label: "Phone Number", value: !!profile.phone },
+        { label: "Bank Details", value: !!profile.payout_bank_name && !!profile.payout_account_number },
+        { label: "Operational Zone", value: !!profile.zone },
+    ];
+    
+    const completedCount = completionStats.filter(s => s.value).length;
+    const completionPercentage = (completedCount / completionStats.length) * 100;
     
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -234,6 +278,172 @@ export function ProfileTab({ profile, onUpdate, isUpdating }: ProfileTabProps) {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Completion Progress Banner */}
+            {isProfileIncomplete && (
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl shadow-amber-500/5">
+                    <div className="flex items-center gap-5 text-center md:text-left">
+                        <div className="w-16 h-16 rounded-[2rem] bg-amber-500/20 flex items-center justify-center text-amber-700 shadow-inner shrink-0 rotate-3">
+                            <AlertCircle size={32} strokeWidth={2.5} />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-black text-amber-900 uppercase tracking-tight">Your store is almost ready!</h3>
+                            <p className="text-sm font-bold text-amber-700/80 mt-1 max-w-md">Complete your profile to unlock all features, including instant payouts and priority delivery support.</p>
+                            
+                            <div className="mt-4 flex flex-wrap gap-2">
+                                {completionStats.map((stat, i) => (
+                                    <div key={i} className={cn(
+                                        "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5",
+                                        stat.value ? "bg-emerald-500/10 text-emerald-700 border border-emerald-500/20" : "bg-amber-500/10 text-amber-700 border border-amber-500/20"
+                                    )}>
+                                        {stat.value ? <CheckCircle2 size={10} /> : <AlertCircle size={10} />}
+                                        {stat.label}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex flex-col items-center gap-3">
+                        <div className="text-center mb-1">
+                            <span className="text-3xl font-black text-amber-900">{Math.round(completionPercentage)}%</span>
+                            <span className="text-xs font-bold text-amber-700 block uppercase tracking-widest">Complete</span>
+                        </div>
+                        <Button 
+                            onClick={() => setIsCompleteModalOpen(true)}
+                            className="rounded-2xl h-14 px-10 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-amber-600/30 transition-all hover:scale-[1.05] active:scale-95"
+                        >
+                            Complete Now
+                        </Button>
+                    </div>
+                </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
+                 {/* Bio Card */}
+                 <Card className="border-none shadow-sm rounded-xl overflow-hidden bg-white">
+                    <CardHeader className="bg-primary/5 border-b border-primary/5 flex flex-row items-center justify-between px-8 py-6">
+                        <div>
+                            <CardTitle className="text-xl font-black">Store Bio</CardTitle>
+                            <CardDescription className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">
+                                Public Description
+                            </CardDescription>
+                        </div>
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                            <User size={20} strokeWidth={3} />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-8">
+                        {isEditing ? (
+                            <Textarea 
+                                value={formData.bio}
+                                onChange={(e) => setFormData({...formData, bio: e.target.value})}
+                                className="min-h-[120px] rounded-2xl border-black/[0.05] bg-gray-50 focus:bg-white transition-all font-medium py-4 px-5"
+                                placeholder="Store bio..."
+                            />
+                        ) : (
+                            <p className="text-sm font-medium leading-relaxed text-foreground/80 italic">
+                                "{profile.bio || "No store description provided yet."}"
+                            </p>
+                        )}
+                        <div className="mt-6 flex items-center gap-3">
+                             <div className="w-8 h-8 rounded-xl bg-primary/5 flex items-center justify-center text-primary/60">
+                                <Mail size={14} strokeWidth={3} />
+                             </div>
+                             <div className="space-y-0.5">
+                                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Support Email</p>
+                                {isEditing ? (
+                                    <Input 
+                                        value={formData.email}
+                                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                        className="h-8 text-sm font-bold rounded-lg border-primary/10 px-3"
+                                    />
+                                ) : (
+                                    <p className="font-bold text-sm tracking-tight underline text-primary/80">{profile.email || "Not provided"}</p>
+                                )}
+                             </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Payout Details Card */}
+                <Card className="border-none shadow-sm rounded-xl overflow-hidden bg-white">
+                    <CardHeader className="bg-primary/5 border-b border-primary/5 flex flex-row items-center justify-between px-8 py-6">
+                        <div>
+                            <CardTitle className="text-xl font-black">Payout Details</CardTitle>
+                            <CardDescription className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">
+                                Bank Settlement Info
+                            </CardDescription>
+                        </div>
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                            <Landmark size={20} strokeWidth={3} />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-8 space-y-6">
+                        {isEditing ? (
+                            <div className="space-y-4">
+                                <div className="space-y-1.5">
+                                    <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Bank Name</Label>
+                                    <Input 
+                                        value={formData.payout_bank_name}
+                                        onChange={(e) => setFormData({...formData, payout_bank_name: e.target.value})}
+                                        className="h-10 text-sm font-bold rounded-xl border-primary/10"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Account Number</Label>
+                                        <Input 
+                                            value={formData.payout_account_number}
+                                            onChange={(e) => setFormData({...formData, payout_account_number: e.target.value})}
+                                            className="h-10 text-sm font-mono font-black rounded-xl border-primary/10"
+                                            maxLength={10}
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Account Name</Label>
+                                        <Input 
+                                            value={formData.payout_account_name}
+                                            onChange={(e) => setFormData({...formData, payout_account_name: e.target.value})}
+                                            className="h-10 text-sm font-bold rounded-xl border-primary/10 uppercase"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                <div className="p-5 rounded-2xl bg-gray-50 border border-black/[0.03] space-y-3">
+                                    <div className="flex justify-between items-center pb-2 border-b border-black/5">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Institution</span>
+                                        <span className="text-sm font-black text-foreground">{profile.payout_bank_name || "---"}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center pb-2 border-b border-black/5">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Account Number</span>
+                                        <span className="text-sm font-mono font-black text-foreground">{profile.payout_account_number || "---"}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Beneficiary</span>
+                                        <span className="text-sm font-black text-foreground uppercase">{profile.payout_account_name || "---"}</span>
+                                    </div>
+                                </div>
+                                {!profile.payout_bank_name && (
+                                    <p className="text-[10px] font-bold text-amber-600 flex items-center gap-1.5">
+                                        <AlertCircle size={12} />
+                                        Please provide bank details to enable payouts.
+                                    </p>
+                                )}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+
+            <CompleteProfileModal 
+                isOpen={isCompleteModalOpen}
+                onClose={() => setIsCompleteModalOpen(false)}
+                profile={profile}
+                onSave={onUpdate || (async () => {})}
+                isSaving={isUpdating || false}
+            />
         </div>
     );
 }

@@ -51,13 +51,13 @@ export function IssuesTab() {
         };
     }, [user?.id, queryClient]);
 
-    if (isLoading) return <div className="p-12 text-center text-muted-foreground animate-pulse font-bold">Retrieving Security Tickets...</div>;
+    if (isLoading) return <div className="p-12 text-center text-muted-foreground animate-pulse font-bold">Loading support requests...</div>;
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="flex flex-col gap-1">
-                <h2 className="text-3xl font-black tracking-tight">Issue Resolution Hub</h2>
-                <p className="text-muted-foreground font-medium">Monitor and manage reports linked to your inventory.</p>
+                <h2 className="text-3xl font-black tracking-tight">Help & Support</h2>
+                <p className="text-muted-foreground font-medium">Track and resolve any problems with your products or orders.</p>
             </div>
 
             <div className="grid grid-cols-1 gap-6">
@@ -66,8 +66,8 @@ export function IssuesTab() {
                         <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-4">
                             <AlertCircle className="text-emerald-500 opacity-40" size={32} />
                         </div>
-                        <h3 className="font-black text-xl mb-2">Operational Integrity Maintained</h3>
-                        <p className="text-muted-foreground font-medium max-w-xs mx-auto text-sm">No security tickets or performance anomalies detected in your sector.</p>
+                        <h3 className="font-black text-xl mb-2">Everything is Smooth!</h3>
+                        <p className="text-muted-foreground font-medium max-w-xs mx-auto text-sm">No issues or reports have been found with your store. Keep up the great work!</p>
                     </div>
                 ) : (
                     issues?.map((issue: any) => (
@@ -90,7 +90,7 @@ export function IssuesTab() {
                                                 )}>
                                                     {issue.priority} priority
                                                 </Badge>
-                                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Ticket #{issue.id.slice(0, 8)}</span>
+                                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Issue #{issue.id.slice(0, 8)}</span>
                                             </div>
                                             <h3 className="text-xl font-black tracking-tight mt-2">{issue.title}</h3>
                                         </div>
@@ -114,7 +114,7 @@ export function IssuesTab() {
                                             </div>
                                             <div>
                                                 <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Reporter</p>
-                                                <p className="text-xs font-bold">{issue.reporter?.display_name || "Nexus Agent"}</p>
+                                                <p className="text-xs font-bold">{issue.reporter?.display_name || "Support Team"}</p>
                                             </div>
                                         </div>
 
@@ -135,7 +135,7 @@ export function IssuesTab() {
                                                 <Calendar size={18} />
                                             </div>
                                             <div>
-                                                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Broadcast Date</p>
+                                                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Reported On</p>
                                                 <p className="text-xs font-bold">{format(new Date(issue.created_at), "MMM d, yyyy")}</p>
                                             </div>
                                         </div>
@@ -143,7 +143,7 @@ export function IssuesTab() {
 
                                     <div className="flex gap-4 pt-2">
                                         <Button className="rounded-xl h-12 px-8 font-black text-[11px] uppercase tracking-widest bg-primary shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex-1">
-                                            Contact Admin Support
+                                            Contact Support
                                         </Button>
                                         <Button variant="outline" className="rounded-xl h-12 px-8 font-black text-[11px] uppercase tracking-widest border-2 flex-1">
                                             View Details

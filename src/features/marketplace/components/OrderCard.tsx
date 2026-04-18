@@ -12,6 +12,7 @@ import { ShieldAlert, Scale, ArrowRight, MessageSquare } from "lucide-react";
 import { ShipmentStatusHistory } from "./ShipmentStatusHistory";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/shared/components/ui/dialog";
 import { Textarea } from "@/shared/components/ui/textarea";
+import { LiveTrackingMap } from "./LiveTrackingMap";
 import { Label } from "@/shared/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
@@ -180,6 +181,9 @@ export function OrderCard({ order }: OrderCardProps) {
         }
     });
 
+    const isTrackingActive = order.shipment?.status && 
+        ["accepted", "started", "out_for_pickup", "arrived_at_seller", "picked_up", "out_for_delivery", "arrived_at_destination"].includes(order.shipment.status.toLowerCase());
+
     return (
         <Card className="rounded-xl border-black/[0.03] bg-white shadow-sm hover:shadow-md transition-all duration-500 overflow-hidden group">
             <CardContent className="p-0">
@@ -264,8 +268,14 @@ export function OrderCard({ order }: OrderCardProps) {
                                     </>
                                 ) : (
                                     <>
-                                        <Activity size={12} strokeWidth={3} />
-                                        Track this order..
+                                        <Activity size={12} strokeWidth={3} className={cn(isTrackingActive && "animate-pulse text-emerald-500")} />
+                                        {isTrackingActive ? "Tracking Live.." : "Track this order.."}
+                                        {isTrackingActive && (
+                                            <span className="flex h-2 w-2 relative -top-1">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                            </span>
+                                        )}
                                     </>
                                 )}
                             </Button>
@@ -488,7 +498,24 @@ export function OrderCard({ order }: OrderCardProps) {
                     </div>
 
                     <CollapsibleContent className="animate-in slide-in-from-top-4 duration-500">
-                        <div className="px-4 md:px-5 pb-6 pt-4">
+                        <div className="px-4 md:px-5 pb-6 pt-4 space-y-6">
+                            {isTrackingActive && (
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between px-1">
+                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                            Live Neural Tracking
+                                        </h4>
+                                        <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-tighter">
+                                            Rider: {order.shipment.rider_latitude?.toFixed(4)}, {order.shipment.rider_longitude?.toFixed(4)}
+                                        </span>
+                                    </div>
+                                    <LiveTrackingMap 
+                                        riderCoords={order.shipment.rider_latitude ? { lat: order.shipment.rider_latitude, lng: order.shipment.rider_longitude } : null}
+                                        buyerCoords={order.shipment.delivery_lat ? { lat: order.shipment.delivery_lat, lng: order.shipment.delivery_lng } : null}
+                                    />
+                                </div>
+                            )}
                             <OrderTimeline status={order.status} shipmentStatus={order.shipment?.status} />
                             {order.shipment?.id && (
                                 <ShipmentStatusHistory shipmentId={order.shipment.id} />

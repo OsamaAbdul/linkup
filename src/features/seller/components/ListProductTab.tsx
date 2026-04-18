@@ -147,7 +147,7 @@ export function ListProductTab() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Product listed successfully!");
+      toast.success("Product posted successfully!");
       queryClient.invalidateQueries({ queryKey: ["seller-products"] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
       dispatch({ type: "RESET" });
@@ -251,14 +251,14 @@ export function ListProductTab() {
             <Input type="number" value={form.price} onChange={(e) => dispatch({ type: "SET_FIELD", field: "price", value: e.target.value })} placeholder="0" className="rounded-xl h-12" />
             {form.price && !isNaN(parseFloat(form.price)) && (
               <div className="text-xs text-muted-foreground space-y-1 p-3 bg-muted/50 rounded-xl">
-                <div className="flex justify-between"><span>Your Earnings:</span><span>₦{parseFloat(form.price).toLocaleString()}</span></div>
-                <div className="flex justify-between text-muted-foreground/80"><span>System Fee (10%):</span><span>₦{(parseFloat(form.price) * 0.1).toLocaleString()}</span></div>
-                <div className="flex justify-between font-bold text-primary border-t pt-1 mt-1"><span>Buyer Pays:</span><span>₦{(parseFloat(form.price) * 1.1).toLocaleString()}</span></div>
+                <div className="flex justify-between"><span>You receive:</span><span>₦{parseFloat(form.price).toLocaleString()}</span></div>
+                <div className="flex justify-between text-muted-foreground/80"><span>Service fee (10%):</span><span>₦{(parseFloat(form.price) * 0.1).toLocaleString()}</span></div>
+                <div className="flex justify-between font-bold text-primary border-t pt-1 mt-1"><span>Total price for buyer:</span><span>₦{(parseFloat(form.price) * 1.1).toLocaleString()}</span></div>
               </div>
             )}
           </div>
           <div className="space-y-2">
-            <Label className="text-xs font-black uppercase tracking-widest">Inventory</Label>
+            <Label className="text-xs font-black uppercase tracking-widest">Quantity available</Label>
             <Input type="number" min="1" value={form.inventory} onChange={(e) => dispatch({ type: "SET_FIELD", field: "inventory", value: Math.max(1, parseInt(e.target.value) || 1).toString() })} className="rounded-xl h-12" />
           </div>
         </div>
@@ -317,7 +317,7 @@ export function ListProductTab() {
           disabled={!form.title || !form.price || !form.category || createProduct.isPending || imageFiles.length === 0}
         >
           <PackagePlus size={18} strokeWidth={3} />
-          {createProduct.isPending ? "Listing..." : "List Product"}
+          {createProduct.isPending ? "Posting..." : "Post Product"}
         </Button>
       </div>
     </div>

@@ -21,6 +21,8 @@ export function OrdersTab({ orders, updateOrderStatus, sellerZone, sellerZoneId,
     const [selectorOpen, setSelectorOpen] = useState(false);
     const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
 
+
+
     const handleInitiateBroadcast = (orderId: string) => {
         setActiveOrderId(orderId);
         setSelectorOpen(true);
@@ -55,7 +57,7 @@ export function OrdersTab({ orders, updateOrderStatus, sellerZone, sellerZoneId,
                         </div>
                     </div>
                 ) : orders.map((o) => {
-                    const shipping = (o.shipping_address as any) || {};
+                    const recipient = o.order_recipient || {};
                     const status = o.status.toLowerCase();
                     return (
                         <Card key={o.id} className="rounded-xl border-black/[0.03] bg-white shadow-sm overflow-hidden group">
@@ -91,7 +93,7 @@ export function OrdersTab({ orders, updateOrderStatus, sellerZone, sellerZoneId,
                                     </div>
                                 </div>
                                 <div className="text-left sm:text-right">
-                                    <p className="text-[8px] sm:text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Settlement Total</p>
+                                    <p className="text-[8px] sm:text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Your Earnings</p>
                                     <p className="text-xl sm:text-2xl font-black text-primary tracking-tighter flex items-center sm:justify-end gap-1">
                                         <span className="text-xs sm:text-sm opacity-40">₦</span>
                                         {(o.total_amount || 0).toLocaleString()}
@@ -106,15 +108,24 @@ export function OrdersTab({ orders, updateOrderStatus, sellerZone, sellerZoneId,
                                             <ShoppingBag size={12} strokeWidth={3} />
                                             Order Details
                                         </h4>
-                                        <div className="space-y-2.5">
-                                            {(o.items as any[])?.map((item: any, idx: number) => (
-                                                <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-muted/5 border border-black/[0.02] shadow-sm hover:shadow-md transition-shadow group">
+                                        <div className="space-y-2.5">                                            {(o.order_items as any[])?.map((item: any, idx: number) => {
+                                            const productData = item.products || {};
+                                            const productTitle = productData.title || "Product";
+                                            const productImage = productData.images?.[0] || "";
+                                            const purchasePrice = Number(item.price_at_purchase) || 0;
+
+                                            return (
+                                                <div key={item.id || idx} className="flex items-center justify-between p-3 rounded-xl bg-muted/5 border border-black/[0.02] shadow-sm hover:shadow-md transition-shadow group">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-xl bg-white border border-black/5 flex items-center justify-center text-primary/40">
-                                                            {item.image ? <img src={item.image} className="w-full h-full object-cover rounded-xl" /> : <Smartphone size={16} />}
+                                                        <div className="w-10 h-10 rounded-xl bg-white border border-black/5 flex items-center justify-center text-primary/40 overflow-hidden">
+                                                            {productImage ? (
+                                                                <img src={productImage} className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                <Smartphone size={16} />
+                                                            )}
                                                         </div>
                                                         <div>
-                                                            <p className="font-black text-[13px] text-foreground">{item.title || "Standard Asset"}</p>
+                                                            <p className="font-black text-[13px] text-foreground">{productTitle}</p>
                                                             <div className="flex items-center gap-2">
                                                                 <p className="text-[10px] font-bold text-muted-foreground">Qty: {item.quantity}</p>
                                                                 {item.size && (
@@ -126,14 +137,37 @@ export function OrdersTab({ orders, updateOrderStatus, sellerZone, sellerZoneId,
                                                         </div>
                                                     </div>
                                                     <div className="text-right">
-                                                        <p className="text-[13px] font-black text-primary">₦{((item.price || 0) * item.quantity).toLocaleString()}</p>
+                                                        <p className="text-[13px] font-black text-primary">₦{(purchasePrice * (item.quantity || 1)).toLocaleString()}</p>
                                                     </div>
                                                 </div>
-                                            ))}
+                                            );
+                                        })}
                                         </div>
                                     </div>
 
                                     <div className="space-y-4">
+                                        <div className="p-4 rounded-xl border border-black/[0.03] bg-muted/5 space-y-3">
+                                            <h4 className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-1.5">
+                                                <MapPin size={12} strokeWidth={3} />
+                                                Delivery Destination
+                                            </h4>
+                                            <div className="space-y-1">
+                                                <p className="font-black text-[13px] text-foreground">{recipient.full_name || "Guest Customer"}</p>
+                                                <p className="text-[11px] font-medium text-muted-foreground leading-relaxed">{recipient.address_line || "No address provided"}</p>
+                                                <div className="flex items-center gap-2 mt-2">
+                                                    {(recipient as any).cities?.name && (
+                                                        <Badge variant="outline" className="h-5 px-2 text-[8px] font-black border-black/10 text-muted-foreground bg-white uppercase">
+                                                            {(recipient as any).cities.name}
+                                                        </Badge>
+                                                    )}
+                                                    {(recipient as any).delivery_zones?.name && (
+                                                        <Badge variant="outline" className="h-5 px-2 text-[8px] font-black border-black/10 text-muted-foreground bg-white uppercase">
+                                                            {(recipient as any).delivery_zones.name}
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
 
 
 
@@ -141,7 +175,7 @@ export function OrdersTab({ orders, updateOrderStatus, sellerZone, sellerZoneId,
                                         {o.shipments?.[0] && (
                                             <div className="p-4 rounded-xl border border-primary/10 bg-primary/5 space-y-3">
                                                 <div className="flex items-center justify-between">
-                                                    <h5 className="text-[8px] font-black text-primary uppercase tracking-widest">Ready to Assign a Logistics Partner</h5>
+                                                    <h5 className="text-[8px] font-black text-primary uppercase tracking-widest">Connect with a Local Delivery Partner</h5>
                                                     <Badge className="bg-primary text-white text-[7px] font-black uppercase px-2 py-0.5 rounded-full ring-2 ring-white shadow-sm">
                                                         {o.shipments[0].status}
                                                     </Badge>
@@ -192,13 +226,13 @@ export function OrdersTab({ orders, updateOrderStatus, sellerZone, sellerZoneId,
                                         disabled={updateOrderStatus.isPending}
                                     >
                                         <Truck size={14} strokeWidth={3} />
-                                        Broadcast to Zone
+                                        Find Delivery Partner
                                     </Button>
                                 )}
                                 {status === "awaiting_agent" && (
                                     <div className="flex-1 flex items-center justify-center gap-2 py-3 px-4 text-blue-600 font-black text-[9px] uppercase tracking-[0.2em] bg-blue-500/5 rounded-xl border border-blue-500/10 animate-pulse">
                                         <Truck size={14} />
-                                        Waiting for Agent to Claim
+                                        Waiting for a partner to accept...
                                     </div>
                                 )}
                                 {status === "delivered" && (

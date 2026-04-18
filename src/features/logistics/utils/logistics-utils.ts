@@ -71,10 +71,14 @@ export const getBuyerContact = (shipment: any) => {
 };
 
 export const getSellerInfo = (shipment: any) => {
+    if (!shipment) return { name: "Seller", phone: "No phone" };
     const seller = Array.isArray(shipment.seller) ? shipment.seller[0] : shipment.seller;
+    const orderSeller = shipment.order?.seller;
+    const activeSeller = seller || orderSeller;
+    
     return {
-        name: seller?.display_name || seller?.business_name || "Seller",
-        phone: seller?.phone || "No phone provided"
+        name: activeSeller?.display_name || activeSeller?.business_name || "Seller",
+        phone: activeSeller?.phone || "No phone provided"
     };
 };
 
@@ -92,10 +96,11 @@ export const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2
 };
 
 export const generateMapsUrl = (shipment: any, mode: 'pickup' | 'delivery' = 'delivery') => {
+    if (!shipment) return "";
     let lat, lng, address;
 
     if (mode === 'pickup') {
-        const seller = Array.isArray(shipment.seller) ? shipment.seller[0] : shipment.seller;
+        const seller = Array.isArray(shipment.seller) ? shipment.seller[0] : (shipment.seller || shipment.order?.seller);
         
         // Use standardized columns
         lat = shipment.pickup_lat || seller?.latitude;
@@ -106,8 +111,8 @@ export const generateMapsUrl = (shipment: any, mode: 'pickup' | 'delivery' = 'de
         const recipient = order?.order_recipient?.[0] || order?.order_recipient;
         
         // Use standardized columns
-        lat = shipment.delivery_lat || recipient?.lat;
-        lng = shipment.delivery_lng || recipient?.lng;
+        lat = shipment.delivery_lat || recipient?.lat || order?.buyer?.latitude;
+        lng = shipment.delivery_lng || recipient?.lng || order?.buyer?.longitude;
         address = getDeliveryAddress(shipment);
     }
     

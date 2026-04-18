@@ -23,7 +23,7 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
   const { user, profile, loading: authLoading, refreshProfile } = useAuth();
   const queryClient = useQueryClient();
   const geo = useGeolocation();
-  
+
   const [formData, setFormData] = useState({
     display_name: "",
     phone: "",
@@ -73,7 +73,7 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
           updated_at: new Date().toISOString(),
         })
         .eq("id", user.id);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -144,8 +144,8 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
             ].map((step, i) => (
               <div key={i} className={cn(
                 "flex items-center gap-3 p-3 rounded-2xl border transition-all duration-300",
-                step.done 
-                  ? "bg-green-50/50 border-green-100 text-green-700" 
+                step.done
+                  ? "bg-green-50/50 border-green-100 text-green-700"
                   : "bg-muted/30 border-black/[0.03] text-muted-foreground blur-[0.3px]"
               )}>
                 <div className={cn("shrink-0", step.done ? "text-green-600" : "text-muted-foreground")}>
@@ -173,7 +173,7 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
                 <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Display Name</Label>
                 <div className="relative">
                   <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <Input 
+                  <Input
                     value={formData.display_name}
                     onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
                     placeholder="Enter your name"
@@ -189,11 +189,12 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
                 </Label>
                 <div className="relative">
                   <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <Input 
+                  <Input
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="you@example.com"
+
                     className="pl-10 h-12 rounded-2xl bg-muted/30 border-none focus:ring-2 focus:ring-primary/20 font-bold"
                   />
                 </div>
@@ -204,10 +205,11 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
               <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Phone Number</Label>
               <div className="relative">
                 <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input 
+                <Input
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="+234..."
+                  placeholder="081*******"
+                  maxLength={11}
                   className="pl-10 h-12 rounded-2xl bg-muted/30 border-none focus:ring-2 focus:ring-primary/20 font-bold"
                 />
               </div>
@@ -220,7 +222,7 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
               </Label>
               <div className="relative">
                 <Info size={16} className="absolute left-3.5 top-3 text-muted-foreground" />
-                <Textarea 
+                <Textarea
                   value={formData.bio}
                   onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                   placeholder="Brief bio about yourself..."
@@ -238,7 +240,7 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
                 <MapPin size={20} className="text-primary" />
                 Delivery Registry
               </div>
-              <Button 
+              <Button
                 type="button"
                 variant="outline"
                 size="sm"
@@ -270,9 +272,9 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
                   <Navigation size={14} className="animate-pulse" />
                   <p className="text-[10px] font-black uppercase tracking-tight">New location detected!</p>
                 </div>
-                <Button 
-                  type="button" 
-                  variant="link" 
+                <Button
+                  type="button"
+                  variant="link"
                   className="p-0 h-auto text-[9px] font-black uppercase tracking-widest text-blue-800 underline"
                   onClick={() => setFormData({ ...formData, latitude: geo.position?.latitude ?? null, longitude: geo.position?.longitude ?? null })}
                 >
@@ -284,8 +286,8 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">City</Label>
-                <Select 
-                  value={formData.city_id} 
+                <Select
+                  value={formData.city_id}
                   onValueChange={(v) => setFormData({ ...formData, city_id: v, zone_id: "" })}
                 >
                   <SelectTrigger className="h-12 rounded-2xl bg-muted/30 border-none font-bold">
@@ -301,8 +303,8 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
 
               <div className="space-y-1.5">
                 <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Delivery Zone</Label>
-                <Select 
-                  value={formData.zone_id} 
+                <Select
+                  value={formData.zone_id}
                   onValueChange={(v) => setFormData({ ...formData, zone_id: v })}
                   disabled={!formData.city_id}
                 >
@@ -322,7 +324,7 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
               <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Street Address</Label>
               <div className="relative">
                 <Home size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input 
+                <Input
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   placeholder="Your primary address"
@@ -348,8 +350,8 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
           </CardContent>
         </Card>
 
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           className="w-full h-14 rounded-3xl font-black text-xs uppercase tracking-[0.2em] bg-primary text-primary-foreground hover:bg-primary/90 shadow-xl shadow-primary/20 transition-all gap-3 overflow-hidden group"
           disabled={updateProfile.isPending}
         >

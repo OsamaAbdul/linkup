@@ -68,7 +68,7 @@ export function OrdersTabs({
                             <ShoppingBag className="w-6 h-6 sm:w-8 sm:h-8" />
                         </div>
                         <h3 className="font-bold text-base sm:text-lg">No Orders Yet</h3>
-                        <p className="text-xs sm:text-sm text-muted-foreground mb-6 max-w-[240px] sm:max-w-xs">Your commercial registry is currently empty. Start browsing our global products.</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-6 max-w-[240px] sm:max-w-xs">Your orders are currently empty. Start browsing our  products.</p>
                         <Link to="/">
                             <Button className="rounded-full px-6 sm:px-8 font-bold text-[10px] sm:text-xs shadow-lg sm:shadow-xl shadow-primary/20 transition-transform active:scale-95">Browse Marketplace</Button>
                         </Link>

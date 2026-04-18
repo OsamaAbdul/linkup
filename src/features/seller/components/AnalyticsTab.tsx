@@ -33,7 +33,7 @@ export function AnalyticsTab({ revenue, netRevenue, escrowBalance, totalOrders, 
                     </p>
                 </div>
                 <h1 className="text-3xl md:text-4xl font-black text-foreground tracking-tight">
-                    Data Overview
+                    Business Summary
                 </h1>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -64,7 +64,7 @@ export function AnalyticsTab({ revenue, netRevenue, escrowBalance, totalOrders, 
                     status="Steady"
                 />
                 <MetricCard
-                    title="On Hold (Escrow)"
+                    title="Pending Payouts"
                     value={`₦${escrowBalance.toLocaleString()}`}
                     icon={Clock}
                     color="text-amber-500"
@@ -79,10 +79,10 @@ export function AnalyticsTab({ revenue, netRevenue, escrowBalance, totalOrders, 
                         <div>
                             <CardTitle className="text-2xl font-black tracking-tight flex items-center gap-2">
                                 <BarChart3 className="text-primary" size={24} />
-                                Activity Dynamics
+                                Activity Overview
                             </CardTitle>
                             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-1">
-                                Order velocity and conversion momentum
+                                Performance tracking and growth trends
                             </p>
                         </div>
                         <div className="flex items-center gap-2 bg-muted/30 p-1 rounded-full border border-black/5">
@@ -151,7 +151,7 @@ export function AnalyticsTab({ revenue, netRevenue, escrowBalance, totalOrders, 
                         <BarChart3 size={48} strokeWidth={1} className="text-primary/40" />
                     </div>
                     <div className="text-center">
-                        <p className="text-xs font-black uppercase tracking-[0.2em] text-foreground">Awaiting System Data</p>
+                        <p className="text-xs font-black uppercase tracking-[0.2em] text-foreground">Syncing your data...</p>
                         <p className="text-[10px] font-bold mt-1 text-muted-foreground/60">Getting your insights ready. Grab a coffee! ☕</p>
                     </div>
                 </div>

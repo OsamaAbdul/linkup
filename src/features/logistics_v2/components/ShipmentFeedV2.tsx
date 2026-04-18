@@ -28,10 +28,18 @@ export function ShipmentFeedV2() {
         queryFn: async () => {
             if (!user) return [];
 
-            // 1. Fetch My Active Assignments
+            // 1. Fetch My Active Assignments (Join Orders/Recipients for full data)
             let myAssignmentsQuery = (supabase as any)
                 .from("shipments")
-                .select("*")
+                .select(`
+                    *,
+                    order:orders (
+                        *,
+                        order_recipient (*),
+                        buyer:profiles!buyer_id (*),
+                        seller:profiles!seller_id (*)
+                    )
+                `)
                 .eq("rider_id", user.id);
 
             if (filterStatus !== "all") {
@@ -46,43 +54,49 @@ export function ShipmentFeedV2() {
 
             const { data: myData } = await myAssignmentsQuery;
 
-            // 2. Fetch Unassigned Broadcast Missions (Only if filtering for all or pending)
+            // 2. Fetch Unassigned Broadcast Missions (Source: Orders Table)
             let broadcastData: any[] = [];
             if (filterStatus === "all" || filterStatus === "pending") {
-                // Get rider's zone from profile (passed via details or refetched)
-                const { data: profile } = await (supabase as any)
-                    .from("profiles")
-                    .select("city_id, zone_id")
-                    .eq("id", user.id)
-                    .single();
+                const { data: orderMissions, error: orderError } = await (supabase as any)
+                    .from("orders")
+                    .select(`
+                        *,
+                        order_recipient (*),
+                        buyer:profiles!buyer_id (*), 
+                        seller:profiles!seller_id (*),
+                        shipments (*)
+                    `)
+                    .eq("status", "awaiting_agent")
+                    .order("created_at", { ascending: false });
 
-                let broadcastQuery = (supabase as any)
-                    .from("shipments")
-                    .select("*")
-                    .is("rider_id", null)
-                    .eq("status", "pending");
-
-                if (profile?.city_id) {
-                    broadcastQuery = broadcastQuery.eq("city_id", profile.city_id);
+                if (!orderError && orderMissions) {
+                    // Transform Orders into Mission Feed format
+                    broadcastData = orderMissions.map((o: any) => ({
+                        ...(o.shipments?.[0] || {}),
+                        id: o.shipments?.[0]?.id || o.id, // Ensure id is always present for UI stability
+                        order: o,
+                        seller: o.seller, // Pass profile through for utils
+                        buyer: o.buyer, // Pass profile through for utils
+                        pickup_address_text: o.shipments?.[0]?.pickup_address_text || o.seller?.address,
+                        delivery_address_text: o.order_recipient?.[0]?.address_line || o.order_recipient?.address_line || o.buyer?.address
+                    }));
                 }
-
-                const { data: bData } = await broadcastQuery;
-                broadcastData = bData || [];
             }
 
             // Combine and sort
             const combined = [...(myData || []), ...broadcastData];
             return combined.sort((a: any, b: any) => 
-                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
             );
         },
         enabled: !!user,
+        refetchInterval: 10000,
     });
 
     const filteredShipments = shipments?.filter((s: any) => 
-        s.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.pickup_address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.delivery_address?.toLowerCase().includes(searchTerm.toLowerCase())
+        (s?.id || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+        (s?.pickup_address_text || s?.pickup_address || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+        (s?.delivery_address_text || s?.delivery_address || '').toLowerCase().includes((searchTerm || '').toLowerCase())
     );
 
     const { data: walletData } = useQuery({

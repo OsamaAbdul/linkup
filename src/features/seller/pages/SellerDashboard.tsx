@@ -63,7 +63,7 @@ export default function Dashboard() {
   const totalOrders = totals?.count || 0;
   const chartData = totals?.chartData || [];
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-primary font-black uppercase tracking-[0.2em] text-xs animate-pulse font-mono">Loading Secure Node...</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-primary font-black uppercase tracking-[0.2em] text-xs animate-pulse font-mono">Starting up your dashboard...</div>;
   if (!user) return <Navigate to="/auth" replace />;
 
   return (

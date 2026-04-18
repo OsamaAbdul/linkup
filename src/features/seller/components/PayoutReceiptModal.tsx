@@ -25,7 +25,7 @@ export function PayoutReceiptModal({ isOpen, onClose, request }: PayoutReceiptMo
         pending: { icon: Clock, color: "bg-amber-100 text-amber-800", label: "Pending Review" },
         approved: { icon: CheckCircle2, color: "bg-blue-100 text-blue-800", label: "Approved (Processing)" },
         processing: { icon: Clock, color: "bg-blue-100 text-blue-800", label: "Processing" },
-        completed: { icon: CheckCircle2, color: "bg-emerald-100 text-emerald-800", label: "Settled" },
+        completed: { icon: CheckCircle2, color: "bg-emerald-100 text-emerald-800", label: "Paid" },
         rejected: { icon: XCircle, color: "bg-red-100 text-red-800", label: "Rejected" },
     };
 
@@ -111,7 +111,7 @@ export function PayoutReceiptModal({ isOpen, onClose, request }: PayoutReceiptMo
                         <div className="px-10 pt-16 pb-10 space-y-8 relative">
                             {/* Financial Summary */}
                             <div className="space-y-1">
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground ml-1">Total Settlement</p>
+                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground ml-1">Total Paid</p>
                                 <div className="flex items-baseline gap-2">
                                     <h2 className="text-5xl font-black text-foreground tracking-tight">₦{request.amount.toLocaleString()}</h2>
                                     <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest leading-none mb-1">NGN</span>
@@ -126,7 +126,7 @@ export function PayoutReceiptModal({ isOpen, onClose, request }: PayoutReceiptMo
                                 {/* Payout Details */}
                                 <div className="grid grid-cols-2 gap-8">
                                     <div className="space-y-1.5">
-                                        <Label text="Financial Institution" />
+                                        <Label text="Bank Name" />
                                         <div className="flex items-center gap-2 font-black text-[13px] text-foreground">
                                             <div className="w-5 h-5 rounded-md bg-primary/5 flex items-center justify-center shrink-0">
                                                 <Landmark size={12} className="text-primary" />
@@ -135,7 +135,7 @@ export function PayoutReceiptModal({ isOpen, onClose, request }: PayoutReceiptMo
                                         </div>
                                     </div>
                                     <div className="space-y-1.5">
-                                        <Label text="Settlement Period" />
+                                        <Label text="Date Requested" />
                                         <div className="flex items-center gap-2 font-black text-[13px] text-foreground">
                                             <div className="w-5 h-5 rounded-md bg-primary/5 flex items-center justify-center shrink-0">
                                                 <Calendar size={12} className="text-primary" />
@@ -146,7 +146,7 @@ export function PayoutReceiptModal({ isOpen, onClose, request }: PayoutReceiptMo
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label text="Beneficiary Narrative" />
+                                    <Label text="Account Details" />
                                     <div className="bg-gray-50 p-4 rounded-2xl border border-black/[0.03] space-y-1">
                                         <p className="text-[11px] font-black text-foreground uppercase tracking-tight">{request.account_name}</p>
                                         <p className="text-[13px] font-mono text-muted-foreground font-black tracking-widest">{request.account_number}</p>
@@ -155,7 +155,7 @@ export function PayoutReceiptModal({ isOpen, onClose, request }: PayoutReceiptMo
 
                                 {request.admin_notes && (
                                     <div className="space-y-2">
-                                        <Label text="Support Remarks" />
+                                        <Label text="Note" />
                                         <div className="bg-amber-50/50 p-4 rounded-2xl border border-amber-100/30 flex gap-3 italic">
                                             <AlertCircle className="text-amber-600 shrink-0" size={16} />
                                             <p className="text-[11px] font-black text-amber-900/60 leading-relaxed">{request.admin_notes}</p>
@@ -170,8 +170,8 @@ export function PayoutReceiptModal({ isOpen, onClose, request }: PayoutReceiptMo
                                     <p className="text-[9px] font-black uppercase tracking-widest text-foreground">Linkup Global Financial Security</p>
                                 </div>
                                 <p className="text-[8px] font-bold text-muted-foreground text-center px-4">
-                                    This document serves as an official confirmation of the withdrawal request. 
-                                    Settlements are subject to verification and platform reconciliation rules.
+                                    This document is a confirmation of your payout request. 
+                                    Your money is handled securely and will arrive in your bank account shortly.
                                 </p>
                             </div>
                         </div>

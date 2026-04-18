@@ -28,9 +28,15 @@ export default function AdminOrderTracker() {
                     profiles:buyer_id(display_name, id),
                     order_recipient(full_name, phone, address_line, city_id, zone_id, lat, lng),
                     shipments(
-                        rider_id,
-                        pickup_address_text,
-                        delivery_address_text,
+                        id,
+                        status,
+                        tracking_code,
+                        pickup_code,
+                        delivery_code,
+                        distance_km,
+                        delivery_fee_amount,
+                        pickup_address,
+                        delivery_address,
                         pickup_lat,
                         pickup_lng,
                         delivery_lat,
@@ -43,6 +49,7 @@ export default function AdminOrderTracker() {
             if (error) throw error;
             return data;
         },
+        refetchInterval: 30000, // Refresh admin view every 30 seconds
         staleTime: 1000 * 60 * 2, // 2 minutes
     });
 
@@ -51,7 +58,8 @@ export default function AdminOrderTracker() {
     const renderOrderDetails = (order: any) => {
         if (!order) return null;
         const items = order.items as any[] || [];
-        const shipment = order.shipments?.[0];
+        // Handle both 1-1 (object) and 1-N (array) relationships for shipments
+        const shipment = Array.isArray(order.shipments) ? order.shipments[0] : order.shipments;
 
         const shipping = order.order_shipping?.[0] || order.order_shipping || {};
         const rider = shipment?.rider || (shipment as any)?.profiles;
@@ -156,12 +164,75 @@ export default function AdminOrderTracker() {
 
                 <div className="space-y-4">
                     <div className="flex items-center gap-2 text-muted-foreground font-bold text-[10px] uppercase tracking-widest">
+                        <Bike size={14} className="text-primary" />
+                        Mission Control (Logistics V2)
+                    </div>
+                    {shipment ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-wider mb-2">Tracking Code</p>
+                                <div className="flex items-center justify-between">
+                                    <code className="text-xs font-black text-primary select-all">
+                                        {shipment.tracking_code || "GEN-000-000"}
+                                    </code>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-6 w-6 rounded-md hover:bg-white"
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(shipment.tracking_code);
+                                            // Optional: show a mini toast
+                                        }}
+                                    >
+                                        <Copy size={12} className="text-muted-foreground" />
+                                    </Button>
+                                </div>
+                            </div>
+                            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-wider mb-2">Verification PINs</p>
+                                <div className="flex items-center gap-2">
+                                    <Badge className="bg-emerald-50 text-emerald-700 border-emerald-100 font-mono text-[10px]">
+                                        PICK: {shipment.pickup_code || "----"}
+                                    </Badge>
+                                    <Badge className="bg-blue-50 text-blue-700 border-blue-100 font-mono text-[10px]">
+                                        DROP: {shipment.delivery_code || "----"}
+                                    </Badge>
+                                </div>
+                            </div>
+                            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 col-span-1 sm:col-span-2 flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <div>
+                                        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-wider">Distance</p>
+                                        <p className="text-xs font-bold">{shipment.distance_km ? `${shipment.distance_km.toFixed(1)} KM` : "---"}</p>
+                                    </div>
+                                    <div className="h-8 w-px bg-gray-200" />
+                                    <div>
+                                        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-wider">Settlement</p>
+                                        <p className="text-xs font-bold text-emerald-600">₦{(shipment.delivery_fee_amount || 0).toLocaleString()}</p>
+                                    </div>
+                                    <div className="h-8 w-px bg-gray-200" />
+                                    <div>
+                                        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-wider">Logistics Status</p>
+                                        <p className="text-xs font-bold uppercase tracking-tighter text-indigo-600">{shipment.status || "N/A"}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 border-dashed text-center">
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">No Active Shipment Record</p>
+                        </div>
+                    )}
+                </div>
+
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-muted-foreground font-bold text-[10px] uppercase tracking-widest">
                         <MapPin size={14} className="text-primary" />
                         Shipping Address
                     </div>
                     <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                         <p className="text-sm font-medium leading-relaxed">
-                            {shipping.address_line || shipment?.delivery_address_text || "Address Unspecified"}
+                            {shipping.address_line || shipment?.delivery_address || "Address Unspecified"}
                         </p>
                     </div>
                 </div>
@@ -182,6 +253,7 @@ export default function AdminOrderTracker() {
                         <thead>
                             <tr className="border-b border-gray-100 bg-gray-50/50">
                                 <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Order ID</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Tracking</th>
                                 <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Customer</th>
                                 <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Rider</th>
                                 <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Date</th>
@@ -192,11 +264,27 @@ export default function AdminOrderTracker() {
                         </thead>
                         <tbody className="divide-y divide-gray-50">
                             {orders?.map((o) => {
-                                const shipment = (o as any).shipments?.[0];
+                                // Handle both 1-1 (object) and 1-N (array) relationships for shipments
+                                const shipment: any = Array.isArray((o as any).shipments) 
+                                    ? (o as any).shipments[0] 
+                                    : (o as any).shipments;
+                                
                                 const rider = shipment?.rider || shipment?.profiles;
                                 return (
                                     <tr key={o.id} className="hover:bg-gray-50/50 transition-colors group">
                                         <td className="px-8 py-6 font-mono text-xs font-bold text-primary">#{o.id.slice(0, 8)}</td>
+                                        <td className="px-8 py-6">
+                                            {shipment?.tracking_code ? (
+                                                <div className="flex flex-col">
+                                                    <code className="text-[10px] font-black text-foreground">
+                                                        {shipment.tracking_code}
+                                                    </code>
+                                                    <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">V2 Logistics</span>
+                                                </div>
+                                            ) : (
+                                                <span className="text-[10px] font-medium text-muted-foreground italic">No Tracker</span>
+                                            )}
+                                        </td>
                                         <td className="px-8 py-6">
                                             <p className="font-bold text-sm text-foreground">{(o.profiles as any)?.display_name || "Guest"}</p>
                                         </td>

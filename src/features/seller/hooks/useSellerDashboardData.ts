@@ -139,9 +139,9 @@ export function useSellerDashboardData() {
     queryKey: ["wallet", user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const { data } = await supabase.from("wallets").select("id, balance, escrow_balance").eq("seller_id", user.id).maybeSingle();
+      const { data } = await supabase.from("wallets").select("id, balance, escrow_balance").eq("user_id", user.id).maybeSingle();
       if (!data) {
-        const { data: newWallet } = await supabase.from("wallets").insert({ seller_id: user.id }).select().single();
+        const { data: newWallet } = await supabase.from("wallets").insert({ user_id: user.id }).select().single();
         return newWallet;
       }
       return data;

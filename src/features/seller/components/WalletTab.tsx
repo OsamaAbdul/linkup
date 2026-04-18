@@ -6,13 +6,14 @@ import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
-import { Wallet, TrendingUp, Clock, Calendar, PackageCheck, ArrowDownToLine, Landmark } from "lucide-react";
+import { Wallet, TrendingUp, Clock, Calendar, PackageCheck, ArrowDownToLine, Landmark, Receipt, Truck, UserCheck, Search, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PayoutRequestModal } from "./PayoutRequestModal";
 import { PayoutReceiptModal } from "./PayoutReceiptModal";
 import { useState } from "react";
 import { format } from "date-fns";
-import { Receipt } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+
 export function WalletTab() {
     const { user } = useAuth();
     const queryClient = useQueryClient();
@@ -27,7 +28,7 @@ export function WalletTab() {
             const { data } = await supabase
                 .from("wallets")
                 .select("id, balance, escrow_balance")
-                .or(`seller_id.eq.${user.id},user_id.eq.${user.id}`)
+                .eq("user_id", user.id)
                 .maybeSingle();
             return data;
         },
@@ -50,9 +51,9 @@ export function WalletTab() {
         enabled: !!wallet?.id,
     });
 
-    // Completed shipments for this seller €” shows order-level settlement history
-    const { data: completedShipments = [] } = useQuery({
-        queryKey: ["seller-completed-shipments", user?.id],
+    // Recent shipments for this seller – shows live logistics progress
+    const { data: recentShipments = [] } = useQuery({
+        queryKey: ["seller-recent-shipments", user?.id],
         queryFn: async () => {
             if (!user) return [];
             const { data } = await supabase
@@ -61,11 +62,11 @@ export function WalletTab() {
                     id,
                     order_id,
                     delivery_fee,
+                    status,
                     created_at,
                     orders!inner(total_amount, status, updated_at)
                 `)
                 .eq("seller_id", user.id)
-                .eq("orders.status", "completed")
                 .order("created_at", { ascending: false })
                 .limit(20);
             return data ?? [];
@@ -82,7 +83,7 @@ export function WalletTab() {
                 .select("*")
                 .eq("user_id", user?.id)
                 .order("created_at", { ascending: false });
-                
+
             if (error) console.error("Payout history fetch error:", error);
             return data ?? [];
         },
@@ -96,13 +97,15 @@ export function WalletTab() {
             .channel("seller-wallet-tab-rt")
             .on("postgres_changes", { event: "UPDATE", schema: "public", table: "wallets" },
                 () => queryClient.invalidateQueries({ queryKey: ["wallet", user.id] }))
+            .on("postgres_changes", { event: "*", schema: "public", table: "shipments", filter: `seller_id=eq.${user.id}` },
+                () => queryClient.invalidateQueries({ queryKey: ["seller-recent-shipments", user.id] }))
             .on("postgres_changes", { event: "INSERT", schema: "public", table: "wallet_transactions" },
                 () => {
                     queryClient.invalidateQueries({ queryKey: ["wallet", user.id] });
                     queryClient.invalidateQueries({ queryKey: ["wallet-transactions", wallet.id] });
-                    queryClient.invalidateQueries({ queryKey: ["seller-completed-shipments", user.id] });
+                    queryClient.invalidateQueries({ queryKey: ["seller-recent-shipments", user.id] });
                 })
-            .on("postgres_changes", { event: "*", schema: "public", table: "payout_requests", filter: `seller_id=eq.${user.id}` },
+            .on("postgres_changes", { event: "*", schema: "public", table: "payout_requests", filter: `user_id=eq.${user.id}` },
                 () => queryClient.invalidateQueries({ queryKey: ["payout-requests", user.id] }))
             .on("postgres_changes", { event: "*", schema: "public", table: "system_settings" },
                 () => queryClient.invalidateQueries({ queryKey: ["payout-settings"] }))
@@ -170,70 +173,12 @@ export function WalletTab() {
                     <div className="p-5 rounded-xl bg-white border border-black/5 shadow-xl shadow-black/[0.02] hover:shadow-2xl hover:shadow-amber-500/5 transition-all duration-500">
                         <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">In Process</p>
                         <p className="text-2xl font-black text-foreground tracking-tight">₦{escrowBalance.toLocaleString()}</p>
-                        <div className="flex items-center gap-1.5 text-amber-500 mt-1.5">
-                            <Clock size={14} strokeWidth={3} />
-                            <span className="text-[9px] font-black uppercase tracking-widest">Awaiting delivery verification</span>
-                        </div>
+
                     </div>
                 </div>
             </div>
 
-            {/* Completed Orders Settlement Table */}
-            {completedShipments.length > 0 && (
-                <div className="space-y-4">
-                    <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">
-                        <PackageCheck size={12} className="inline mr-2" />Completed Sales
-                    </h3>
-                    <Card className="border-none shadow-xl rounded-xl overflow-hidden max-w-full">
-                        <div className="overflow-x-auto no-scrollbar">
-                            <Table>
-                                <TableHeader className="bg-muted/30">
-                                    <TableRow className="border-none hover:bg-transparent">
-                                        <TableHead className="font-black text-[10px] uppercase tracking-widest h-14 pl-8 min-w-[120px]">Order</TableHead>
-                                        <TableHead className="font-black text-[10px] uppercase tracking-widest h-14 min-w-[100px]">Date</TableHead>
-                                        <TableHead className="font-black text-[10px] uppercase tracking-widest h-14 min-w-[120px]">Customer Paid</TableHead>
-                                        <TableHead className="font-black text-[10px] uppercase tracking-widest h-14 pr-8 text-right min-w-[120px]">Your Payout</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {completedShipments.map((s: any) => {
-                                        const orderTotal = s.orders?.total_amount ?? 0;
-                                        // Match with transaction if available (via metadata or reference fallback)
-                                        const tx = transactions.find((t: any) =>
-                                            t.type === 'settlement' &&
-                                            (t.metadata?.order_id === s.order_id || t.reference?.includes(s.order_id))
-                                        );
-                                        const payout = tx ? tx.amount : null;
-                                        const txMetadata = tx?.metadata as { reason?: string } | null;
 
-                                        return (
-                                            <TableRow key={s.id} className="border-black/[0.03]">
-                                                <TableCell className="font-mono text-xs pl-8 text-muted-foreground">#{s.order_id?.slice(0, 8)}</TableCell>
-                                                <TableCell className="text-xs font-medium">{new Date(s.orders?.updated_at ?? s.created_at).toLocaleDateString()}</TableCell>
-                                                <TableCell className="text-sm font-bold text-muted-foreground">₦{orderTotal.toLocaleString()}</TableCell>
-                                                <TableCell className="text-right pr-8">
-                                                    {payout !== null && tx?.status === 'success' ? (
-                                                        <span className="text-sm font-black text-green-600">+₦{payout.toLocaleString()}</span>
-                                                    ) : (
-                                                        <div className="flex flex-col items-end gap-1">
-                                                            <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest border-amber-200 text-amber-700 bg-amber-50">Delivery in Progress</Badge>
-                                                            {txMetadata?.reason && (
-                                                                <span className="text-[8px] text-muted-foreground font-medium max-w-[100px] text-right leading-tight italic">
-                                                                    {txMetadata.reason}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </TableCell>
-                                            </TableRow>
-                                        );
-                                    })}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </Card>
-                </div>
-            )}
 
             {/* Payout Requests History */}
             {payoutRequests.length > 0 && (

@@ -282,7 +282,8 @@ export function OrderCard({ order }: OrderCardProps) {
                         </CollapsibleTrigger>
 
                         <div className="flex gap-2.5">
-                            {["delivered", "shipped", "out_for_delivery", "picked_up"].includes(order.status.toLowerCase()) && (
+                            {(["delivered", "shipped", "out_for_delivery", "picked_up"].includes(order.status.toLowerCase()) || 
+                              (order.status.toLowerCase() === "processing" && order.shipment?.status?.toLowerCase() === "delivered")) && (
                                 <Button
                                     className="rounded-full bg-green-600 hover:bg-green-700 shadow-lg shadow-green-600/20 text-[9px] font-black uppercase tracking-widest h-8 px-4 active:scale-95 transition-transform gap-2"
                                     onClick={() => confirmDeliveryMutation.mutate()}

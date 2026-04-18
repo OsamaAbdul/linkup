@@ -17,7 +17,7 @@ export default function Orders() {
         setSearchParams({ tab });
     };
 
-    // Fetch orders
+    // Fetch orders (Orders-Centric Mapping)
     const { data: rawOrders = [], isLoading, refetch } = useQuery({
         queryKey: ["orders", user?.id],
         queryFn: async () => {
@@ -26,19 +26,7 @@ export default function Orders() {
                 .from("orders")
                 .select(`
                     *,
-                    shipments (
-                        id,
-                        status,
-                        tracking_code,
-                        rider_id,
-                        rider_latitude,
-                        rider_longitude,
-                        delivery_lat,
-                        delivery_lng,
-                        pickup_address_text,
-                        delivery_address_text,
-                        delivery_fee
-                    ),
+                    shipments:shipments!shipments_order_id_fkey ( * ),
                     order_recipient (
                         full_name,
                         phone,
@@ -46,6 +34,7 @@ export default function Orders() {
                     ),
                     order_items (
                         product_id,
+                        size,
                         products (
                             title,
                             images,
@@ -56,8 +45,14 @@ export default function Orders() {
                 .eq("buyer_id", user.id)
                 .order("created_at", { ascending: false });
 
-            if (error) throw error;
-            console.log("these are your orders", data)
+
+            console.log("this is the orders data", data);
+
+            if (error) {
+                console.error("Query Error:", error);
+                throw error;
+            }
+            console.log("this is the orders data", data);
             return data;
         },
         enabled: !!user,
@@ -165,10 +160,10 @@ export default function Orders() {
                 (payload) => {
                     const newStatus = (payload.new as any).status;
                     const shipmentOrderId = (payload.new as any).order_id;
-                    
+
                     // Only refetch and notify if this shipment belongs to one of the user's orders
                     const isMyOrder = rawOrders.some((o: any) => o.id === shipmentOrderId);
-                    
+
                     if (isMyOrder) {
                         playNotificationSound();
                         toast({
@@ -188,7 +183,10 @@ export default function Orders() {
     }, [user, refetch]);
 
     const orders = rawOrders.map((order: any) => {
-        const shipment = order.shipments?.[0];
+        // Handle both array and single-object response for shipments join
+        const shipmentData = order.shipments;
+        const shipment = Array.isArray(shipmentData) ? shipmentData[0] : shipmentData;
+        
         const orderItems = order.order_items || [];
         const normalizedItem = orderItems[0] || null;
         const productData = normalizedItem?.products || null;
@@ -198,16 +196,21 @@ export default function Orders() {
         const price = order.total_amount || 0;
         const store = "Linkup Partner";
 
+        // Logic priority: Shipment status takes precedence once it moves past 'pending'
+        const activeStatus = (shipment && shipment.status && shipment.status !== 'pending')
+            ? shipment.status
+            : order.status;
+
         return {
             id: order.id,
             title,
             price,
             image,
             store,
-            status: order.status,
-            displayStatus: formatStatus(order.status),
+            status: activeStatus,
+            displayStatus: formatStatus(activeStatus),
             itemsCount: orderItems.length,
-            deliveredBy: order.status === 'delivered' ? 'Linkup Logistics' : null,
+            deliveredBy: activeStatus === 'delivered' ? 'Linkup Logistics' : null,
             shipment,
             sellerId: order.seller_id,
             productId: normalizedItem?.product_id,

@@ -436,6 +436,9 @@ export type Database = {
           broadcast_zone?: string | null
           city_id?: string | null
           zone_id?: string | null
+          total?: number
+          settlement_due_at?: string | null
+          settlement_status?: string | null
         }
         Relationships: []
       }
@@ -817,18 +820,10 @@ export type Database = {
       }
       shipments: {
         Row: {
-          buyer_latitude: number | null
-          buyer_longitude: number | null
           created_at: string
-          delivery_address: string | null
-          delivery_fee: number | null
           id: string
-          last_seen: string | null
           order_id: string
-          pickup_address: string | null
           rider_id: string | null
-          rider_latitude: number | null
-          rider_longitude: number | null
           status: string
           updated_at: string
           pickup_time: string | null
@@ -836,22 +831,25 @@ export type Database = {
           zone_id: string | null
           city_id: string | null
           seller_id: string | null
-          pickup_latitude: number | null
-          pickup_longitude: number | null
+          pickup_lat: number | null
+          pickup_lng: number | null
+          delivery_lat: number | null
+          delivery_lng: number | null
+          rider_lat: number | null
+          rider_lng: number | null
+          delivery_address_text: string | null
+          pickup_address_text: string | null
+          delivery_fee_amount: number | null
+          cross_zone_fee_amount: number | null
+          distance_km: number | null
+          started_at: string | null
+          delivered_at: string | null
         }
         Insert: {
-          buyer_latitude?: number | null
-          buyer_longitude?: number | null
           created_at?: string
-          delivery_address?: string | null
-          delivery_fee?: number | null
           id?: string
-          last_seen?: string | null
           order_id: string
-          pickup_address?: string | null
           rider_id?: string | null
-          rider_latitude?: number | null
-          rider_longitude?: number | null
           status?: string
           updated_at?: string
           pickup_time?: string | null
@@ -859,22 +857,25 @@ export type Database = {
           zone_id?: string | null
           city_id?: string | null
           seller_id?: string | null
-          pickup_latitude?: number | null
-          pickup_longitude?: number | null
+          pickup_lat?: number | null
+          pickup_lng?: number | null
+          delivery_lat?: number | null
+          delivery_lng?: number | null
+          rider_lat?: number | null
+          rider_lng?: number | null
+          delivery_address_text?: string | null
+          pickup_address_text?: string | null
+          delivery_fee_amount?: number | null
+          cross_zone_fee_amount?: number | null
+          distance_km?: number | null
+          started_at?: string | null
+          delivered_at?: string | null
         }
         Update: {
-          buyer_latitude?: number | null
-          buyer_longitude?: number | null
           created_at?: string
-          delivery_address?: string | null
-          delivery_fee?: number | null
           id?: string
-          last_seen?: string | null
           order_id?: string
-          pickup_address?: string | null
           rider_id?: string | null
-          rider_latitude?: number | null
-          rider_longitude?: number | null
           status?: string
           updated_at?: string
           pickup_time?: string | null
@@ -882,8 +883,19 @@ export type Database = {
           zone_id?: string | null
           city_id?: string | null
           seller_id?: string | null
-          pickup_latitude?: number | null
-          pickup_longitude?: number | null
+          pickup_lat?: number | null
+          pickup_lng?: number | null
+          delivery_lat?: number | null
+          delivery_lng?: number | null
+          rider_lat?: number | null
+          rider_lng?: number | null
+          delivery_address_text?: string | null
+          pickup_address_text?: string | null
+          delivery_fee_amount?: number | null
+          cross_zone_fee_amount?: number | null
+          distance_km?: number | null
+          started_at?: string | null
+          delivered_at?: string | null
         }
         Relationships: [
           {
@@ -1054,7 +1066,7 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "withdrawal_requests_user_id_fkey"
-            columns: ["user_id"]
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -1064,6 +1076,221 @@ export type Database = {
             columns: ["wallet_id"]
             isOneToOne: false
             referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promoter_campaigns: {
+        Row: {
+          commission_rate: number
+          created_at: string
+          id: string
+          is_active: boolean | null
+          product_id: string
+          seller_id: string
+        }
+        Insert: {
+          commission_rate: number
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          product_id: string
+          seller_id: string
+        }
+        Update: {
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          product_id?: string
+          seller_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promoter_campaigns_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promoter_campaigns_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referrals: {
+        Row: {
+          campaign_id: string | null
+          created_at: string
+          earnings: number | null
+          id: string
+          order_id: string | null
+          promoter_id: string
+          status: string | null
+          buyer_id: string | null
+          visitor_id: string | null
+          product_id: string | null
+          converted_at: string | null
+          expires_at: string | null
+        }
+        Insert: {
+          campaign_id?: string | null
+          created_at?: string
+          earnings?: number | null
+          id?: string
+          order_id?: string | null
+          promoter_id: string
+          status?: string | null
+          buyer_id?: string | null
+          visitor_id?: string | null
+          product_id?: string | null
+          converted_at?: string | null
+          expires_at?: string | null
+        }
+        Update: {
+          campaign_id?: string | null
+          created_at?: string
+          earnings?: number | null
+          id?: string
+          order_id?: string | null
+          promoter_id?: string
+          status?: string | null
+          buyer_id?: string | null
+          visitor_id?: string | null
+          product_id?: string | null
+          converted_at?: string | null
+          expires_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "promoter_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_promoter_id_fkey"
+            columns: ["promoter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_recipient: {
+        Row: {
+          address_line: string | null
+          city_id: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          order_id: string
+          phone: string | null
+          zone_id: string | null
+          lat: number | null
+          lng: number | null
+        }
+        Insert: {
+          address_line?: string | null
+          city_id?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          order_id: string
+          phone?: string | null
+          zone_id?: string | null
+          lat?: number | null
+          lng?: number | null
+        }
+        Update: {
+          address_line?: string | null
+          city_id?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          order_id?: string
+          phone?: string | null
+          zone_id?: string | null
+          lat?: number | null
+          lng?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_shipping_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fee_config: {
+        Row: {
+          fee_type: string
+          rate: number
+          flat_fee: number
+          is_active: boolean
+        }
+        Insert: {
+          fee_type: string
+          rate?: number
+          flat_fee?: number
+          is_active?: boolean
+        }
+        Update: {
+          fee_type?: string
+          rate?: number
+          flat_fee?: number
+          is_active?: boolean
+        }
+        Relationships: []
+      }
+      revenue_ledgers: {
+        Row: {
+          order_id: string
+          total_order_amount: number
+          platform_fee: number
+          rider_fee: number
+          promoter_commission: number
+          seller_payout: number
+          status: string
+        }
+        Insert: {
+          order_id: string
+          total_order_amount?: number
+          platform_fee?: number
+          rider_fee?: number
+          promoter_commission?: number
+          seller_payout?: number
+          status?: string
+        }
+        Update: {
+          order_id?: string
+          total_order_amount?: number
+          platform_fee?: number
+          rider_fee?: number
+          promoter_commission?: number
+          seller_payout?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revenue_ledgers_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]

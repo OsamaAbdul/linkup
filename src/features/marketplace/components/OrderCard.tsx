@@ -51,8 +51,21 @@ export function OrderCard({ order }: OrderCardProps) {
     const { user } = useAuth();
     const queryClient = useQueryClient();
 
+    interface DisputeIssue {
+        id: string;
+        title: string;
+        description: string;
+        status: string;
+        category: string;
+        resolution_meta?: {
+            resolution: string;
+            notes: string;
+        };
+        created_at: string;
+    }
+
     // Fetch dispute details if disputed
-    const { data: disputeData } = useQuery({
+    const { data: disputeData } = useQuery<DisputeIssue | null>({
         queryKey: ["order-dispute", order.id],
         queryFn: async () => {
             if (!user || order.status.toLowerCase() !== "disputed") return null;
@@ -61,15 +74,16 @@ export function OrderCard({ order }: OrderCardProps) {
                 .select("*")
                 .eq("order_id", order.id)
                 .eq("category", "financial_dispute")
-                .single();
+                .maybeSingle();
+            
             if (error) return null;
-            return data;
+            return data as unknown as DisputeIssue;
         },
         enabled: !!user && order.status.toLowerCase() === "disputed",
     });
 
     // Fetch related issues for exact buyer id (Initiator)
-    const { data: relatedIssues } = useQuery({
+    const { data: relatedIssues } = useQuery<DisputeIssue[]>({
         queryKey: ["buyer-issues", user?.id],
         queryFn: async () => {
             if (!user) return [];
@@ -78,8 +92,9 @@ export function OrderCard({ order }: OrderCardProps) {
                 .select("*")
                 .eq("user_id", user.id)
                 .order("created_at", { ascending: false });
+            
             if (error) return [];
-            return data;
+            return (data as unknown as DisputeIssue[]) || [];
         },
         enabled: !!user && order.status.toLowerCase() === "disputed",
     });
@@ -223,11 +238,16 @@ export function OrderCard({ order }: OrderCardProps) {
                             </div>
 
                             <Badge className={cn(
-                                "rounded-full px-2.5 py-0.5 text-[8px] sm:text-[9px] font-black uppercase tracking-widest border-none shadow-sm shrink-0",
-                                ["pending", "confirmed", "processing", "awaiting_agent"].includes(order.status.toLowerCase()) ? "bg-amber-100 text-amber-700" :
-                                    ["accepted", "out_for_pickup", "arrived_at_seller", "picked_up", "out_for_delivery", "arrived_at_destination", "shipped"].includes(order.status.toLowerCase()) ? "bg-blue-100 text-blue-700" :
-                                        ["delivered", "completed"].includes(order.status.toLowerCase()) ? "bg-green-100 text-green-700" :
-                                            "bg-red-100 text-red-700"
+                                "rounded-full px-2.5 py-0.5 text-[8px] sm:text-[9px] font-black uppercase tracking-widest border-none h-fit",
+                                ["pending", "confirmed", "processing"].includes(order.status.toLowerCase()) ? "bg-amber-100 text-amber-700" :
+                                    ["awaiting_agent", "broadcast"].includes(order.status.toLowerCase()) ? "bg-orange-100 text-[#E96F28] animate-pulse" :
+                                        ["accepted", "assigned"].includes(order.status.toLowerCase()) ? "bg-indigo-100 text-indigo-700" :
+                                            ["out_for_pickup", "arrived_at_seller"].includes(order.status.toLowerCase()) ? "bg-amber-100 text-amber-700" :
+                                                ["picked_up", "started"].includes(order.status.toLowerCase()) ? "bg-purple-100 text-purple-700" :
+                                                    ["out_for_delivery", "in_transit"].includes(order.status.toLowerCase()) ? "bg-orange-100 text-[#E96F28]" :
+                                                        ["arrived_at_destination", "arrived", "shipped"].includes(order.status.toLowerCase()) ? "bg-cyan-100 text-cyan-700" :
+                                                            ["delivered", "completed"].includes(order.status.toLowerCase()) ? "bg-green-100 text-green-700" :
+                                                                "bg-slate-100 text-slate-700"
                             )}>
                                 {order.displayStatus}
                             </Badge>
@@ -403,10 +423,10 @@ export function OrderCard({ order }: OrderCardProps) {
                                                 </div>
                                                 <div className="bg-emerald-50/50 p-3 rounded-xl border border-emerald-100/50">
                                                     <p className="text-xs font-bold text-emerald-800 mb-1">
-                                                        Protocol: {disputeData.resolution_meta.resolution === 'refund' ? "Buyer Refund Issued" : "Funds Released to Seller"}
+                                                        Protocol: {disputeData.resolution_meta?.resolution === 'refund' ? "Buyer Refund Issued" : "Funds Released to Seller"}
                                                     </p>
                                                     <p className="text-[10px] font-medium text-emerald-600 leading-relaxed italic">
-                                                        "{disputeData.resolution_meta.notes || "Resolved by Neural Administration"}"
+                                                        "{disputeData.resolution_meta?.notes || "Resolved by Neural Administration"}"
                                                     </p>
                                                 </div>
                                             </div>
@@ -420,7 +440,7 @@ export function OrderCard({ order }: OrderCardProps) {
                                                     <p className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground">Historical Intelligence (Buyer Identity)</p>
                                                 </div>
                                                 <div className="space-y-2">
-                                                    {relatedIssues.map((issue: any) => (
+                                                    {relatedIssues.map((issue) => (
                                                         <div key={issue.id} className="bg-white/40 p-2.5 rounded-xl border border-black/[0.03] space-y-1">
                                                             <div className="flex items-center justify-between">
                                                                 <span className="text-[9px] font-black uppercase text-primary">#{issue.id.slice(0, 8)} • {issue.title}</span>

@@ -96,9 +96,30 @@ export default function Dashboard() {
               sellerZoneId={(sellerProfile as any)?.zone_id}
               sellerCityId={(sellerProfile as any)?.city_id}
               sellerAddress={sellerProfile?.verification?.business_address || undefined}
-              broadcastOrder={(orderId, zone, zoneId, pickupAddress, pickupTime, lat, lng) =>
-                broadcastOrderMutation.mutate({ id: orderId, zone, zoneId, cityId: (sellerProfile as any)?.city_id, pickupAddress, pickupTime, lat, lng })
-              }
+              broadcastOrder={(orderId, zone, zoneId, pickupAddress, pickupTime, lat, lng) => {
+                const order = orders.find(o => o.id === orderId);
+                const recipient = order?.order_recipient || {};
+                const deliveryAddress = `${recipient.address_line || ''}, ${recipient.cities?.name || ''}, ${recipient.delivery_zones?.name || ''}`;
+                
+                // Extract existing fees from shipment if available
+                const existingShipment = order?.shipments?.[0] || {};
+                const deliveryFeeAmount = (existingShipment as any).delivery_fee_amount;
+                const crossZoneFeeAmount = (existingShipment as any).cross_zone_fee_amount;
+
+                broadcastOrderMutation.mutate({ 
+                  id: orderId, 
+                  zone, 
+                  zoneId, 
+                  cityId: (sellerProfile as any)?.city_id, 
+                  pickupAddress, 
+                  deliveryAddress,
+                  pickupTime, 
+                  lat, 
+                  lng,
+                  deliveryFeeAmount,
+                  crossZoneFeeAmount
+                });
+              }}
             />
           )}
 

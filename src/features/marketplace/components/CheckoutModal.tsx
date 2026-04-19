@@ -126,6 +126,7 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
                 zone: zoneName,
                 city_id: cityId,
                 zone_id: zoneId,
+                cross_zone_fee: 0,
                 promoter_id: resolvedPromoterId,
                 visitor_id: resolvedVisitorId,
             };

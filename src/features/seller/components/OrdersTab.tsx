@@ -75,18 +75,21 @@ export function OrdersTab({ orders, updateOrderStatus, sellerZone, sellerZoneId,
                                     <div className="space-y-0.5">
                                         <div className="flex items-center gap-2">
                                             <Badge className={cn(
-                                                "rounded-full px-3 py-0.5 text-[8px] font-black uppercase tracking-widest border-none shadow-sm",
-                                                status === 'pending' ? 'bg-amber-100 text-amber-800' :
-                                                    status === 'confirmed' ? 'bg-emerald-100 text-emerald-800' :
-                                                        status === 'awaiting_agent' ? 'bg-orange-100 text-orange-800' :
-                                                            status === 'accepted' ? 'bg-indigo-100 text-indigo-800' :
-                                                                status === 'picked_up' ? 'bg-purple-100 text-purple-800' :
-                                                                    status === 'out_for_delivery' ? 'bg-blue-100 text-blue-800' :
-                                                                        status === 'delivered' ? 'bg-green-100 text-green-800' :
-                                                                            status === 'completed' ? 'bg-black text-white' :
-                                                                                'bg-muted text-muted-foreground'
+                                                "rounded-lg px-2 py-0.5 text-[9px] font-black uppercase tracking-widest border-none h-fit",
+                                                status === "completed" ? "bg-green-100 text-green-700" :
+                                                    status === "confirmed" || status === "processing" ? "bg-amber-100 text-amber-700" :
+                                                        status === "awaiting_agent" || status === "broadcast" ? "bg-orange-100 text-[#E96F28] animate-pulse" :
+                                                            status === "accepted" || status === "assigned" ? "bg-indigo-100 text-indigo-700" :
+                                                                status === "out_for_pickup" || status === "arrived_at_seller" ? "bg-amber-100 text-amber-700" :
+                                                                    status === "picked_up" || status === "started" ? "bg-purple-100 text-purple-700" :
+                                                                        status === "out_for_delivery" || status === "in_transit" ? "bg-orange-100 text-[#E96F28]" :
+                                                                            status === "arrived_at_destination" || status === "arrived" ? "bg-cyan-100 text-cyan-700" :
+                                                                                "bg-slate-100 text-slate-700"
                                             )}>
-                                                {status.replace(/_/g, ' ')}
+                                                {status === "awaiting_agent" || status === "broadcast" ? "Finding Partner" :
+                                                    status === "accepted" || status === "assigned" ? "Partner Found" :
+                                                        status === "picked_up" || status === "started" ? "In Transit" :
+                                                            status.replace(/_/g, " ")}
                                             </Badge>
                                             <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest border-l pl-2 border-black/10">
                                                 {new Date(o.created_at).toLocaleDateString()}
@@ -182,8 +185,8 @@ export function OrdersTab({ orders, updateOrderStatus, sellerZone, sellerZoneId,
                                             <div className="p-4 rounded-xl border border-primary/10 bg-primary/5 space-y-3">
                                                 <div className="flex items-center justify-between">
                                                     <h5 className="text-[8px] font-black text-primary uppercase tracking-widest">Connect with a Local Delivery Partner</h5>
-                                                    <Badge className="bg-primary text-white text-[7px] font-black uppercase px-2 py-0.5 rounded-full ring-2 ring-white shadow-sm">
-                                                        {o.shipments[0].status}
+                                                    <Badge className="bg-primary/10 text-primary border-none text-[7px] font-black uppercase px-2 py-0.5 rounded-full">
+                                                        {o.shipments[0].status.replace(/_/g, ' ')}
                                                     </Badge>
                                                 </div>
                                                 <div className="flex items-center gap-3">
@@ -225,7 +228,7 @@ export function OrdersTab({ orders, updateOrderStatus, sellerZone, sellerZoneId,
                                         {updateOrderStatus.isPending && activeOrderId === o.id ? "Confirming..." : "Accept Order"}
                                     </Button>
                                 )}
-                                {(status === "confirmed" || status === "processing") && (
+                                {(status === "confirmed" || status === "processing") && !shipment && (
                                     <Button
                                         className="flex-1 rounded-xl h-11 font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 active:scale-95 transition-transform gap-2 bg-primary hover:bg-primary/90"
                                         onClick={() => handleInitiateBroadcast(o.id)}

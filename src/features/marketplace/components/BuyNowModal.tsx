@@ -78,6 +78,11 @@ export function BuyNowModal({ product, isOpen, onClose }: BuyNowModalProps) {
                     city: (profile as any)?.city || "Abuja"
                 },
                 total: product.price,
+                delivery_fee: deliveryFee,
+                cross_zone_fee: 0,
+                zone: (profile as any)?.zone || "Standard Zone",
+                zone_id: (profile as any)?.zone_id || null,
+                city_id: (profile as any)?.city_id || null,
                 promoter_id: resolvedPromoterId,
                 visitor_id: resolvedVisitorId,
             };

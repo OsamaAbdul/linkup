@@ -58,6 +58,7 @@ export function useSellerDashboardData() {
           ),
           shipments(
             id, status, tracking_code, zone, zone_id,
+            delivery_fee_amount, cross_zone_fee_amount,
             profiles: rider_id(
               display_name, avatar_url
             )
@@ -197,15 +198,21 @@ export function useSellerDashboardData() {
   });
 
   const broadcastOrderMutation = useMutation({
-    mutationFn: async ({ id, zone, zoneId, cityId, pickupAddress, pickupTime, lat, lng }: { 
+    mutationFn: async ({ 
+        id, zone, zoneId, cityId, pickupAddress, deliveryAddress, pickupTime, lat, lng,
+        deliveryFeeAmount, crossZoneFeeAmount 
+    }: { 
         id: string; 
         zone: string; 
         zoneId?: string; 
         cityId?: string; 
         pickupAddress: string; 
+        deliveryAddress: string;
         pickupTime: string;
         lat?: number;
         lng?: number;
+        deliveryFeeAmount?: number;
+        crossZoneFeeAmount?: number;
     }) => {
       const { error: orderError } = await supabase
         .from("orders")
@@ -219,14 +226,18 @@ export function useSellerDashboardData() {
         .from("shipments")
         .upsert({
           order_id: id,
+          seller_id: user.id,
           zone: zone,
           zone_id: zoneId,
           city_id: cityId,
           status: "broadcast",
-          pickup_address_text: pickupAddress,
+          pickup_address: { text: pickupAddress },
+          delivery_address: { text: deliveryAddress },
           pickup_time: pickupTime ? new Date(pickupTime).toISOString() : null,
           pickup_lat: lat,
           pickup_lng: lng,
+          delivery_fee_amount: deliveryFeeAmount || 1500,
+          cross_zone_fee_amount: crossZoneFeeAmount || 0,
           updated_at: new Date().toISOString()
         }, { onConflict: 'order_id' });
 

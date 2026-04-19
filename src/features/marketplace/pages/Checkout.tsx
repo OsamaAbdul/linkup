@@ -184,6 +184,7 @@ export default function Checkout() {
         payment_status: paymentInfo?.payment_status ?? null,
         zone_id: shipping.zone_id,
         city_id: shipping.city_id,
+        zone: shipping.zone_name,
         delivery_lat: shipping.lat,
         delivery_lng: shipping.lng,
       };

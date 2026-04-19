@@ -196,10 +196,13 @@ export default function Orders() {
         const price = order.total_amount || 0;
         const store = "Linkup Partner";
 
-        // Logic priority: Shipment status takes precedence once it moves past 'pending'
-        const activeStatus = (shipment && shipment.status && shipment.status !== 'pending')
-            ? shipment.status
-            : order.status;
+        // Logic priority: Terminal order statuses take precedence
+        // Otherwise, shipment status takes precedence once it moves past 'pending'
+        const activeStatus = (["completed", "disputed", "cancelled", "refunded"].includes(order.status.toLowerCase()))
+            ? order.status
+            : (shipment && shipment.status && shipment.status !== 'pending')
+                ? shipment.status
+                : order.status;
 
         return {
             id: order.id,

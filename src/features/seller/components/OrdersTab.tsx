@@ -58,7 +58,13 @@ export function OrdersTab({ orders, updateOrderStatus, sellerZone, sellerZoneId,
                     </div>
                 ) : orders.map((o) => {
                     const recipient = o.order_recipient || {};
-                    const status = o.status.toLowerCase();
+                    const shipment = o.shipments?.[0];
+                    const orderStatus = o.status.toLowerCase();
+                    const status = (["completed", "disputed", "cancelled", "refunded"].includes(orderStatus))
+                        ? orderStatus
+                        : (shipment && shipment.status && shipment.status !== 'pending')
+                            ? shipment.status.toLowerCase()
+                            : orderStatus;
                     return (
                         <Card key={o.id} className="rounded-xl border-black/[0.03] bg-white shadow-sm overflow-hidden group">
                             <div className="bg-muted/10 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-black/[0.03]">
@@ -96,7 +102,7 @@ export function OrdersTab({ orders, updateOrderStatus, sellerZone, sellerZoneId,
                                     <p className="text-[8px] sm:text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Your Earnings</p>
                                     <p className="text-xl sm:text-2xl font-black text-primary tracking-tighter flex items-center sm:justify-end gap-1">
                                         <span className="text-xs sm:text-sm opacity-40">₦</span>
-                                        {(o.total_amount || 0).toLocaleString()}
+                                        {((o.order_items as any[])?.reduce((sum, item) => sum + (Number(item.price_at_purchase || 0) * (item.quantity || 1)), 0) || 0).toLocaleString()}
                                     </p>
                                 </div>
                             </div>

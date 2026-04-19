@@ -153,8 +153,17 @@ export function LogisticsOverview({
                 if (isBroadcast) {
                     console.log("Realtime: Broadcast mission updated");
                     queryClient.invalidateQueries({ queryKey: ["broadcast-missions", user.id] });
-
+                    
                     if (payload.eventType === "INSERT" && (payload.new as any).status === "broadcast") {
+                        const playNotificationSound = () => {
+                            try {
+                                const audio = new Audio("/sounds/notification.mp3");
+                                audio.volume = 0.5;
+                                audio.play().catch(() => { });
+                            } catch { }
+                        };
+
+                        playNotificationSound();
                         toast("📡 New Mission Available!", {
                             description: "A new mission has entered the pool.",
                             action: {

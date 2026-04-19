@@ -18,18 +18,19 @@ export function useSellerRealtime(user: any) {
           queryClient.invalidateQueries({ queryKey: ["seller-analytics"] });
 
           if (payload.eventType === 'INSERT') {
-            try {
-              const audio = new Audio('/sounds/notification.mp3');
-              audio.play().catch(err => {
-                console.warn("Notification sound blocked: User must interact with page first.", err);
-              });
-              toast.success("New Order Received!", {
-                description: "You have a new incoming order to process.",
-                duration: 10000,
-              });
-            } catch (error) {
-              console.error("Error playing notification sound:", error);
-            }
+            const playNotificationSound = () => {
+              try {
+                const audio = new Audio("/sounds/notification.mp3");
+                audio.volume = 0.5;
+                audio.play().catch(() => { });
+              } catch { }
+            };
+
+            playNotificationSound();
+            toast.success("New Order Received!", {
+              description: "You have a new incoming order to process.",
+              duration: 10000,
+            });
           }
         })
       .subscribe();
@@ -53,10 +54,17 @@ export function useSellerRealtime(user: any) {
         })
       .subscribe();
 
+    const shipmentsChannel = supabase
+      .channel('seller-shipments-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'shipments', filter: `seller_id=eq.${user.id}` },
+        () => { queryClient.invalidateQueries({ queryKey: ["seller-orders-v3"] }); })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(ordersChannel);
       supabase.removeChannel(issuesChannel);
       supabase.removeChannel(walletChannel);
+      supabase.removeChannel(shipmentsChannel);
     };
   }, [user, queryClient]);
 }

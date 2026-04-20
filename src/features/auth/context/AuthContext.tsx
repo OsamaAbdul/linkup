@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Fetch timeout")), 30000)
+        setTimeout(() => reject(new Error("Fetch timeout")), 60000)
       );
 
       const fetchPromise = Promise.all([

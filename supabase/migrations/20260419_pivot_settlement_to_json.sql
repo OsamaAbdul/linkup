@@ -40,10 +40,11 @@ RETURNS TRIGGER AS $$
 DECLARE
     v_rider_wallet_id UUID;
     v_rider_take_home NUMERIC;
-    v_platform_cut NUMERIC := 300; -- Linkup's per-shipment logistical fee
+    v_platform_earnings NUMERIC;
 BEGIN
     -- Pull directly from the breakdown source of truth
     v_rider_take_home := (NEW.fee_breakdown->>'rider')::NUMERIC;
+    v_platform_earnings := (NEW.fee_breakdown->>'platform')::NUMERIC;
     
     IF NEW.status = 'delivered' AND (OLD.status IS NULL OR OLD.status != 'delivered') THEN
         SELECT id INTO v_rider_wallet_id FROM public.wallets WHERE user_id = NEW.rider_id;
@@ -60,9 +61,9 @@ BEGIN
                     ))
             ON CONFLICT (wallet_id, reference) DO NOTHING;
 
-            -- Snapshot for audit
+            -- Snapshot for audit (Full platform capture: Commission + Logistical Fee)
             INSERT INTO public.revenue_ledgers (order_id, total_order_amount, rider_fee, platform_fee, status) 
-            VALUES (NEW.order_id, 0, v_rider_take_home, v_platform_cut, 'pending')
+            VALUES (NEW.order_id, 0, v_rider_take_home, COALESCE(v_platform_earnings, 300), 'pending')
             ON CONFLICT (order_id) DO UPDATE SET
                 rider_fee = public.revenue_ledgers.rider_fee + EXCLUDED.rider_fee,
                 platform_fee = public.revenue_ledgers.platform_fee + EXCLUDED.platform_fee;

@@ -5,6 +5,7 @@ import { Button } from "@/shared/components/ui/button";
 import { CreditCard, Landmark, Play, AlertTriangle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { AdminFinancialLedger } from "./AdminFinancialLedger";
 
 function ForceReleaseButton() {
   const [loading, setLoading] = useState(false);
@@ -57,6 +58,8 @@ export default function AdminPaymentsSection() {
 
   return (
     <div className="space-y-10">
+      <AdminFinancialLedger />
+
       <div className="flex items-center gap-2 bg-white/50 backdrop-blur-sm p-1.5 rounded-2xl border border-black/[0.03] w-fit shadow-xl shadow-black/[0.02]">
         <Button
           variant={activeTab === "orders" ? "default" : "ghost"}

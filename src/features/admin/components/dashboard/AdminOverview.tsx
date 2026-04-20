@@ -22,8 +22,9 @@ export default function AdminOverview() {
             (window as any).LATEST_REVENUE_DATA = data;
             return data || 0;
         },
-        staleTime: 1000 * 60 * 5, // 5 minutes
     });
+
+    console.log("this is the admin ledger", revenueData);
 
     const { data: activeOrdersCount, isLoading: isActiveOrdersLoading } = useQuery({
         queryKey: ["admin-active-orders-count"],
@@ -50,6 +51,8 @@ export default function AdminOverview() {
             return count || 0;
         },
         staleTime: 1000 * 60 * 5, // 5 minutes
+
+
     });
 
     const { data: usersCount, isLoading: isUsersLoading } = useQuery({

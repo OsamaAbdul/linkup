@@ -39,7 +39,7 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
     queryFn: async () => {
       let query = supabase
         .from("orders")
-        .select("id, total_amount, status, payment_status, payment_ref, payment_method, created_at, buyer_id, seller_id, items, settlement_status")
+        .select("id, total_amount, status, payment_status, payment_ref, payment_method, created_at, buyer_id, seller_id, settlement_status")
         .order("created_at", { ascending: false });
 
       if (!isAdmin) {

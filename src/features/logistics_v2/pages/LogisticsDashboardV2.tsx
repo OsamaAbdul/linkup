@@ -69,9 +69,9 @@ export default function LogisticsDashboardV2() {
                 .eq("id", user?.id);
 
             if (error) throw error;
-            
+
             await queryClient.invalidateQueries({ queryKey: ["logistics-details", user?.id] });
-            
+
             toast.success(checked ? "You are now ONLINE" : "You are now OFFLINE", {
                 description: checked ? "You can now receive new assignments." : "You won't receive new mission alerts.",
             });
@@ -94,8 +94,8 @@ export default function LogisticsDashboardV2() {
     }, [user?.id, queryClient]);
 
     return (
-        <LogisticsLayoutV2 
-            activeTab={activeTab} 
+        <LogisticsLayoutV2
+            activeTab={activeTab}
             onTabChange={setActiveTab}
             balance={details?.balance || 0}
             escrow_balance={details?.escrow_balance || 0}
@@ -105,7 +105,7 @@ export default function LogisticsDashboardV2() {
             <div className="max-w-7xl mx-auto space-y-8 px-4 sm:px-6">
                 <ProfileCompletionBanner onAction={() => setIsEditProfileOpen(true)} />
                 <EditProfileModal open={isEditProfileOpen} onOpenChange={setIsEditProfileOpen} />
-                
+
                 {activeTab === "dashboard" && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {/* Hero Section / Stats Overview (Desktop) */}
@@ -114,7 +114,7 @@ export default function LogisticsDashboardV2() {
                                 { label: "Active Deliveries", value: "...", icon: Package, color: "text-[#E96F28]", bg: "bg-[#FFF7F2]" },
                                 { label: "Ready Balance", value: `₦ ${(details?.balance || 0).toLocaleString()}`, icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50" },
                                 { label: "Safety Hold", value: `₦ ${(details?.escrow_balance || 0).toLocaleString()}`, icon: Clock, color: "text-amber-600", bg: "bg-amber-50" },
-                                { label: "Distance Covered", value: "48.2km", icon: MapPin, color: "text-indigo-600", bg: "bg-indigo-50" },
+
                             ].map((stat, i) => (
                                 <div key={i} className="bg-white p-6 rounded-[32px] border border-black/[0.04] shadow-sm hover:shadow-md transition-all duration-300">
                                     <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center mb-4", stat.bg)}>

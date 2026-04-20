@@ -37,15 +37,9 @@ export function AnalyticsTab({ revenue, netRevenue, escrowBalance, totalOrders, 
                 </h1>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <MetricCard
-                    title="Gross Revenue"
-                    value={`₦${revenue.toLocaleString()}`}
-                    icon={Wallet}
-                    color="text-primary"
 
-                />
                 <MetricCard
-                    title="Net Earnings"
+                    title="My Total Earnings"
                     value={`₦${netRevenue.toLocaleString()}`}
                     icon={BarChart3}
                     color="text-green-600"
@@ -57,12 +51,7 @@ export function AnalyticsTab({ revenue, netRevenue, escrowBalance, totalOrders, 
                     icon={ShoppingBag}
 
                 />
-                <MetricCard
-                    title="Avg Order Value"
-                    value={`₦${Math.round(avgOrderValue).toLocaleString()}`}
-                    icon={TrendingUp}
-                    status="Steady"
-                />
+
                 <MetricCard
                     title="Pending Payouts"
                     value={`₦${escrowBalance.toLocaleString()}`}

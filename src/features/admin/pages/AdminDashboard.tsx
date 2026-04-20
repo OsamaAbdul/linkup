@@ -29,12 +29,15 @@ export default function AdminDashboard({ activeSection = "overview" }: AdminDash
             queryClient.prefetchQuery({
                 queryKey: ["admin-revenue"],
                 queryFn: async () => {
-                    const { data, error } = await supabase.from("orders").select("total_amount").eq("status", "delivered");
+                    const { data, error } = await (supabase as any).rpc("get_admin_revenue");
                     if (error) throw error;
-                    return data?.reduce((acc, curr) => acc + (curr.total_amount || 0), 0) || 0;
+                    return data || 0;
                 },
                 staleTime: 1000 * 60 * 5,
             });
+
+            // Force refetch to avoid stale/cached zero values
+            queryClient.invalidateQueries({ queryKey: ["admin-revenue"] });
 
             // Active orders count
             queryClient.prefetchQuery({

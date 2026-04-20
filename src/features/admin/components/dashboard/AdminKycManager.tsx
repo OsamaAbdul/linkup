@@ -35,6 +35,7 @@ export default function AdminKycManager() {
     queryFn: async () => {
       const table = kycType === "seller" ? "seller_verifications" : "logistics_kyc";
       
+      // Pull directly from the Single Source of Truth
       const { data: kycData, error: kycError } = await supabase
         .from(table)
         .select(`*`)
@@ -43,11 +44,11 @@ export default function AdminKycManager() {
       if (kycError) throw kycError;
       if (!kycData || kycData.length === 0) return [];
 
-      // Manual Profile Joining to resolve PGRST200 error
+      // Profile Joining (SPOT)
       const userIds = Array.from(new Set(kycData.map((v: any) => v.user_id)));
-      const { data: profiles, error: profileError } = await supabase
+      const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, display_name, avatar_url")
+        .select("id, display_name, avatar_url, phone, zone")
         .in("id", userIds);
 
       const profileMap = (profiles || []).reduce((acc: any, p: any) => {
@@ -55,12 +56,23 @@ export default function AdminKycManager() {
         return acc;
       }, {});
 
-      return kycData.map((v: any) => ({
-        ...v,
-        profiles: profileMap[v.user_id] || null
-      }));
+      return kycData.map((v: any) => {
+        // A record is "Legacy/Healed" if it has no REAL document URLs
+        const hasDocs = kycType === 'seller' 
+          ? !!(v.national_id_url && v.national_id_url !== 'LEGACY_VERIFICATION')
+          : !!(v.passport_photo_url && v.passport_photo_url !== 'LEGACY_VERIFICATION');
+
+        return {
+          ...v,
+          is_virtual: !hasDocs, // Labeled as "Virtual" if missing docs
+          status: (!hasDocs && v.status === 'verified') ? 'role_verified' : v.status,
+          profiles: profileMap[v.user_id] || null
+        };
+      });
     },
   });
+
+  console.log(`Admin [${kycType}] KYC Data:`, verifications);
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status, type }: { id: string; status: string; type: "seller" | "logistics" }) => {
@@ -118,6 +130,7 @@ export default function AdminKycManager() {
   const statusColor = (status: string) => {
     switch (status) {
       case 'verified': return 'bg-green-50 text-green-700';
+      case 'role_verified': return 'bg-indigo-50 text-indigo-700 border border-indigo-100';
       case 'rejected': return 'bg-red-50 text-red-700';
       default: return 'bg-amber-50 text-amber-700';
     }
@@ -183,16 +196,16 @@ export default function AdminKycManager() {
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-1.5">
                       <MapPin size={12} className="text-muted-foreground" />
-                      <span className="text-sm font-bold text-muted-foreground">{v.zone || ''}</span>
+                      <span className="text-sm font-bold text-muted-foreground">{v.zone || v.profiles?.zone || ''}</span>
                     </div>
                   </td>
                   <td className="px-8 py-6 text-center">
                     <Badge className={cn("rounded-full border-none text-[9px] font-black uppercase tracking-widest px-3 py-1", statusColor(v.status))}>
-                      {v.status}
+                      {v.status === 'role_verified' ? 'Role Verified' : v.status}
                     </Badge>
                   </td>
                   <td className="px-8 py-6 text-[11px] font-bold text-muted-foreground">
-                    {new Date(v.created_at).toLocaleDateString()}
+                    {v.created_at && v.created_at !== new Date(0).toISOString() ? new Date(v.created_at).toLocaleDateString() : 'N/A'}
                   </td>
                   <td className="px-8 py-6 text-right">
                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -257,9 +270,23 @@ export default function AdminKycManager() {
                 </div>
                 <div>
                   <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest mb-1">Submission Date</p>
-                  <p className="font-bold text-sm text-foreground">{new Date(selectedVerification.created_at).toLocaleString()}</p>
+                  <p className="font-bold text-sm text-foreground">
+                    {selectedVerification.created_at && selectedVerification.created_at !== new Date(0).toISOString() ? new Date(selectedVerification.created_at).toLocaleString() : 'Legacy Verification'}
+                  </p>
                 </div>
               </div>
+
+              {selectedVerification.is_virtual && (
+                <div className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-xl flex items-center gap-3">
+                  <div className="p-2 bg-white rounded-lg shadow-sm text-indigo-600">
+                    <ShieldCheck size={16} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-indigo-900 uppercase tracking-tighter">Verified by Role</p>
+                    <p className="text-[10px] text-indigo-700 font-medium tracking-tight">This member has the active role but no formal identity documents on file.</p>
+                  </div>
+                </div>
+              )}
 
               {/* Identity Documents */}
               <div className="space-y-3">

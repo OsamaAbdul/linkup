@@ -19,6 +19,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avat
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationDropdown } from "@/features/logistics/components/NotificationDropdown";
+import { Switch } from "@/shared/components/ui/switch";
+import { toast } from "sonner";
 
 interface NavItem {
     id: string;
@@ -34,12 +36,14 @@ const navItems: NavItem[] = [
     { id: "settings", label: "My Profile", icon: Settings },
 ];
 
-export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 0, escrow_balance = 0 }: {
+export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 0, escrow_balance = 0, isOnline = false, onOnlineToggle }: {
     children: React.ReactNode;
     activeTab: string;
     onTabChange: (tab: string) => void;
     balance?: number;
     escrow_balance?: number;
+    isOnline?: boolean;
+    onOnlineToggle?: (online: boolean) => void;
 }) {
     const { user, profile, signOut } = useAuth();
     const queryClient = useQueryClient();
@@ -133,7 +137,22 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
                     <span className="font-black text-lg tracking-tight uppercase">Linkup</span>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-4">
+                    {/* Availability toggle (Mobile) */}
+                    <div className={cn(
+                        "flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-500",
+                        isOnline 
+                            ? "bg-emerald-50 border-emerald-100/50 text-emerald-700" 
+                            : "bg-gray-50 border-gray-200 text-gray-500"
+                    )}>
+                        <span className="text-[9px] font-black uppercase tracking-widest">{isOnline ? "Online" : "Offline"}</span>
+                        <Switch 
+                            checked={isOnline} 
+                            onCheckedChange={onOnlineToggle}
+                            className="scale-75 data-[state=checked]:bg-emerald-500"
+                        />
+                    </div>
+
                     <button 
                         onClick={signOut}
                         className="p-2 text-red-500 transition-colors hover:text-red-600 active:scale-95"
@@ -141,6 +160,7 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
                     >
                         <LogOut size={22} strokeWidth={2.2} />
                     </button>
+
                     <NotificationDropdown>
                         <button className="relative p-2 text-muted-foreground transition-colors hover:text-foreground">
                             <Bell size={22} strokeWidth={2.2} />
@@ -182,6 +202,26 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
                     </div>
 
                     <div className="flex items-center gap-6">
+                        {/* Availability Toggle (Desktop) */}
+                        <div className={cn(
+                            "flex items-center gap-3 px-5 py-2.5 rounded-[20px] border transition-all duration-500 shadow-sm",
+                            isOnline 
+                                ? "bg-emerald-50 border-emerald-100 text-emerald-700" 
+                                : "bg-gray-50/50 border-black/[0.03] text-gray-500"
+                        )}>
+                            <div className="flex flex-col">
+                                <span className="text-[10px] font-black uppercase tracking-widest leading-none">Availability</span>
+                                <span className={cn("text-[8px] font-bold uppercase mt-1", isOnline ? "text-emerald-500" : "text-gray-400")}>
+                                    {isOnline ? "Receiving Missions" : "Off Duty"}
+                                </span>
+                            </div>
+                            <Switch 
+                                checked={isOnline} 
+                                onCheckedChange={onOnlineToggle}
+                                className="data-[state=checked]:bg-emerald-500"
+                            />
+                        </div>
+
                         <div className="flex items-center gap-2 mr-4 bg-gray-50/50 px-4 py-2 rounded-2xl border border-black/[0.03]">
                             <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mr-2">Available</span>
                             <span className="text-sm font-black text-foreground">₦ {balance.toLocaleString()}</span>

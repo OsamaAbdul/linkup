@@ -48,6 +48,29 @@ export function AdminPayoutManager() {
             if (withdrawal_fee && feeInput === "") setFeeInput(withdrawal_fee.amount.toString());
             if (payout_interval && intervalInput === "") setIntervalInput(payout_interval.toString());
             
+            return {
+                withdrawal_fee,
+                payout_interval
+            };
+        }
+    });
+
+    // Fetch platform stats for summary cards
+    const { data: ledger } = useQuery({
+        queryKey: ["admin-financial-ledger"],
+        queryFn: async () => {
+            const { data, error } = await (supabase as any).rpc("get_admin_financial_ledger");
+            if (error) throw error;
+            return data;
+        }
+    });
+
+    const { data: totalLiability = 0 } = useQuery({
+        queryKey: ["admin-total-liability"],
+        queryFn: async () => {
+            const { data, error } = await supabase.from("wallets").select("balance");
+            if (error) throw error;
+            return data?.reduce((acc, w) => acc + (w.balance || 0), 0) || 0;
         }
     });
 
@@ -157,13 +180,13 @@ export function AdminPayoutManager() {
                     <div className="p-6 rounded-2xl bg-emerald-50 border border-emerald-100/50">
                         <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest mb-1">Total Platform Income</p>
                         <p className="text-2xl font-black text-emerald-900 tracking-tight">
-                            ₦{requests.filter(r => r.status === 'completed').reduce((sum, r) => sum + r.fee_amount, 0).toLocaleString()}
+                            ₦{(ledger?.platform_total || 0).toLocaleString()}
                         </p>
                     </div>
                     <div className="p-6 rounded-2xl bg-amber-50 border border-amber-100/50">
                         <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-1">Pending Payouts</p>
                         <p className="text-2xl font-black text-amber-900 tracking-tight">
-                            ₦{requests.filter(r => r.status === 'pending').reduce((sum, r) => sum + r.amount, 0).toLocaleString()}
+                            ₦{totalLiability.toLocaleString()}
                         </p>
                     </div>
                 </div>

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
-import { Eye, Package, User, MapPin, Calendar, Smartphone, Bike, Copy } from "lucide-react";
+import { Eye, Package, User, MapPin, Calendar, Smartphone, Bike, Copy, Banknote, ShieldCheck, ArrowUpRight, AlertTriangle, Loader2, Play } from "lucide-react";
 import { cn, maskPII } from "@/lib/utils";
 import {
     Dialog,
@@ -17,6 +17,7 @@ import {
 export default function AdminOrderTracker() {
     const [pageSize, setPageSize] = useState(50);
     const [selectedOrder, setSelectedOrder] = useState<any>(null);
+    const [isSettling, setIsSettling] = useState(false);
 
     const { data: orders, isLoading } = useQuery({
         queryKey: ["admin-all-orders", pageSize],
@@ -34,14 +35,14 @@ export default function AdminOrderTracker() {
                         pickup_code,
                         delivery_code,
                         distance_km,
-                        delivery_fee_amount,
                         pickup_address,
                         delivery_address,
                         pickup_lat,
                         pickup_lng,
                         delivery_lat,
                         delivery_lng,
-                        rider:profiles!rider_id(display_name, phone, avatar_url)
+                        rider:profiles!rider_id(display_name, phone, avatar_url),
+                        fee_breakdown
                     )
                 `)
                 .order("created_at", { ascending: false })
@@ -63,6 +64,39 @@ export default function AdminOrderTracker() {
 
         const shipping = order.order_shipping?.[0] || order.order_shipping || {};
         const rider = shipment?.rider || (shipment as any)?.profiles;
+
+        const handleReleaseFunds = async () => {
+            if (!confirm("Are you sure you want to release these funds immediately? This will bypass the 48h hold and move funds to the main balance.")) {
+                return;
+            }
+
+            try {
+                setIsSettling(true);
+                const { data, error } = await (supabase as any).rpc("admin_release_order_funds", {
+                    p_order_id: order.id
+                });
+
+                if (error) throw error;
+                const result = data as any;
+
+                if (result.success) {
+                    import("sonner").then(({ toast }) => {
+                        toast.success(result.message || "Funds released successfully");
+                    });
+                    setSelectedOrder(null);
+                    // Standard refetch handled by the query key
+                } else {
+                    throw new Error(result.error || "Failed to release funds");
+                }
+            } catch (err: any) {
+                console.error("RELEASE_ERROR", err);
+                import("sonner").then(({ toast }) => {
+                    toast.error(err.message || "Failed to trigger release");
+                });
+            } finally {
+                setIsSettling(false);
+            }
+        };
 
         console.log("Logistic Synthesis:", { shipment, shipping, rider });
 
@@ -175,9 +209,9 @@ export default function AdminOrderTracker() {
                                     <code className="text-xs font-black text-primary select-all">
                                         {shipment.tracking_code || "GEN-000-000"}
                                     </code>
-                                    <Button 
-                                        variant="ghost" 
-                                        size="icon" 
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
                                         className="h-6 w-6 rounded-md hover:bg-white"
                                         onClick={() => {
                                             navigator.clipboard.writeText(shipment.tracking_code);
@@ -207,11 +241,6 @@ export default function AdminOrderTracker() {
                                     </div>
                                     <div className="h-8 w-px bg-gray-200" />
                                     <div>
-                                        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-wider">Settlement</p>
-                                        <p className="text-xs font-bold text-emerald-600">₦{(shipment.delivery_fee_amount || 0).toLocaleString()}</p>
-                                    </div>
-                                    <div className="h-8 w-px bg-gray-200" />
-                                    <div>
                                         <p className="text-[9px] font-black text-muted-foreground uppercase tracking-wider">Logistics Status</p>
                                         <p className="text-xs font-bold uppercase tracking-tighter text-indigo-600">{shipment.status || "N/A"}</p>
                                     </div>
@@ -222,6 +251,84 @@ export default function AdminOrderTracker() {
                         <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 border-dashed text-center">
                             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">No Active Shipment Record</p>
                         </div>
+                    )}
+                </div>
+
+                {/* Financial Ledger Section */}
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-muted-foreground font-bold text-[10px] uppercase tracking-widest">
+                        <Banknote size={14} className="text-primary" />
+                        Financial Payout Ledger
+                    </div>
+                    <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+                        <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-100 bg-gray-50/30">
+                            {[
+                                { label: 'Rider Payout', key: 'rider', icon: Bike, color: 'text-indigo-600' },
+                                { label: 'Seller Payout', key: 'seller', icon: User, color: 'text-emerald-600' },
+                                { label: 'Platform Rev', key: 'platform', icon: ShieldCheck, color: 'text-blue-600' },
+                                { label: 'Promoter', key: 'promoter', icon: ArrowUpRight, color: 'text-orange-600' }
+                            ].map((item: any) => {
+                                const value = shipment?.fee_breakdown?.[item.key] || 0;
+                                return (
+                                    <div key={item.key} className="p-4 flex flex-col gap-1">
+                                        <div className="flex items-center gap-1.5 opacity-60">
+                                            <item.icon size={10} />
+                                            <span className="text-[8px] font-black uppercase tracking-tighter">{item.label}</span>
+                                        </div>
+                                        <p className={cn("text-sm font-black", item.color)}>
+                                            ₦{Number(value).toLocaleString()}
+                                        </p>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <div className="px-4 py-3 bg-indigo-50/50 flex items-center justify-between">
+                            <span className="text-[9px] font-black text-indigo-800 uppercase tracking-widest">Total Distribution</span>
+                            <span className="text-xs font-black text-indigo-900 leading-none">
+                                ₦{(order.total_amount || 0).toLocaleString()}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Action Button for Manual Release */}
+                    {order.status !== 'completed' && order.status !== 'delivered' ? (
+                        <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex items-center gap-3">
+                            <div className="p-2 bg-white rounded-lg shadow-sm text-amber-600">
+                                <AlertTriangle size={16} />
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-black text-amber-900 uppercase tracking-tighter">Settlement on Hold</p>
+                                <p className="text-[10px] text-amber-700 font-medium">Funds can only be released after delivery.</p>
+                            </div>
+                        </div>
+                    ) : order.settlement_status === 'settled' ? (
+                        <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-center gap-3">
+                            <div className="p-2 bg-white rounded-lg shadow-sm text-emerald-600">
+                                <ShieldCheck size={16} />
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-black text-emerald-900 uppercase tracking-tighter">Settlement Finalized</p>
+                                <p className="text-[10px] text-emerald-700 font-medium tracking-tight">Funds have been successfully moved to main balances.</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <Button 
+                            onClick={handleReleaseFunds}
+                            disabled={isSettling}
+                            className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 transition-all active:scale-[0.98]"
+                        >
+                            {isSettling ? (
+                                <>
+                                    <Loader2 size={16} className="animate-spin mr-2" />
+                                    Processing Release...
+                                </>
+                            ) : (
+                                <>
+                                    <Play size={14} className="mr-2 fill-current" />
+                                    Release Payouts Now
+                                </>
+                            )}
+                        </Button>
                     )}
                 </div>
 
@@ -265,10 +372,10 @@ export default function AdminOrderTracker() {
                         <tbody className="divide-y divide-gray-50">
                             {orders?.map((o) => {
                                 // Handle both 1-1 (object) and 1-N (array) relationships for shipments
-                                const shipment: any = Array.isArray((o as any).shipments) 
-                                    ? (o as any).shipments[0] 
+                                const shipment: any = Array.isArray((o as any).shipments)
+                                    ? (o as any).shipments[0]
                                     : (o as any).shipments;
-                                
+
                                 const rider = shipment?.rider || shipment?.profiles;
                                 return (
                                     <tr key={o.id} className="hover:bg-gray-50/50 transition-colors group">

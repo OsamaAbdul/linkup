@@ -25,7 +25,7 @@ import { CrossZoneWarning } from "@/features/marketplace/components/v2/CrossZone
 
 import { useCities, useZones } from "@/shared/hooks/use-marketplace-metadata";
 
-const DELIVERY_FEE = 1500;
+const DELIVERY_FEE = 0; // Dynamic fee from config is preferred over this fallback
 
 type PaymentInfo = {
   payment_method?: string | null;
@@ -152,7 +152,7 @@ export default function Checkout() {
 
   const selectedZone = zones.find((z: any) => z.id === shipping.zone_id);
   const zoneFee = selectedZone?.delivery_fee;
-  const baseDeliveryFee = (zoneFee === 1500 || zoneFee === null || zoneFee === undefined)
+  const baseDeliveryFee = (zoneFee === 0 || zoneFee === 1500 || zoneFee === null || zoneFee === undefined)
     ? (shipping.zone_id ? dynamicDefaultFee : 0)
     : zoneFee;
   const deliveryFee = baseDeliveryFee * sellerCount;

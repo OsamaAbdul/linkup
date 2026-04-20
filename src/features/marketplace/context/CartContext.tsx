@@ -16,6 +16,8 @@ interface CartItem {
         price: number;
         images: string[];
         inventory: number;
+        seller_id?: string;
+        zone_id?: string;
         profiles?: {
             display_name: string;
         };

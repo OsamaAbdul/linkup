@@ -70,7 +70,7 @@ export function ShipmentCardV2({ shipment, onClick }: ShipmentCardProps) {
                         delivery_lat: dropLat,
                         delivery_lng: dropLng,
                         distance_km: calculateDistance(pickLat, pickLng, dropLat, dropLng),
-                        delivery_fee_amount: shipment.delivery_fee_amount || 1500,
+                        delivery_fee_amount: shipment.delivery_fee_amount || 0,
                         city_id: shipment.order?.city_id || shipment.order?.order_recipient?.[0]?.city_id || shipment.order?.order_recipient?.city_id,
                         zone_id: shipment.order?.zone_id || shipment.order?.order_recipient?.[0]?.zone_id || shipment.order?.order_recipient?.zone_id,
                         updated_at: new Date().toISOString()

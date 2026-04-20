@@ -103,7 +103,7 @@ export function MissionDetailsModalV2({ shipment, open, onOpenChange }: MissionD
                         delivery_lat: dropLat,
                         delivery_lng: dropLng,
                         distance_km: calculateDistance(pickLat, pickLng, dropLat, dropLng),
-                        delivery_fee_amount: activeShipment?.delivery_fee_amount || 1500,
+                        delivery_fee_amount: activeShipment?.delivery_fee_amount || 0,
                         city_id: activeShipment?.order?.city_id || activeShipment?.order?.order_recipient?.[0]?.city_id || activeShipment?.order?.order_recipient?.city_id,
                         zone_id: activeShipment?.order?.zone_id || activeShipment?.order?.order_recipient?.[0]?.zone_id || activeShipment?.order?.order_recipient?.zone_id,
                         updated_at: new Date().toISOString()

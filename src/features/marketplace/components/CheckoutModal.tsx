@@ -29,7 +29,7 @@ interface CheckoutModalProps {
     onClose: () => void;
 }
 
-const DELIVERY_FEE = 1500; // Legacy fallback
+const DELIVERY_FEE = 0; // Legacy fallback
 
 export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) {
     const { user } = useAuth();
@@ -80,7 +80,7 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
 
     const selectedZone = zones.find(z => z.id === zoneId);
     const zFee = selectedZone?.delivery_fee;
-    const baseFee = (zFee === 1500 || zFee === null || zFee === undefined) ? dynamicDefaultFee : zFee;
+    const baseFee = (zFee === 0 || zFee === 1500 || zFee === null || zFee === undefined) ? dynamicDefaultFee : zFee;
     const deliveryFee = deliveryMethod === "standard" ? baseFee : 0;
     const productPrice = product.price;
     const grandTotal = productPrice + deliveryFee;
@@ -309,7 +309,7 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
                                                     <p className="text-[11px] text-muted-foreground">Delivered by a verified rider</p>
                                                 </div>
                                             </div>
-                                            <span className="font-bold text-sm">₦1,500</span>
+                                            <span className="font-bold text-sm">₦{baseFee.toLocaleString()}</span>
                                         </Label>
                                     </div>
                                     <div className="border-t">

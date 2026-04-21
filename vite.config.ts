@@ -21,6 +21,8 @@ export default defineConfig(({ mode }) => ({
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'logoo.jpeg', 'link-up.png'],
       workbox: {
         maximumFileSizeToCacheInBytes: 4000000,
+        skipWaiting: true,
+        clientsClaim: true,
       },
       manifest: {
         name: 'LinkUp Marketplace',

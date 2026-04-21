@@ -1,8 +1,19 @@
 {
-    "rewrites": [
+  "headers": [
+    {
+      "source": "/(manifest.webmanifest|sw.js)",
+      "headers": [
         {
-            "source": "/(.*)",
-            "destination": "/index.html"
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
         }
-    ]
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/((?!manifest.webmanifest|sw.js|favicon.ico|assets/|logo.png|logoo.jpeg|link-up.png).*)",
+      "destination": "/index.html"
+    }
+  ]
 }

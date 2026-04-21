@@ -1,8 +1,25 @@
 {
   "headers": [
     {
-      "source": "/(manifest.webmanifest|sw.js)",
+      "source": "/sw.js",
       "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/javascript"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/manifest.webmanifest",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/manifest+json"
+        },
         {
           "key": "Cache-Control",
           "value": "public, max-age=0, must-revalidate"
@@ -11,6 +28,14 @@
     }
   ],
   "rewrites": [
+    {
+      "source": "/sw.js",
+      "destination": "/sw.js"
+    },
+    {
+      "source": "/manifest.webmanifest",
+      "destination": "/manifest.webmanifest"
+    },
     {
       "source": "/((?!manifest.webmanifest|sw.js|favicon.ico|assets/|logo.png|logoo.jpeg|link-up.png).*)",
       "destination": "/index.html"

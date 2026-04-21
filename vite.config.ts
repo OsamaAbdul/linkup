@@ -33,7 +33,13 @@ export default defineConfig(({ mode }) => ({
         display: 'standalone',
         scope: '/',
         start_url: '/',
+        id: '/',
         icons: [
+          {
+            src: 'logoo.jpeg',
+            sizes: '144x144',
+            type: 'image/jpeg'
+          },
           {
             src: 'logoo.jpeg',
             sizes: '192x192',

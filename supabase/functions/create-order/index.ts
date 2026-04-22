@@ -81,16 +81,6 @@ serve(async (req: Request) => {
       `Payload received: items=${items?.length}, total=${total}, payment_method=${payment_method}, payment_status=${payment_status}`
     );
 
-    // --- Fetch Fee Configuration for Breakdown ---
-    const { data: feeConfigs } = await adminClient
-      .from("fee_config")
-      .select("fee_type, rate, flat_fee")
-      .eq("is_active", true);
-
-    const getFeeRate = (type: string) => feeConfigs?.find(f => f.fee_type === type);
-    const platformConfig = getFeeRate("platform");
-    const promoterConfig = getFeeRate("promoter");
-
     if (!items || items.length === 0) throw new Error("No items in order");
 
     // --- Group Items by Seller ---
@@ -315,18 +305,8 @@ serve(async (req: Request) => {
       const deliveryAddressStr = toTextAddress(shipping_address);
       const finalPickupAddressStr = toTextAddress(pickup_address) || current_seller_address;
 
-      // --- Calculate Fee Breakdown for this sub-order ---
       const current_rider_fee = delivery_fee ? (delivery_fee / sellerIds.length) : 0;
       const current_cross_zone_fee = cross_zone_fee ? (cross_zone_fee / sellerIds.length) : 0;
-      const current_platform_fee = platformConfig ? (calculatedSubTotal * platformConfig.rate) + platformConfig.flat_fee : 0;
-      const current_promoter_fee = (promoterConfig && finalPromoterId) ? (calculatedSubTotal * promoterConfig.rate) + promoterConfig.flat_fee : 0;
-
-      const feeBreakdown = {
-        platform: Math.round(current_platform_fee),
-        rider: Math.round(current_rider_fee + current_cross_zone_fee),
-        promoter: Math.round(current_promoter_fee),
-        seller: Math.round(calculatedSubTotal - current_platform_fee - current_promoter_fee)
-      };
 
       const resolvedZone = zone || shipping_address?.zone || body.zone_name || null;
 
@@ -339,7 +319,7 @@ serve(async (req: Request) => {
         delivery_fee_amount: current_rider_fee, 
         cross_zone_fee_amount: current_cross_zone_fee,
         bonus_amount: 0,
-        fee_breakdown: feeBreakdown,
+        fee_breakdown: {},
         zone_id: zone_id || null,
         city_id: city_id || null,
         zone: resolvedZone,

@@ -120,6 +120,12 @@ export default function Orders() {
         } catch { }
     };
 
+    const orderIdsRef = useRef<Set<string>>(new Set());
+
+    useEffect(() => {
+        orderIdsRef.current = new Set(rawOrders.map((o: any) => o.id));
+    }, [rawOrders]);
+
     // Realtime setup
     useEffect(() => {
         if (!user) return;
@@ -129,7 +135,7 @@ export default function Orders() {
             .on(
                 'postgres_changes',
                 {
-                    event: '*', // Listen to all events (INSERT, UPDATE)
+                    event: '*',
                     schema: 'public',
                     table: 'orders',
                     filter: `buyer_id=eq.${user.id}`
@@ -162,13 +168,10 @@ export default function Orders() {
                     table: 'shipments',
                 },
                 (payload) => {
-                    const newStatus = (payload.new as any).status;
                     const shipmentOrderId = (payload.new as any).order_id;
+                    const newStatus = (payload.new as any).status;
 
-                    // Only refetch and notify if this shipment belongs to one of the user's orders
-                    const isMyOrder = rawOrders.some((o: any) => o.id === shipmentOrderId);
-
-                    if (isMyOrder) {
+                    if (orderIdsRef.current.has(shipmentOrderId)) {
                         playNotificationSound();
                         toast({
                             title: "Shipment Update",

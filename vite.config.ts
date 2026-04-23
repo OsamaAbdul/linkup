@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'logoo.jpeg', 'link-up.png'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'logoo.jpeg', 'link-up.png', 'logo.png'],
       workbox: {
         maximumFileSizeToCacheInBytes: 4000000,
         skipWaiting: true,

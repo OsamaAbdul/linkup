@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/context/AuthContext";
@@ -70,7 +70,6 @@ export function useSellerDashboardData() {
       return { data: (data as any[]) ?? [], count: count ?? 0 };
     },
     enabled: !!user,
-    refetchInterval: 15000,
   });
 
   const { data: sellerProfile } = useQuery({
@@ -347,6 +346,59 @@ export function useSellerDashboardData() {
     },
     enabled: !!user,
   });
+  
+  // Realtime Subscriptions
+  useEffect(() => {
+    if (!user) return;
+
+    // Listen for orders changes for this seller
+    const orderChannel = supabase
+      .channel(`seller-orders-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+          filter: `seller_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log("Seller Dashboard: Received Order Update", payload);
+          queryClient.invalidateQueries({ queryKey: ["seller-orders-v3"] });
+          queryClient.invalidateQueries({ queryKey: ["pending-orders-count"] });
+          queryClient.invalidateQueries({ queryKey: ["seller-analytics"] });
+          queryClient.invalidateQueries({ queryKey: ["seller-totals"] });
+        }
+      )
+      .subscribe((status) => {
+        console.log(`Seller Dashboard: Order Channel Status: ${status}`);
+      });
+
+    // Listen for shipment changes for this seller's orders
+    const shipmentChannel = supabase
+      .channel(`seller-shipments-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'shipments',
+          filter: `seller_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log("Seller Dashboard: Received Shipment Update", payload);
+          queryClient.invalidateQueries({ queryKey: ["seller-orders-v3"] });
+        }
+      )
+      .subscribe((status) => {
+        console.log(`Seller Dashboard: Shipment Channel Status: ${status}`);
+      });
+
+    return () => {
+      supabase.removeChannel(orderChannel);
+      supabase.removeChannel(shipmentChannel);
+    };
+  }, [user, queryClient]);
 
   return {
     products: productsData?.data || [],

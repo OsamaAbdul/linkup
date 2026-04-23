@@ -53,28 +53,17 @@ export function ShipmentCardV2({ shipment, onClick }: ShipmentCardProps) {
                 const dropLat = shipment.delivery_lat || shipment.order?.order_recipient?.[0]?.lat || shipment.order?.order_recipient?.lat || shipment.order?.buyer?.latitude;
                 const dropLng = shipment.delivery_lng || shipment.order?.order_recipient?.[0]?.lng || shipment.order?.order_recipient?.lng || shipment.order?.buyer?.longitude;
                 
-                // 1. Initialize/Claim the shipment with High-Fidelity Data
+                // 1. Claim the shipment without overwriting seller's address data
                 const { error: shipError } = await supabase
                     .from("shipments")
-                    .upsert({ 
-                        order_id: orderId,
+                    .update({ 
                         rider_id: user?.id,
-                        seller_id: shipment.seller_id || shipment.order?.seller_id,
                         status: 'accepted',
-                        pickup_address: shipment.pickup_address_text,
-                        delivery_address: shipment.delivery_address_text,
-                        pickup_address_text: shipment.pickup_address_text,
-                        delivery_address_text: shipment.delivery_address_text,
-                        pickup_lat: pickLat,
-                        pickup_lng: pickLng,
-                        delivery_lat: dropLat,
-                        delivery_lng: dropLng,
-                        distance_km: calculateDistance(pickLat, pickLng, dropLat, dropLng),
-                        delivery_fee_amount: shipment.delivery_fee_amount || 0,
-                        city_id: shipment.order?.city_id || shipment.order?.order_recipient?.[0]?.city_id || shipment.order?.order_recipient?.city_id,
-                        zone_id: shipment.order?.zone_id || shipment.order?.order_recipient?.[0]?.zone_id || shipment.order?.order_recipient?.zone_id,
+                        rider_lat: null, // Reset rider tracking
+                        rider_lng: null,
                         updated_at: new Date().toISOString()
-                    }, { onConflict: 'order_id' });
+                    })
+                    .eq("order_id", orderId);
 
                 if (shipError) throw shipError;
 

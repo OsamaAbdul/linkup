@@ -215,8 +215,11 @@ export function useSellerDashboardData() {
     }) => {
       const { error: orderError } = await supabase
         .from("orders")
-        .update({
-          status: "awaiting_agent"
+        .update({ 
+          status: "awaiting_agent",
+          pickup_lat: lat,
+          pickup_lng: lng,
+          updated_at: new Date().toISOString() 
         })
         .eq("id", id);
       if (orderError) throw orderError;
@@ -230,11 +233,16 @@ export function useSellerDashboardData() {
           zone_id: zoneId,
           city_id: cityId,
           status: "broadcast",
-          pickup_address: { text: pickupAddress },
-          delivery_address: { text: deliveryAddress },
-          pickup_time: pickupTime ? new Date(pickupTime).toISOString() : null,
+          // Sync all redundant address columns
+          pickup_address: pickupAddress,
+          pickup_address_text: pickupAddress,
+          delivery_address: deliveryAddress,
+          delivery_address_text: deliveryAddress,
+          // Sync existing coordinate columns
           pickup_lat: lat,
           pickup_lng: lng,
+          
+          pickup_time: pickupTime ? new Date(pickupTime).toISOString() : null,
           delivery_fee_amount: deliveryFeeAmount || 1500,
           cross_zone_fee_amount: crossZoneFeeAmount || 0,
           updated_at: new Date().toISOString()

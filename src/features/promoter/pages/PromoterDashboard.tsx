@@ -95,7 +95,28 @@ export default function PromoterDashboard() {
         .select("balance, escrow_balance")
         .eq("user_id", user.id)
         .maybeSingle() as any);
+      
+      console.log("[PromoterDebug] Wallet Balance State:", {
+        available: data?.balance,
+        escrow: data?.escrow_balance
+      });
       return data;
+    },
+    enabled: !!user,
+  });
+
+  // Referrals Table (Debug/Audit)
+  const { data: referrals = [] } = useQuery({
+    queryKey: ["promoter-referrals", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data } = await supabase
+        .from("referrals")
+        .select("*")
+        .eq("promoter_id", user.id)
+        .order("created_at", { ascending: false });
+      console.log("[PromoterDebug] Referrals Table Data:", data);
+      return data ?? [];
     },
     enabled: !!user,
   });
@@ -243,7 +264,13 @@ export default function PromoterDashboard() {
     .reduce((sum: number, c: any) => sum + Number(c.amount || 0), 0);
   const totalOrders = commissions.length;
 
-  console.log(`[PromoterDebug] Render Stats:`, { totalEarnings, pendingEarnings, totalOrders, commissionsCount: commissions.length });
+  console.log(`[PromoterDebug] Render Stats:`, { 
+    totalEarnings, 
+    pendingEarnings, 
+    totalOrders, 
+    commissionsCount: commissions.length,
+    referralsCount: referrals.length 
+  });
 
   return (
     <AppLayout>
@@ -255,17 +282,31 @@ export default function PromoterDashboard() {
             <p className="text-muted-foreground">Manage your promotions, track earnings, and withdraw funds.</p>
           </div>
 
-          <Card className="bg-primary/5 border-primary/20 shrink-0">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-2 bg-primary/10 rounded-full">
-                <Wallet className="text-primary" size={20} />
-              </div>
-              <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Your Balance</p>
-                <p className="text-xl font-bold">₦{wallet?.balance?.toLocaleString() ?? "0"}</p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="flex gap-4 shrink-0">
+            <Card className="bg-primary/5 border-primary/20">
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className="p-2 bg-primary/10 rounded-full">
+                  <Wallet className="text-primary" size={20} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Available</p>
+                  <p className="text-xl font-bold text-primary">₦{wallet?.balance?.toLocaleString() ?? "0"}</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-amber-500/5 border-amber-500/20">
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className="p-2 bg-amber-500/10 rounded-full">
+                  <Clock className="text-amber-600" size={20} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">In Escrow</p>
+                  <p className="text-xl font-bold text-amber-600">₦{wallet?.escrow_balance?.toLocaleString() ?? "0"}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
@@ -322,7 +363,7 @@ export default function PromoterDashboard() {
                       <TrendingUp className="text-green-600" size={18} />
                     </div>
                   </div>
-                  <p className="text-2xl font-bold">₦{totalEarnings.toLocaleString()}</p>
+                  <p className="text-2xl font-bold">₦{((wallet?.balance || 0) + (wallet?.escrow_balance || 0)).toLocaleString()}</p>
                 </CardContent>
               </Card>
 
@@ -334,7 +375,7 @@ export default function PromoterDashboard() {
                       <Clock className="text-amber-600" size={18} />
                     </div>
                   </div>
-                  <p className="text-2xl font-bold text-amber-600">₦{pendingEarnings.toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-amber-600">₦{wallet?.escrow_balance?.toLocaleString() ?? "0"}</p>
                 </CardContent>
               </Card>
 
@@ -346,60 +387,117 @@ export default function PromoterDashboard() {
                       <ShoppingCart className="text-blue-600" size={18} />
                     </div>
                   </div>
-                  <p className="text-2xl font-bold">{totalOrders}</p>
+                  <p className="text-2xl font-bold">{referrals.filter((r: any) => r.status === "conversion").length}</p>
                 </CardContent>
               </Card>
             </div>
 
             {/* Recent History */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg">Recent Earnings</CardTitle>
-                  <CardDescription>Your last 20 commission settlements</CardDescription>
-                </div>
-                <Button variant="outline" size="sm">View All</Button>
-              </CardHeader>
-              <CardContent>
-                {commissionsLoading ? (
-                  <div className="space-y-3">
-                    {[1, 2, 3].map(i => <Skeleton key={i} className="h-14 w-full" />)}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg">Recent Earnings</CardTitle>
+                    <CardDescription>Your last commission settlements</CardDescription>
                   </div>
-                ) : commissions.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Link2 className="mx-auto mb-4 opacity-20" size={48} />
-                    <p>No earnings yet. Start promoting products to earn commissions!</p>
-                  </div>
-                ) : (
-                  <div className="relative overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                      <thead className="text-xs text-muted-foreground uppercase bg-muted/30">
-                        <tr>
-                          <th className="px-4 py-3 font-medium">Date</th>
-                          <th className="px-4 py-3 font-medium">Order ID</th>
-                          <th className="px-4 py-3 font-medium text-right">Amount</th>
-                          <th className="px-4 py-3 font-medium text-center">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {commissions.slice(0, 5).map((c: any) => (
-                          <tr key={c.id} className="border-b border-muted/50 last:border-0 hover:bg-muted/10 transition-colors">
-                            <td className="px-4 py-4">{new Date(c.created_at).toLocaleDateString()}</td>
-                            <td className="px-4 py-4 font-mono text-xs">#{c.order_id.slice(0, 8)}</td>
-                            <td className="px-4 py-4 text-right font-bold">₦{Number(c.amount).toLocaleString()}</td>
-                            <td className="px-4 py-4 text-center">
-                              <Badge variant={c.status === "paid" ? "default" : "secondary"} className="rounded-full px-3">
-                                {c.status}
-                              </Badge>
-                            </td>
+                  <Button variant="outline" size="sm">View All</Button>
+                </CardHeader>
+                <CardContent>
+                  {commissionsLoading ? (
+                    <div className="space-y-3">
+                      {[1, 2, 3].map(i => <Skeleton key={i} className="h-14 w-full" />)}
+                    </div>
+                  ) : commissions.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <Link2 className="mx-auto mb-4 opacity-20" size={48} />
+                      <p>No earnings yet. Start promoting products!</p>
+                    </div>
+                  ) : (
+                    <div className="relative overflow-x-auto">
+                      <table className="w-full text-sm text-left">
+                        <thead className="text-xs text-muted-foreground uppercase bg-muted/30">
+                          <tr>
+                            <th className="px-4 py-3 font-medium">Date</th>
+                            <th className="px-4 py-3 font-medium text-right">Amount</th>
+                            <th className="px-4 py-3 font-medium text-center">Status</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {commissions.slice(0, 5).map((c: any) => (
+                            <tr key={c.id} className="border-b border-muted/50 last:border-0 hover:bg-muted/10 transition-colors">
+                              <td className="px-4 py-4">{new Date(c.created_at).toLocaleDateString()}</td>
+                              <td className="px-4 py-4 text-right font-bold">₦{Number(c.amount).toLocaleString()}</td>
+                              <td className="px-4 py-4 text-center">
+                                <Badge variant={c.status === "paid" ? "default" : "secondary"} className="rounded-full px-3 text-[10px]">
+                                  {c.status}
+                                </Badge>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg">Referral Tracking</CardTitle>
+                    <CardDescription>Real-time click & attribution logs</CardDescription>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                  <Badge variant="outline" className="font-mono text-[10px]">Live</Badge>
+                </CardHeader>
+                <CardContent>
+                  {referrals.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <MousePointerClick className="mx-auto mb-4 opacity-20" size={48} />
+                      <p>No clicks tracked yet.</p>
+                    </div>
+                  ) : (
+                    <div className="relative overflow-x-auto">
+                      <table className="w-full text-sm text-left">
+                        <thead className="text-xs text-muted-foreground uppercase bg-muted/30">
+                          <tr>
+                            <th className="px-4 py-3 font-medium">Date</th>
+                            <th className="px-4 py-3 font-medium">Status</th>
+                            <th className="px-4 py-3 font-medium">Device/Buyer</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {referrals.slice(0, 5).map((r: any) => (
+                            <tr key={r.id} className="border-b border-muted/50 last:border-0 hover:bg-muted/10 transition-colors">
+                              <td className="px-4 py-4">
+                                <p className="text-xs">{new Date(r.created_at).toLocaleDateString()}</p>
+                                <p className="text-[10px] text-muted-foreground">{new Date(r.created_at).toLocaleTimeString()}</p>
+                              </td>
+                              <td className="px-4 py-4">
+                                <Badge variant={r.status === "conversion" ? "default" : "outline"} className="rounded-full px-2 text-[9px] uppercase font-bold">
+                                  {r.status}
+                                </Badge>
+                              </td>
+                              <td className="px-4 py-4">
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="text-[10px] font-mono text-muted-foreground truncate max-w-[100px]">
+                                    {r.buyer_id ? "ID: " + r.buyer_id.slice(0,8) : "Visitor: " + r.visitor_id?.slice(0,8)}
+                                  </span>
+                                  {r.product_id && (
+                                    <span className="text-[9px] text-primary flex items-center gap-1">
+                                      <Package size={8} /> Product: {r.product_id.slice(0,6)}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="marketplace" className="space-y-6">

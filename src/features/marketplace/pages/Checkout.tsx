@@ -24,6 +24,7 @@ import { SuccessStep } from "@/features/marketplace/components/v2/SuccessStep";
 import { CrossZoneWarning } from "@/features/marketplace/components/v2/CrossZoneWarning";
 
 import { useCities, useZones } from "@/shared/hooks/use-marketplace-metadata";
+import { getReferralAttribution } from "@/features/promoter/hooks/useReferral";
 
 const DELIVERY_FEE = 0; // Dynamic fee from config is preferred over this fallback
 
@@ -165,6 +166,12 @@ export default function Checkout() {
         throw new Error("Please log in and finish setting up your account to continue.");
       }
 
+      const { promoter_id: resolvedPromoterId, visitor_id: resolvedVisitorId } = await getReferralAttribution();
+      console.log("[CheckoutDebug] Attribution resolved:", { 
+        promoter_id: resolvedPromoterId, 
+        visitor_id: resolvedVisitorId 
+      });
+
       const orderData = {
         items: cartItems.map((item: any) => ({
           product_id: item.product_id,
@@ -187,6 +194,8 @@ export default function Checkout() {
         zone: shipping.zone_name,
         delivery_lat: shipping.lat,
         delivery_lng: shipping.lng,
+        promoter_id: resolvedPromoterId,
+        visitor_id: resolvedVisitorId,
       };
 
       const { data, error } = await supabase.functions.invoke("create-order", {
@@ -206,6 +215,11 @@ export default function Checkout() {
       };
 
       await clearCart();
+      
+      // Clean up referral tracking after successful order
+      localStorage.removeItem("linkup_ref");
+      localStorage.removeItem("linkup_ref_expiry");
+      
       queryClient.invalidateQueries({ queryKey: ["cart"] });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       return summary;

@@ -182,7 +182,14 @@ BEGIN
         AND RIGHT(public.wallet_transactions.reference, 6) = RIGHT(target.reference, 6)
     );
     
-    RAISE NOTICE 'Wallet deduplication complete.';
+    -- 4. Ensure Promoter Fee is Percentage-Based (As requested)
+    INSERT INTO public.fee_config (fee_type, name, rate, flat_fee, is_active, priority)
+    VALUES ('promoter', 'Promoter Commission', 0.10, 0.00, TRUE, 50)
+    ON CONFLICT (fee_type) DO UPDATE SET 
+        rate = EXCLUDED.rate,
+        flat_fee = 0.00;
+    
+    RAISE NOTICE 'Wallet and Transactions have been successfully repaired.';
 END $$;
 
 COMMIT;

@@ -132,7 +132,9 @@ export default function AdminFeeConfig() {
 
                                 <div className={cn("space-y-2", fee.fee_type === 'settlement' ? "col-span-2" : "")}>
                                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                                        {fee.fee_type === 'settlement' ? "Waiting Time (Hours)" : "Fixed Charge (₦)"}
+                                        {fee.fee_type === 'settlement' ? "Waiting Time (Hours)" : 
+                                         fee.fee_type === 'promoter' ? "Bonus Fixed Amount (₦)" : 
+                                         "Platform Base Fee (₦)"}
                                     </Label>
                                     <div className="relative group/input">
                                         <Input 
@@ -149,6 +151,11 @@ export default function AdminFeeConfig() {
                                             {fee.fee_type === 'settlement' ? "H" : "₦"}
                                         </span>
                                     </div>
+                                    {fee.fee_type === 'promoter' && (
+                                        <p className="text-[10px] font-bold text-purple-600 uppercase tracking-widest mt-2 flex items-center gap-1">
+                                            <Percent size={10} /> Percentage is recommended for variable prices!
+                                        </p>
+                                    )}
                                     {fee.fee_type === 'settlement' && (
                                         <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mt-2 flex items-center gap-1">
                                             <RotateCcw size={10} /> Applying changes updates all pending!

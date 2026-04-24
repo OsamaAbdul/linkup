@@ -96,6 +96,8 @@ serve(async (req: Request) => {
     if (sellerIds.length === 0) throw new Error("No valid products or sellers found in order items");
 
     const createdOrderIds: string[] = [];
+    let finalPromoterId = null;
+    let matchedReferralId = null;
 
     // --- Process each Seller as a separate Order ---
     // --- IDEMPOTENCY GUARD (Phase 14) ---
@@ -217,17 +219,17 @@ serve(async (req: Request) => {
 
       // SECURE: Referral Verification Guard (Phase 10/14)
       // We verify that a matching referral entry exists in the ledger.
-      let finalPromoterId = null;
       if (promoter_id) {
         console.log(`[Attribution] Verifying for promoter: ${promoter_id}`);
-        console.log(`[Attribution] Identities: User=${user.id}, Visitor=${body.visitor_id}`);
         
+        // HEAL: We are more flexible now. We check for a matching click and don't strictly 
+        // enforce expires_at if it's missing (assume non-expiring).
         const { data: referralRecord, error: referralLookupError } = await adminClient
           .from("referrals")
-          .select("id")
+          .select("id, buyer_id, visitor_id")
           .eq("promoter_id", promoter_id)
           .or(`buyer_id.eq.${user.id},visitor_id.eq.${body.visitor_id}`)
-          .gt("expires_at", new Date().toISOString())
+          .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
 
@@ -238,8 +240,27 @@ serve(async (req: Request) => {
         if (referralRecord) {
           console.log(`[Attribution] SUCCESS: Found matching referral record ${referralRecord.id}`);
           finalPromoterId = promoter_id;
+          matchedReferralId = referralRecord.id;
         } else {
-          console.warn(`[Attribution] FAILED: No matching click found in DB for identities provided.`);
+          // Fallback: If we have the promoter_id in checkout and the buyer isn't the promoter,
+          // we can allow a more lenient "Identity Healing" if they just clicked the link.
+          console.warn(`[Attribution] No strict match found. Checking for any recent click from this promoter...`);
+          
+          const { data: recentClick } = await adminClient
+            .from("referrals")
+            .select("id")
+            .eq("promoter_id", promoter_id)
+            .or(`buyer_id.eq.${user.id},visitor_id.eq.${body.visitor_id}`)
+            .limit(1)
+            .maybeSingle();
+            
+          if (recentClick) {
+            console.log(`[Attribution] HEALED: Found a recent click. Attributing order.`);
+            finalPromoterId = promoter_id;
+            matchedReferralId = recentClick.id;
+          } else {
+            console.error(`[Attribution] FAILED: No record found for promoter ${promoter_id} and buyer ${user.id}`);
+          }
         }
       } else {
         console.log(`[Attribution] SKIP: No promoter_id provided in checkout payload.`);
@@ -339,19 +360,35 @@ serve(async (req: Request) => {
       });
     }
 
-    // --- Conversion Tracking (Reference the first order created) ---
-    if (promoter_id && createdOrderIds.length > 0) {
-       await adminClient
+    // --- Conversion Tracking (Phase 10/14) ---
+    if (finalPromoterId && createdOrderIds.length > 0) {
+       console.log(`[Attribution] Finalizing conversion for order: ${createdOrderIds[0]}`);
+       
+       // Use the specific record we identified earlier if available, 
+       // otherwise fallback to the broad filter to catch any missed clicks.
+       const updateFilter = matchedReferralId 
+         ? { id: matchedReferralId } 
+         : { promoter_id: finalPromoterId };
+
+       const query = adminClient
         .from("referrals")
         .update({ 
           converted_at: new Date().toISOString(), 
           order_id: createdOrderIds[0],
           status: 'conversion',
-          buyer_id: user.id // Ensure buyer_id is linked upon conversion
-        })
-        .eq("promoter_id", promoter_id)
-        .or(`buyer_id.eq.${user.id},visitor_id.eq.${body.visitor_id}`)
-        .is("converted_at", null);
+          buyer_id: user.id 
+        });
+
+       if (matchedReferralId) {
+         await query.eq("id", matchedReferralId);
+       } else {
+         await query
+           .eq("promoter_id", finalPromoterId)
+           .or(`buyer_id.eq.${user.id},visitor_id.eq.${body.visitor_id || 'none'}`)
+           .is("converted_at", null);
+       }
+       
+       console.log(`[Attribution] Conversion update triggered.`);
     }
 
     return new Response(

@@ -108,6 +108,10 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
 
             // Resolve promoter attribution from referral tracking
             const { promoter_id: resolvedPromoterId, visitor_id: resolvedVisitorId } = await getReferralAttribution();
+            console.log("[CheckoutDebug] Attribution resolved:", { 
+              promoter_id: resolvedPromoterId, 
+              visitor_id: resolvedVisitorId 
+            });
 
             const payload = {
                 seller_id: product.seller_id,

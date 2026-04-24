@@ -101,8 +101,8 @@ export default function Dashboard() {
                 const recipient = order?.order_recipient || {};
                 const deliveryAddress = `${recipient.address_line || ''}, ${recipient.cities?.name || ''}, ${recipient.delivery_zones?.name || ''}`;
                 
-                // Extract existing fees from shipment if available
-                const existingShipment = order?.shipments?.[0] || {};
+                // Extract existing fees from shipment for the specific seller if available
+                const existingShipment = order?.shipments?.find((s: any) => s.seller_id === user?.id) || order?.shipments?.[0] || {};
                 const deliveryFeeAmount = (existingShipment as any).delivery_fee_amount;
                 const crossZoneFeeAmount = (existingShipment as any).cross_zone_fee_amount;
 

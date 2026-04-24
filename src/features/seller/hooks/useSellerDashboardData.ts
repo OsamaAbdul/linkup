@@ -217,8 +217,6 @@ export function useSellerDashboardData() {
         .from("orders")
         .update({ 
           status: "awaiting_agent",
-          pickup_lat: lat,
-          pickup_lng: lng,
           updated_at: new Date().toISOString() 
         })
         .eq("id", id);
@@ -243,7 +241,7 @@ export function useSellerDashboardData() {
           pickup_lng: lng,
           
           pickup_time: pickupTime ? new Date(pickupTime).toISOString() : null,
-          delivery_fee_amount: deliveryFeeAmount || 1500,
+          delivery_fee_amount: deliveryFeeAmount || null,
           cross_zone_fee_amount: crossZoneFeeAmount || 0,
           updated_at: new Date().toISOString()
         }, { onConflict: 'order_id' });

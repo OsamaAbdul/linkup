@@ -109,8 +109,8 @@ export function BroadcastMissions({
                             
                             // Calculate Distance
                             const dist = calculateDistance(
-                                mission.pickup_latitude, mission.pickup_longitude,
-                                mission.buyer_latitude, mission.buyer_longitude
+                                mission.pickup_lat, mission.pickup_lng,
+                                mission.delivery_lat, mission.delivery_lng
                             );
 
                             const isOutOfZone = profile?.zone && mission.zone && 

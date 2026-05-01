@@ -5,9 +5,10 @@ import { useAuth } from "@/features/auth/context/AuthContext";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
-import { AlertCircle, ShoppingBag, User, Calendar } from "lucide-react";
+import { AlertCircle, ShoppingBag, User, Calendar, Eye, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { Dialog, DialogContent, DialogTrigger } from "@/shared/components/ui/dialog";
 
 export function IssuesTab() {
     const { user } = useAuth();
@@ -139,6 +140,31 @@ export function IssuesTab() {
                                                 <p className="text-xs font-bold">{format(new Date(issue.created_at), "MMM d, yyyy")}</p>
                                             </div>
                                         </div>
+
+                                        {issue.evidence_url && (
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
+                                                    <ImageIcon size={18} />
+                                                </div>
+                                                <Dialog>
+                                                    <DialogTrigger asChild>
+                                                        <button className="text-left group/btn">
+                                                            <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest group-hover/btn:text-amber-700 transition-colors">Visual Proof</p>
+                                                            <p className="text-xs font-bold flex items-center gap-1 group-hover/btn:text-primary transition-colors">
+                                                                <Eye size={12} /> View Evidence
+                                                            </p>
+                                                        </button>
+                                                    </DialogTrigger>
+                                                    <DialogContent className="max-w-2xl border-none p-2 bg-black/90 backdrop-blur-md rounded-3xl overflow-hidden">
+                                                        <img 
+                                                            src={issue.evidence_url} 
+                                                            alt="Customer Evidence" 
+                                                            className="w-full h-auto rounded-2xl shadow-2xl"
+                                                        />
+                                                    </DialogContent>
+                                                </Dialog>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="flex gap-4 pt-2">

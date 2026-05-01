@@ -5,7 +5,8 @@ import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { 
     AlertCircle, CheckCircle2, XCircle, ShoppingBag, 
-    User, Clock, ShieldAlert, Scale, RefreshCcw, ArrowRight
+    User, Clock, ShieldAlert, Scale, RefreshCcw, ArrowRight,
+    ExternalLink, Eye, Smartphone, MessageSquare
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
+    DialogTrigger,
 } from "@/shared/components/ui/dialog";
 
 export default function AdminDisputeManager() {
@@ -35,13 +37,14 @@ export default function AdminDisputeManager() {
                 .from("issues")
                 .select(`
                     *,
-                    reporter: profiles!issues_reporter_profile_fkey(display_name, avatar_url),
+                    reporter: profiles!issues_reporter_profile_fkey(display_name, avatar_url, phone),
+                    products(title, images),
                     order: orders(
                         id, 
                         total_amount, 
                         status, 
                         created_at,
-                        seller: profiles!seller_id(display_name)
+                        seller: profiles!seller_id(display_name, phone)
                     )
                 `)
                 .eq("category", "financial_dispute")
@@ -141,7 +144,14 @@ export default function AdminDisputeManager() {
                                                 </Badge>
                                                 <span className="text-[10px] font-mono font-bold text-muted-foreground">#{dispute.id.slice(0, 8).toUpperCase()}</span>
                                             </div>
-                                            <h3 className="text-xl font-black tracking-tight mb-2 group-hover:text-red-600 transition-colors">{dispute.title}</h3>
+                                            <div className="flex items-center justify-between gap-4">
+                                                <h3 className="text-xl font-black tracking-tight mb-2 group-hover:text-red-600 transition-colors">{dispute.title}</h3>
+                                                {dispute.products?.images?.[0] && (
+                                                    <div className="w-16 h-16 rounded-xl overflow-hidden border-4 border-white shadow-xl ring-1 ring-black/5 flex-shrink-0">
+                                                        <img src={dispute.products.images[0]} alt="Product" className="w-full h-full object-cover" />
+                                                    </div>
+                                                )}
+                                            </div>
                                             <p className="text-sm font-medium text-muted-foreground leading-relaxed italic border-l-2 border-red-100 pl-4">
                                                 "{dispute.description || "No details provided by the customer."}"
                                             </p>
@@ -173,6 +183,21 @@ export default function AdminDisputeManager() {
                                                     </div>
                                                     <p className="text-xs font-black">{dispute.reporter?.display_name || "Unknown Identity"}</p>
                                                 </div>
+                                                {dispute.reporter?.phone && (
+                                                    <div className="mt-2 space-y-1.5">
+                                                        <a href={`tel:${dispute.reporter.phone}`} className="flex items-center gap-2 text-primary hover:underline text-[10px] font-bold">
+                                                            <Smartphone size={12} /> {dispute.reporter.phone}
+                                                        </a>
+                                                        <a 
+                                                            href={`https://wa.me/${dispute.reporter.phone.replace(/[^0-9]/g, '')}`} 
+                                                            target="_blank" 
+                                                            rel="noopener noreferrer"
+                                                            className="flex items-center gap-2 text-[#128C7E] hover:underline text-[9px] font-black uppercase"
+                                                        >
+                                                            <MessageSquare size={12} /> WhatsApp Customer
+                                                        </a>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 
@@ -181,12 +206,30 @@ export default function AdminDisputeManager() {
                                                 <ShoppingBag size={14} /> Seller Involved
                                             </p>
                                             <div className="flex items-center gap-3">
-                                                <div className="h-12 w-12 rounded-xl bg-gray-50 border-2 border-white shadow-sm flex items-center justify-center text-muted-foreground font-black uppercase">
+                                                <div className="h-14 w-14 rounded-2xl bg-primary shadow-lg shadow-primary/20 flex items-center justify-center text-white font-black text-xl uppercase">
                                                      {dispute.order?.seller?.display_name?.charAt(0) || "S"}
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-black">{dispute.order?.seller?.display_name || "Merchant Node"}</p>
-                                                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">Money Held</p>
+                                                    <p className="text-sm font-black text-foreground">{dispute.order?.seller?.display_name || "Merchant Node"}</p>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <Badge className="bg-emerald-100 text-emerald-700 text-[8px] font-black uppercase tracking-tighter rounded-md border-emerald-200">Verified Seller</Badge>
+                                                        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">Account Clear</p>
+                                                    </div>
+                                                    {dispute.order?.seller?.phone && (
+                                                        <div className="mt-2 space-y-1.5">
+                                                            <a href={`tel:${dispute.order.seller.phone}`} className="flex items-center gap-2 text-primary hover:underline text-[10px] font-bold">
+                                                                <Smartphone size={12} /> {dispute.order.seller.phone}
+                                                            </a>
+                                                            <a 
+                                                                href={`https://wa.me/${dispute.order.seller.phone.replace(/[^0-9]/g, '')}`} 
+                                                                target="_blank" 
+                                                                rel="noopener noreferrer"
+                                                                className="flex items-center gap-2 text-[#128C7E] hover:underline text-[9px] font-black uppercase"
+                                                            >
+                                                                <MessageSquare size={12} /> WhatsApp Merchant
+                                                            </a>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -201,10 +244,40 @@ export default function AdminDisputeManager() {
                                             </div>
                                             <div className="h-8 w-px bg-black/[0.05]" />
                                             <div className="flex flex-col">
+                                                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1">Primary Reason</span>
+                                                <span className="text-xs font-bold text-foreground">
+                                                    {dispute.title?.replace("Financial Dispute: ", "") || "Not specified"}
+                                                </span>
+                                            </div>
+
+                                            <div className="flex flex-col">
                                                 <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1">Uploaded Proof</span>
                                                 <div className="flex items-center gap-1.5 text-xs font-bold text-amber-600">
-                                                    <AlertCircle size={12} />
-                                                    {dispute.evidence_url ? "Proof uploaded" : "Waiting for proof"}
+                                                    {dispute.evidence_url ? (
+                                                        <Dialog>
+                                                            <DialogTrigger asChild>
+                                                                <button className="flex items-center gap-1.5 hover:text-amber-700 transition-colors">
+                                                                    <Eye size={12} /> View Proof
+                                                                </button>
+                                                            </DialogTrigger>
+                                                            <DialogContent className="max-w-3xl border-none bg-black/95 backdrop-blur-xl p-2 rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto">
+                                                                <img 
+                                                                    src={dispute.evidence_url} 
+                                                                    alt="Dispute Evidence" 
+                                                                    className="w-full h-auto rounded-2xl shadow-2xl"
+                                                                />
+                                                                <div className="absolute top-6 left-6 flex items-center gap-2 bg-black/40 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10">
+                                                                    <AlertCircle className="text-amber-400" size={16} />
+                                                                    <span className="text-[10px] font-black uppercase tracking-widest text-white">Visual Intelligence Asset</span>
+                                                                </div>
+                                                            </DialogContent>
+                                                        </Dialog>
+                                                    ) : (
+                                                        <>
+                                                            <AlertCircle size={12} />
+                                                            Waiting for proof
+                                                        </>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>

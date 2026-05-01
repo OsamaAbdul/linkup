@@ -2,7 +2,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
-import { ShoppingBag, ChevronRight, Smartphone, MapPin, Truck, Check, ShieldCheck, Activity } from "lucide-react";
+import { ShoppingBag, ChevronRight, Smartphone, MapPin, Truck, Check, ShieldCheck, Activity, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ZoneBroadcastSelector } from "./ZoneBroadcastSelector";
 import { useState } from "react";

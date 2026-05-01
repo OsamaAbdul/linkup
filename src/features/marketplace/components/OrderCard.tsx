@@ -4,11 +4,11 @@ import { Card, CardContent } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/shared/components/ui/collapsible";
-import { Store, Smartphone, Activity, ChevronUp, ChevronDown, AlertCircle, CheckCircle, MapPin } from "lucide-react";
+import { Store, Smartphone, Activity, ChevronUp, ChevronDown, AlertCircle, CheckCircle, MapPin, Camera, Upload, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OrderTimeline } from "./OrderTimeline";
 import { OrderShipmentIntel } from "./OrderShipmentIntel";
-import { ShieldAlert, Scale, ArrowRight, MessageSquare } from "lucide-react";
+import { ShieldAlert, Scale, ArrowRight, MessageSquare, Loader2 } from "lucide-react";
 import { ShipmentStatusHistory } from "./ShipmentStatusHistory";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/shared/components/ui/dialog";
 import { Textarea } from "@/shared/components/ui/textarea";
@@ -47,6 +47,10 @@ export function OrderCard({ order }: OrderCardProps) {
     // Dispute state
     const [disputeReason, setDisputeReason] = useState("");
     const [disputeDetails, setDisputeDetails] = useState("");
+    
+    // Shared evidence state
+    const [evidenceUrl, setEvidenceUrl] = useState("");
+    const [isUploading, setIsUploading] = useState(false);
     
     const { user } = useAuth();
     const queryClient = useQueryClient();
@@ -99,6 +103,35 @@ export function OrderCard({ order }: OrderCardProps) {
         enabled: !!user && order.status.toLowerCase() === "disputed",
     });
 
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !user) return;
+
+        try {
+            setIsUploading(true);
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${user.id}/${order.id}-${Math.random()}.${fileExt}`;
+            const filePath = `evidence/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('dispute-evidence')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('dispute-evidence')
+                .getPublicUrl(filePath);
+
+            setEvidenceUrl(publicUrl);
+            toast.success("Intelligence asset uploaded successfully");
+        } catch (error: any) {
+            toast.error("Upload failed: " + error.message);
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
     const reportIssueMutation = useMutation({
         mutationFn: async () => {
             if (!user) throw new Error("Auth required");
@@ -112,6 +145,7 @@ export function OrderCard({ order }: OrderCardProps) {
                     title: issueTitle,
                     description: issueDescription,
                     priority: issuePriority,
+                    evidence_url: evidenceUrl,
                     status: "open"
                 }]);
             if (error) throw error;
@@ -121,6 +155,7 @@ export function OrderCard({ order }: OrderCardProps) {
             setIsReportModalOpen(false);
             setIssueTitle("");
             setIssueDescription("");
+            setEvidenceUrl("");
         },
         onError: (err: any) => {
             toast.error("Transmission failed: " + err.message);
@@ -132,6 +167,14 @@ export function OrderCard({ order }: OrderCardProps) {
             if (!user) throw new Error("Authentication protocol required");
             
             // 1. Insert into unified issues table
+            const reasonLabel = {
+                item_mismatch: "Item not as described",
+                damaged: "Product arrived damaged",
+                missing_parts: "Missing components",
+                counterfeit: "Product authenticity issue",
+                other: "Other discrepancies"
+            }[disputeReason] || disputeReason;
+
             const { error: disputeError } = await supabase
                 .from("issues" as any)
                 .insert([{
@@ -140,8 +183,9 @@ export function OrderCard({ order }: OrderCardProps) {
                     seller_id: order.sellerId,
                     product_id: order.productId,
                     category: "financial_dispute", // Distinguish from technical tickets
-                    title: `Financial Dispute: ${disputeReason}`,
+                    title: `Financial Dispute: ${reasonLabel}`,
                     description: disputeDetails,
+                    evidence_url: evidenceUrl,
                     priority: "high",
                     status: "open"
                 }]);
@@ -163,6 +207,7 @@ export function OrderCard({ order }: OrderCardProps) {
             setIsDisputeModalOpen(false);
             setDisputeReason("");
             setDisputeDetails("");
+            setEvidenceUrl("");
             queryClient.invalidateQueries({ queryKey: ["orders", user?.id] });
         },
         onError: (err: any) => {
@@ -330,7 +375,7 @@ export function OrderCard({ order }: OrderCardProps) {
                                             <AlertCircle size={12} className="mr-1.5" /> Report Issue
                                         </Button>
                                     </DialogTrigger>
-                                    <DialogContent className="rounded-xl max-w-md border-none shadow-2xl p-6">
+                                    <DialogContent className="rounded-xl max-w-md border-none shadow-2xl p-6 max-h-[90vh] overflow-y-auto">
                                         <DialogHeader>
                                             <DialogTitle className="text-xl font-black">Report a Delivery Issue</DialogTitle>
                                             <DialogDescription className="text-xs font-medium">
@@ -370,6 +415,56 @@ export function OrderCard({ order }: OrderCardProps) {
                                                     value={issueDescription}
                                                     onChange={(e) => setIssueDescription(e.target.value)}
                                                 />
+                                            </div>
+                                            <div className="space-y-3">
+                                                <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                                    <Camera size={14} /> Evidence Upload (Optional)
+                                                </Label>
+                                                <div className="flex flex-col gap-4">
+                                                    <div className="relative group">
+                                                        <input
+                                                            type="file"
+                                                            accept="image/*"
+                                                            onChange={handleFileUpload}
+                                                            className="hidden"
+                                                            id="evidence-upload-report"
+                                                        />
+                                                        <label
+                                                            htmlFor="evidence-upload-report"
+                                                            className={cn(
+                                                                "flex flex-col items-center justify-center w-full h-32 rounded-xl border-2 border-dashed transition-all cursor-pointer",
+                                                                evidenceUrl 
+                                                                    ? "border-emerald-200 bg-emerald-50/50" 
+                                                                    : "border-black/5 bg-gray-50 hover:bg-gray-100 hover:border-primary/20"
+                                                            )}
+                                                        >
+                                                            {isUploading ? (
+                                                                <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                                                            ) : evidenceUrl ? (
+                                                                <div className="flex flex-col items-center gap-2">
+                                                                    <CheckCircle className="w-8 h-8 text-emerald-500" />
+                                                                    <span className="text-[10px] font-black uppercase text-emerald-600">Asset Locked</span>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex flex-col items-center gap-2">
+                                                                    <Upload className="w-8 h-8 text-muted-foreground/40" />
+                                                                    <span className="text-[10px] font-black uppercase text-muted-foreground">Upload Visual Proof</span>
+                                                                </div>
+                                                            )}
+                                                        </label>
+                                                    </div>
+                                                    {evidenceUrl && (
+                                                        <div className="relative w-full h-40 rounded-xl overflow-hidden border border-black/5 bg-muted">
+                                                            <img src={evidenceUrl} alt="Evidence" className="w-full h-full object-cover" />
+                                                            <button 
+                                                                onClick={() => setEvidenceUrl("")}
+                                                                className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-lg backdrop-blur-md hover:bg-black/80 transition-colors"
+                                                            >
+                                                                <AlertCircle size={14} />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                         <DialogFooter className="sm:flex-col gap-2">
@@ -464,7 +559,7 @@ export function OrderCard({ order }: OrderCardProps) {
                                             <AlertCircle size={12} className="mr-1.5" /> Raise Dispute
                                         </Button>
                                     </DialogTrigger>
-                                    <DialogContent className="rounded-xl max-w-md border-none shadow-2xl p-6 bg-white">
+                                    <DialogContent className="rounded-xl max-w-md border-none shadow-2xl p-6 bg-white max-h-[90vh] overflow-y-auto">
                                         <DialogHeader>
                                             <DialogTitle className="text-2xl font-black text-red-600">Initialize Dispute</DialogTitle>
                                             <DialogDescription className="text-xs font-medium text-muted-foreground">
@@ -495,6 +590,57 @@ export function OrderCard({ order }: OrderCardProps) {
                                                     value={disputeDetails}
                                                     onChange={(e) => setDisputeDetails(e.target.value)}
                                                 />
+                                            </div>
+                                            <div className="space-y-3">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                                    <ImageIcon size={14} /> Visual Intelligence (Required for quick resolution)
+                                                </Label>
+                                                <div className="flex flex-col gap-4">
+                                                    <div className="relative group">
+                                                        <input
+                                                            type="file"
+                                                            accept="image/*"
+                                                            onChange={handleFileUpload}
+                                                            className="hidden"
+                                                            id="evidence-upload-dispute"
+                                                        />
+                                                        <label
+                                                            htmlFor="evidence-upload-dispute"
+                                                            className={cn(
+                                                                "flex flex-col items-center justify-center w-full h-32 rounded-xl border-2 border-dashed transition-all cursor-pointer",
+                                                                evidenceUrl 
+                                                                    ? "border-red-200 bg-red-50/50" 
+                                                                    : "border-black/5 bg-gray-50 hover:bg-gray-100 hover:border-primary/20"
+                                                            )}
+                                                        >
+                                                            {isUploading ? (
+                                                                <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                                                            ) : evidenceUrl ? (
+                                                                <div className="flex flex-col items-center gap-2">
+                                                                    <CheckCircle className="w-8 h-8 text-red-500" />
+                                                                    <span className="text-[10px] font-black uppercase text-red-600">Proof Recorded</span>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex flex-col items-center gap-2">
+                                                                    <Camera className="w-8 h-8 text-muted-foreground/40" />
+                                                                    <span className="text-[10px] font-black uppercase text-muted-foreground">Upload Photo of Defect</span>
+                                                                </div>
+                                                            )}
+                                                        </label>
+                                                    </div>
+                                                    {evidenceUrl && (
+                                                        <div className="relative w-full h-48 rounded-xl overflow-hidden border border-red-100 bg-muted">
+                                                            <img src={evidenceUrl} alt="Dispute Evidence" className="w-full h-full object-cover" />
+                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                                                            <button 
+                                                                onClick={() => setEvidenceUrl("")}
+                                                                className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-lg shadow-lg hover:bg-red-700 transition-colors"
+                                                            >
+                                                                <AlertCircle size={14} />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                         <DialogFooter>

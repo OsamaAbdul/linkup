@@ -3,11 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
-import { Check, ShoppingBag, User, Store, AlertCircle, Clock, Smartphone } from "lucide-react";
+import { Check, ShoppingBag, User, Store, AlertCircle, Clock, Smartphone, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
 import { format } from "date-fns";
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog";
 
 export default function AdminIssueManager() {
     const queryClient = useQueryClient();
@@ -18,10 +19,9 @@ export default function AdminIssueManager() {
                 .from("issues")
                 .select(`
                     *,
-                    reporter:profiles!issues_reporter_profile_fkey(id, display_name),
-                    seller:profiles!issues_seller_id_fkey(id, display_name),
-                    products(title, images),
-                    orders(shipping_address)
+                    reporter:profiles!issues_reporter_profile_fkey(id, display_name, phone),
+                    seller:profiles!issues_seller_id_fkey(id, display_name, phone),
+                    products(title, images)
                 `)
                 .order("created_at", { ascending: false });
             if (error) throw error;
@@ -182,15 +182,99 @@ export default function AdminIssueManager() {
                                 ) : (
                                     <Badge className="flex-1 justify-center rounded-xl h-12 bg-emerald-50 text-emerald-700 font-black uppercase text-[11px] tracking-widest border-2 border-emerald-100">Problem Solved</Badge>
                                 )}
-                                <Button
-                                    variant="outline"
-                                    className="rounded-xl h-12 font-black text-[11px] uppercase tracking-widest border-2 hover:bg-black hover:text-white transition-colors"
-                                    onClick={() => {
-                                        toast.info(`Tracking found for issue #${issue.id.slice(0, 8)}`);
-                                    }}
-                                >
-                                    Details
-                                </Button>
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            className="rounded-xl h-12 font-black text-[11px] uppercase tracking-widest border-2 hover:bg-black hover:text-white transition-colors"
+                                        >
+                                            View Details
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-2xl border-none p-0 bg-white rounded-3xl overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto">
+                                        <div className="bg-primary p-8 text-white">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <Badge className="bg-white/20 text-white border-none uppercase text-[10px] font-black">{issue.category}</Badge>
+                                                <span className="text-white/60 font-mono text-xs">#{issue.id}</span>
+                                            </div>
+                                            <h2 className="text-3xl font-black tracking-tight">{issue.title}</h2>
+                                        </div>
+                                        <div className="p-8 space-y-8">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                                <div className="space-y-4">
+                                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Description & Context</h4>
+                                                    <div className="bg-gray-50 p-6 rounded-2xl border border-black/[0.03]">
+                                                        <p className="text-sm font-medium leading-relaxed italic">"{issue.description}"</p>
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-4">
+                                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Product Involved</h4>
+                                                    <div className="flex items-center gap-4 bg-primary/5 p-4 rounded-2xl">
+                                                        {issue.products?.images?.[0] && (
+                                                            <img src={issue.products.images[0]} alt="" className="w-16 h-16 rounded-xl object-cover shadow-lg" />
+                                                        )}
+                                                        <div>
+                                                            <p className="text-sm font-black">{issue.products?.title || "Unknown Item"}</p>
+                                                            <p className="text-[10px] text-primary font-black uppercase tracking-widest mt-1">Audit Required</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="pt-8 border-t border-black/[0.05] grid grid-cols-2 md:grid-cols-3 gap-6">
+                                                <div className="space-y-2">
+                                                    <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Customer</p>
+                                                    <p className="text-sm font-bold">{issue.reporter?.display_name}</p>
+                                                    {issue.reporter?.phone && (
+                                                        <div className="flex flex-col gap-2">
+                                                            <a href={`tel:${issue.reporter.phone}`} className="flex items-center gap-2 text-primary hover:underline text-xs font-bold">
+                                                                <Smartphone size={12} /> {issue.reporter.phone}
+                                                            </a>
+                                                            <a 
+                                                                href={`https://wa.me/${issue.reporter.phone.replace(/[^0-9]/g, '')}`} 
+                                                                target="_blank" 
+                                                                rel="noopener noreferrer"
+                                                                className="flex items-center gap-2 text-[#128C7E] hover:underline text-[10px] font-black uppercase"
+                                                            >
+                                                                <MessageSquare size={12} /> WhatsApp Customer
+                                                            </a>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Merchant</p>
+                                                    <p className="text-sm font-bold">{issue.seller?.display_name}</p>
+                                                    {issue.seller?.phone && (
+                                                        <div className="flex flex-col gap-2">
+                                                            <a href={`tel:${issue.seller.phone}`} className="flex items-center gap-2 text-primary hover:underline text-xs font-bold">
+                                                                <Smartphone size={12} /> {issue.seller.phone}
+                                                            </a>
+                                                            <a 
+                                                                href={`https://wa.me/${issue.seller.phone.replace(/[^0-9]/g, '')}`} 
+                                                                target="_blank" 
+                                                                rel="noopener noreferrer"
+                                                                className="flex items-center gap-2 text-[#128C7E] hover:underline text-[10px] font-black uppercase"
+                                                            >
+                                                                <MessageSquare size={12} /> WhatsApp Merchant
+                                                            </a>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Report Date</p>
+                                                    <p className="text-sm font-bold">{format(new Date(issue.created_at), "MMM d, HH:mm")}</p>
+                                                </div>
+                                            </div>
+
+                                            {issue.evidence_url && (
+                                                <div className="space-y-4 pt-4">
+                                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-600">Visual Evidence (Uploaded by Buyer)</h4>
+                                                    <img src={issue.evidence_url} alt="Evidence" className="w-full h-64 object-cover rounded-2xl shadow-xl border-4 border-white" />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </DialogContent>
+                                </Dialog>
                             </div>
                         </CardContent>
                     </Card>

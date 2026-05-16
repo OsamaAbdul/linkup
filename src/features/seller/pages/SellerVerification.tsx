@@ -14,14 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/shared/components/ui/aler
 import { toast } from "sonner";
 import { Upload, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-const ZONES = [
-    "Zone 1 (Gwarinpa & Life Camp)",
-    "Zone 2 (Wuse & Utako)",
-    "Zone 3 (Kubwa Central)",
-    "Zone 4 (Lugbe & Apo)",
-    "Zone 5 (Gwagwalada Districts)"
-];
+import { useCities, useZones } from "@/shared/hooks/use-marketplace-metadata";
 
 export default function SellerVerification() {
     const { user, roles, loading: authLoading } = useAuth();
@@ -34,7 +27,7 @@ export default function SellerVerification() {
     useEffect(() => {
         if (!authLoading && !isSeller) {
             toast.error("Please register as a seller first.");
-            navigate("/sell", { replace: true });
+            navigate("/dashboard", { replace: true });
         }
     }, [isSeller, authLoading, navigate]);
 
@@ -56,12 +49,17 @@ export default function SellerVerification() {
             business_name: "",
             phone_number: "",
             business_address: "",
-            zone: "",
+            city_id: "",
+            zone_id: "",
             bank_name: "",
             account_number: "",
             account_name: "",
         }
     });
+
+    const selectedCityId = watch("city_id");
+    const { data: cities = [] } = useCities();
+    const { data: zones = [] } = useZones(selectedCityId);
 
     const queryClient = useQueryClient();
 
@@ -88,7 +86,8 @@ export default function SellerVerification() {
                 business_name: data.business_name,
                 phone_number: data.phone_number,
                 business_address: data.business_address,
-                zone: data.zone,
+                city_id: data.city_id,
+                zone_id: data.zone_id,
                 national_id_url: idPath,
                 store_photo_url: storePath,
                 bank_details: {
@@ -119,7 +118,7 @@ export default function SellerVerification() {
                     <CheckCircle className="w-16 h-16 text-primary mx-auto" />
                     <h2 className="text-2xl font-bold">You are Verified!</h2>
                     <p className="text-muted-foreground">Your seller account is active and verified. You can now list products.</p>
-                    <Button onClick={() => navigate("/sell")}>List a Product</Button>
+                    <Button onClick={() => navigate("/dashboard")}>Go to Dashboard</Button>
                 </div>
             </AppLayout>
         );
@@ -180,12 +179,21 @@ export default function SellerVerification() {
                                         <Label>Business Address</Label>
                                         <Input {...register("business_address", { required: true })} placeholder="Shop 5, Area 1..." />
                                     </div>
-                                    <div className="space-y-2 md:col-span-2">
+                                    <div className="space-y-2 md:col-span-1">
+                                        <Label>City</Label>
+                                        <Select onValueChange={(val) => { setValue("city_id", val); setValue("zone_id", ""); }}>
+                                            <SelectTrigger><SelectValue placeholder="Select City" /></SelectTrigger>
+                                            <SelectContent>
+                                                {cities.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2 md:col-span-1">
                                         <Label>Zone</Label>
-                                        <Select onValueChange={(val) => setValue("zone", val)}>
+                                        <Select onValueChange={(val) => setValue("zone_id", val)} disabled={!selectedCityId}>
                                             <SelectTrigger><SelectValue placeholder="Select Zone" /></SelectTrigger>
                                             <SelectContent>
-                                                {ZONES.map(z => <SelectItem key={z} value={z}>{z}</SelectItem>)}
+                                                {zones.map((z: any) => <SelectItem key={z.id} value={z.id}>{z.name}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                     </div>

@@ -58,7 +58,7 @@ export default function Sell() {
   const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
 
-  const { data: roles } = useQuery({
+  const { data: roles, isLoading: isRolesLoading } = useQuery({
     queryKey: ["my-roles", user?.id],
     queryFn: async () => {
       if (!user) return [];
@@ -126,9 +126,9 @@ export default function Sell() {
     },
   });
 
-  const isSeller = true; // roles?.includes("seller");
+  const isSeller = roles?.includes("seller");
 
-  const { data: verification } = useQuery({
+  const { data: verification, isLoading: isVerificationLoading } = useQuery({
     queryKey: ["verification", user?.id],
     queryFn: async () => {
       if (!user) return null;
@@ -139,9 +139,19 @@ export default function Sell() {
     enabled: !!user && !!isSeller,
   });
 
-// if (!user) return <Navigate to="/auth" replace />;
+  if (!user) return <Navigate to="/auth" replace />;
 
-  if (isSeller && (verification as any)?.status !== 'verified' && false) {
+  if (isRolesLoading || (isSeller && isVerificationLoading)) {
+    return (
+      <AppLayout>
+        <div className="p-4 flex items-center justify-center min-h-[50vh]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary border-t-transparent"></div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (isSeller && (verification as any)?.status !== 'verified') {
     return <Navigate to="/seller-verification" replace />;
   }
 

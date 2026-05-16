@@ -21,7 +21,8 @@ import { useSellerRealtime } from "../hooks/useSellerRealtime";
 import { ProfileCompletionBanner } from "@/shared/components/ProfileCompletionBanner";
 
 export default function Dashboard() {
-  const { user, loading } = useAuth();
+  const { user, roles, loading } = useAuth();
+  const isSeller = roles?.includes("seller");
   const [tab, setTab] = useState<Tab>("products");
   const [newCategoryName, setNewCategoryName] = useState("");
 
@@ -33,6 +34,7 @@ export default function Dashboard() {
     totalProducts,
     orders,
     sellerProfile,
+    isProfileLoading,
     pendingOrdersCount,
     openIssuesCount,
     analytics,
@@ -65,6 +67,9 @@ export default function Dashboard() {
 
   if (loading) return <div className="min-h-screen flex items-center justify-center text-primary font-black uppercase tracking-[0.2em] text-xs animate-pulse font-mono">Starting up your dashboard...</div>;
   if (!user) return <Navigate to="/auth" replace />;
+  if (!isSeller) return <Navigate to="/sell" replace />;
+  if (isProfileLoading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary border-t-transparent"></div></div>;
+  if (sellerProfile?.verification?.status !== 'verified') return <Navigate to="/seller-verification" replace />;
 
   return (
     <div className="min-h-screen bg-[#fafafa]">

@@ -72,7 +72,7 @@ export function useSellerDashboardData() {
     enabled: !!user,
   });
 
-  const { data: sellerProfile } = useQuery({
+  const { data: sellerProfile, isLoading: isProfileLoading } = useQuery({
     queryKey: ["seller-profile", user?.id],
     queryFn: async () => {
       if (!user) return null;
@@ -411,6 +411,7 @@ export function useSellerDashboardData() {
     totalProducts: productsData?.count || 0,
     orders: ordersData?.data || [],
     sellerProfile,
+    isProfileLoading,
     pendingOrdersCount,
     openIssuesCount,
     analytics,

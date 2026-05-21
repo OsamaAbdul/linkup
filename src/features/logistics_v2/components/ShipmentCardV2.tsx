@@ -48,32 +48,15 @@ export function ShipmentCardV2({ shipment, onClick }: ShipmentCardProps) {
             const orderId = shipment.order_id || shipment.id;
             
             if (newStatus === 'accepted') {
-                const pickLat = shipment.pickup_lat || shipment.order?.seller?.latitude;
-                const pickLng = shipment.pickup_lng || shipment.order?.seller?.longitude;
-                const dropLat = shipment.delivery_lat || shipment.order?.order_recipient?.[0]?.lat || shipment.order?.order_recipient?.lat || shipment.order?.buyer?.latitude;
-                const dropLng = shipment.delivery_lng || shipment.order?.order_recipient?.[0]?.lng || shipment.order?.order_recipient?.lng || shipment.order?.buyer?.longitude;
-                
-                // 1. Claim the shipment without overwriting seller's address data
-                const { error: shipError } = await supabase
-                    .from("shipments")
-                    .update({ 
-                        rider_id: user?.id,
-                        status: 'accepted',
-                        rider_lat: null, // Reset rider tracking
-                        rider_lng: null,
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq("order_id", orderId);
+                const { data: claimData, error: claimError } = await (supabase as any).rpc("claim_order_mission", {
+                    p_shipment_id: shipment.id,
+                    p_rider_id: user?.id
+                });
 
-                if (shipError) throw shipError;
-
-                // 2. Update the Order status to lock the assignment
-                const { error: orderError } = await supabase
-                    .from("orders")
-                    .update({ status: 'processing', updated_at: new Date().toISOString() })
-                    .eq("id", orderId);
-
-                if (orderError) throw orderError;
+                if (claimError) throw claimError;
+                if (!claimData?.success) {
+                    throw new Error(claimData?.error || "Mission already accepted");
+                }
             } else {
                 // For all other transitions, update the existing shipment record
                 const { error } = await supabase

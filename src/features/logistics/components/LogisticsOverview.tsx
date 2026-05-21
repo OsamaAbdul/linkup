@@ -106,6 +106,7 @@ export function LogisticsOverview({
             // This maps each order to its shipment while nesting the order data
             return (data as any[]).map(o => ({
                 ...(o.shipments?.[0] || {}),
+                id: o.shipments?.[0]?.id || o.id, // Ensure id is always present for UI stability
                 order: {
                     ...o,
                     order_recipient: o.order_recipient

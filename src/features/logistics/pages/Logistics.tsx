@@ -40,16 +40,9 @@ export default function Logistics() {
 
     const [updatingId, setUpdatingId] = useState<string | null>(null);
     const updateShipmentStatus = useMutation({
-        mutationFn: async ({ id, status, orderId }: { id: string, status: any, orderId: string }) => {
+        mutationFn: async ({ id, status }: { id: string, status: any, orderId?: string }) => {
             const { error: sError } = await (supabase as any).from("shipments").update({ status }).eq("id", id);
             if (sError) throw sError;
-
-            // Sync with order status if relevant
-            if (status === "delivered") {
-                await supabase.from("orders").update({ status: "delivered" }).eq("id", orderId);
-            } else if (status === "picked_up") {
-                await supabase.from("orders").update({ status: "picked_up" }).eq("id", orderId);
-            }
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["rider-shipments"] });

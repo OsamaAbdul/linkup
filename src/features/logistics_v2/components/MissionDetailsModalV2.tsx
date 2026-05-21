@@ -81,30 +81,15 @@ export function MissionDetailsModalV2({ shipment, open, onOpenChange }: MissionD
             const currentUserId = (await supabase.auth.getUser()).data.user?.id;
 
             if (newStatus === 'accepted') {
-                const pickLat = activeShipment?.pickup_lat || activeShipment?.order?.seller?.latitude;
-                const pickLng = activeShipment?.pickup_lng || activeShipment?.order?.seller?.longitude;
-                const dropLat = activeShipment?.delivery_lat || activeShipment?.order?.order_recipient?.[0]?.lat || activeShipment?.order?.order_recipient?.lat || activeShipment?.order?.buyer?.latitude;
-                const dropLng = activeShipment?.delivery_lng || activeShipment?.order?.order_recipient?.[0]?.lng || activeShipment?.order?.order_recipient?.lng || activeShipment?.order?.buyer?.longitude;
+                const { data: claimData, error: claimError } = await (supabase as any).rpc("claim_order_mission", {
+                    p_shipment_id: activeShipment.id,
+                    p_rider_id: currentUserId
+                });
 
-                // 1. Claim the shipment without overwriting seller's address data
-                const { error: shipError } = await (supabase as any)
-                    .from("shipments")
-                    .update({ 
-                        rider_id: currentUserId,
-                        status: 'accepted',
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq("order_id", orderId);
-
-                if (shipError) throw shipError;
-
-                // 2. Lock the Order
-                const { error: orderError } = await (supabase as any)
-                    .from("orders")
-                    .update({ status: 'processing', updated_at: new Date().toISOString() })
-                    .eq("id", orderId);
-
-                if (orderError) throw orderError;
+                if (claimError) throw claimError;
+                if (!claimData?.success) {
+                    throw new Error(claimData?.error || "Mission already accepted");
+                }
             } else {
                 // Regular status update
                 const { error } = await (supabase as any)

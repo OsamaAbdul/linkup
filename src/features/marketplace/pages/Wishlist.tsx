@@ -31,36 +31,7 @@ export default function Wishlist() {
                 .eq("user_id", user.id)
                 .order("created_at", { ascending: false });
 
-            if (!data) return [];
-
-            // Real-time synchronization fallback: Aggregating ratings if database fields are lagging
-            const { data: allReviews } = await (supabase as any)
-                .from('product_reviews')
-                .select('product_id, rating');
-            
-            const statsMap = (allReviews || []).reduce((acc: any, r: any) => {
-                if (!acc[r.product_id]) acc[r.product_id] = { sum: 0, count: 0 };
-                acc[r.product_id].sum += r.rating;
-                acc[r.product_id].count += 1;
-                return acc;
-            }, {});
-
-            return data.map((item: any) => {
-                if (!item.products) return item;
-                const p = item.products;
-                const hasReviews = statsMap[p.id];
-                const derivedAvg = hasReviews ? statsMap[p.id].sum / statsMap[p.id].count : 0;
-                const derivedCount = hasReviews ? statsMap[p.id].count : 0;
-                
-                return {
-                    ...item,
-                    products: {
-                        ...p,
-                        avg_rating: (p.avg_rating || 0) > 0 ? p.avg_rating : derivedAvg,
-                        reviews_count: (p.reviews_count || 0) > 0 ? p.reviews_count : derivedCount
-                    }
-                };
-            });
+            return data || [];
         },
         enabled: !!user
     });

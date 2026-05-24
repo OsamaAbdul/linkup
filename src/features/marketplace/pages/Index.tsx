@@ -224,29 +224,7 @@ export default function Index() {
       const { data, error } = await q;
       if (error) throw error;
 
-      // Real-time synchronization fallback: Aggregating ratings if database fields are lagging
-      const { data: allReviews } = await (supabase as any)
-        .from('product_reviews')
-        .select('product_id, rating');
-      
-      const statsMap = (allReviews || []).reduce((acc: any, r: any) => {
-        if (!acc[r.product_id]) acc[r.product_id] = { sum: 0, count: 0 };
-        acc[r.product_id].sum += r.rating;
-        acc[r.product_id].count += 1;
-        return acc;
-      }, {});
-
-      return data.map((p: any) => {
-        const hasReviews = statsMap[p.id];
-        const derivedAvg = hasReviews ? statsMap[p.id].sum / statsMap[p.id].count : 0;
-        const derivedCount = hasReviews ? statsMap[p.id].count : 0;
-        
-        return {
-          ...p,
-          avg_rating: (p.avg_rating || 0) > 0 ? p.avg_rating : derivedAvg,
-          reviews_count: (p.reviews_count || 0) > 0 ? p.reviews_count : derivedCount
-        };
-      });
+      return data || [];
     },
   });
 
@@ -397,7 +375,7 @@ export default function Index() {
         <div className="relative pt-1">
           <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-2 -mx-2 px-2">
             {CATEGORY_TABS.map(tab => {
-              const Icon = CATEGORY_ICON_MAP[tab.icon] || Grid;
+              const Icon = CATEGORY_ICON_MAP[(tab as any).icon] || Grid;
               const isActive = selectedTab === tab.name;
               return (
                 <button

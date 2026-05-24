@@ -17,7 +17,7 @@ function ForceReleaseButton() {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase.rpc("force_release_all_funds");
+      const { data, error } = await (supabase as any).rpc("force_release_all_funds");
       
       if (error) throw error;
       

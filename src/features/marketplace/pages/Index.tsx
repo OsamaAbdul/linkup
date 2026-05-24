@@ -10,6 +10,7 @@ import { useWishlist } from "@/features/marketplace/hooks/useWishlist";
 import { useReferral } from "@/features/promoter/hooks/useReferral";
 import { AppLayout } from "@/shared/components/layout/AppLayout";
 import { Skeleton } from "@/shared/components/ui/skeleton";
+import { WeaveSpinner } from "@/shared/components/ui/weave-spinner";
 import { Input } from "@/shared/components/ui/input";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
@@ -451,16 +452,11 @@ export default function Index() {
 
 
         {/* Product Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-6">
+        <div className={cn("grid gap-3 sm:gap-6", isLoading ? "grid-cols-1" : "grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4")}>
           {isLoading ? (
-            Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="space-y-3">
-                <Skeleton className="h-48 w-full rounded-xl" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
-                <Skeleton className="h-8 w-full rounded-lg" />
-              </div>
-            ))
+            <div className="flex justify-center items-center py-24 min-h-[300px]">
+              <WeaveSpinner />
+            </div>
           ) : (
             displayProducts.map((product: any, i) => (
               <ProductCard

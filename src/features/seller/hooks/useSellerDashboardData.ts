@@ -78,13 +78,15 @@ export function useSellerDashboardData() {
       if (!user) return null;
       const { data: profile } = await supabase
         .from("profiles")
-        .select("*")
+        .select(
+          "id, user_id, display_name, avatar_url, phone, bio, email, city_id, zone_id, payout_bank_name, payout_account_number, payout_account_name"
+        )
         .eq("user_id", user.id)
         .maybeSingle();
 
       const { data: verification } = await supabase
         .from("seller_verifications")
-        .select("*")
+        .select("id, user_id, status, business_name, business_address, id_type, id_number, created_at")
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -340,7 +342,8 @@ export function useSellerDashboardData() {
         .from("orders")
         .select("total_amount, created_at")
         .eq("seller_id", user.id)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: true })
+        .limit(1000);
       if (error) return { revenue: 0, count: 0, chartData: [] };
       const totalRevenue = data.reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0);
       const chartValues = Object.entries(data.reduce((acc: Record<string, number>, o) => {

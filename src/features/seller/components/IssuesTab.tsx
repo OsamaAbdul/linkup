@@ -19,9 +19,12 @@ export function IssuesTab() {
         queryFn: async () => {
             const { data, error } = await supabase
                 .from("issues" as any)
-                .select("*, reporter:profiles!user_id(display_name), products(title)")
+                .select(
+                  "id, title, description, status, priority, created_at, order_id, evidence_url, seller_id, user_id, reporter:profiles!user_id(display_name), products(title)"
+                )
                 .eq("seller_id", user?.id)
-                .order("created_at", { ascending: false });
+                .order("created_at", { ascending: false })
+                .limit(20);
             if (error) throw error;
             return data;
         },

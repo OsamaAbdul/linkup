@@ -55,7 +55,7 @@ export function PayoutRequestModal({ isOpen, onClose, wallet, balanceOverride }:
     const { data: settings } = useQuery({
         queryKey: ["payout-settings"],
         queryFn: async () => {
-            const { data } = await supabase.from("system_settings").select("*");
+            const { data } = await supabase.from("system_settings").select("key, value");
             const withdrawal_fee = data?.find(s => s.key === 'withdrawal_fee')?.value as { amount: number, type: string };
             const payout_interval = data?.find(s => s.key === 'payout_interval_days')?.value as number;
             return { withdrawal_fee, payout_interval };

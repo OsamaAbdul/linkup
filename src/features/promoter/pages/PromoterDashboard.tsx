@@ -75,9 +75,10 @@ export default function PromoterDashboard() {
       if (!user) return [];
       const { data } = await supabase
         .from("commissions")
-        .select("*")
+        .select("id, amount, status, created_at, order_id")
         .eq("promoter_id", user.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(50);
       console.log("this is the promoter's comission", data)
       return data ?? [];
 
@@ -112,9 +113,10 @@ export default function PromoterDashboard() {
       if (!user) return [];
       const { data } = await supabase
         .from("referrals")
-        .select("*")
+        .select("id, status, created_at, buyer_id, visitor_id, product_id")
         .eq("promoter_id", user.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(50);
       console.log("[PromoterDebug] Referrals Table Data:", data);
       return data ?? [];
     },
@@ -128,9 +130,10 @@ export default function PromoterDashboard() {
       if (!user) return [];
       const { data } = await (supabase
         .from("payout_requests" as any)
-        .select("*")
+        .select("id, amount, status, created_at, admin_note")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false }) as any);
+        .order("created_at", { ascending: false })
+        .limit(20) as any);
       return data ?? [];
     },
     enabled: !!user,
@@ -189,7 +192,8 @@ export default function PromoterDashboard() {
         .from("products" as any)
         .select("id, title, price, images, description, inventory")
         .gt("inventory", 0)
-        .order("created_at", { ascending: false }) as any);
+        .order("created_at", { ascending: false })
+        .limit(20) as any);
       return data ?? [];
     },
   });

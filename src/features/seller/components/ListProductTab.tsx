@@ -76,7 +76,7 @@ export function ListProductTab() {
   const { data: cities = [] } = useQuery({
     queryKey: ["cities"],
     queryFn: async () => {
-      const { data } = await (supabase as any).from("cities").select("*").eq("is_active", true).order("name");
+      const { data } = await (supabase as any).from("cities").select("id, name").eq("is_active", true).order("name");
       return (data as any[]) || [];
     },
   });
@@ -85,7 +85,7 @@ export function ListProductTab() {
     queryKey: ["zones", form.city_id],
     queryFn: async () => {
       if (!form.city_id) return [];
-      const { data } = await (supabase as any).from("delivery_zones").select("*").eq("city_id", form.city_id).eq("is_active", true).order("name");
+      const { data } = await (supabase as any).from("delivery_zones").select("id, name, city_id").eq("city_id", form.city_id).eq("is_active", true).order("name");
       return (data as any[]) || [];
     },
     enabled: !!form.city_id,

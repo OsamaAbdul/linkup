@@ -7,6 +7,7 @@ const ONE_DAY = 1000 * 60 * 60 * 24;
 /**
  * Hook to fetch and cache marketplace categories.
  * Optimized with 1-hour staleTime and 24-hour retention.
+ * Only fetches fields used by the UI (id, name, slug, icon).
  */
 export const useCategories = () => {
   return useQuery({
@@ -14,7 +15,7 @@ export const useCategories = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("categories")
-        .select("*")
+        .select("id, name, slug, icon")
         .order("name");
       
       if (error) throw error;
@@ -29,6 +30,7 @@ export const useCategories = () => {
  * Hook to fetch and cache delivery zones.
  * Can fetch all zones or be filtered by cityId.
  * Optimized with 1-hour staleTime and 24-hour retention.
+ * Only fetches fields used by the UI.
  */
 export const useZones = (cityId?: string) => {
   return useQuery({
@@ -36,7 +38,7 @@ export const useZones = (cityId?: string) => {
     queryFn: async () => {
       let query = supabase
         .from("delivery_zones")
-        .select("*, cities:city_id(name)")
+        .select("id, name, city_id, is_active, cities:city_id(name)")
         .eq("is_active", true)
         .order("name");
       
@@ -55,6 +57,7 @@ export const useZones = (cityId?: string) => {
 
 /**
  * Hook to fetch and cache cities.
+ * Only fetches fields used by the UI (id, name, is_active).
  */
 export const useCities = () => {
   return useQuery({
@@ -62,7 +65,7 @@ export const useCities = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("cities")
-        .select("*")
+        .select("id, name, is_active")
         .eq("is_active", true)
         .order("name");
       

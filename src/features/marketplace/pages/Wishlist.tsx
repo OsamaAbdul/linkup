@@ -25,13 +25,30 @@ export default function Wishlist() {
         queryKey: ["wishlist", user?.id],
         queryFn: async () => {
             if (!user) return [];
-            const { data } = await supabase
-                .from("likes")
-                .select("*, products(*, profiles(display_name))")
-                .eq("user_id", user.id)
-                .order("created_at", { ascending: false });
 
-            return data || [];
+            // Step 1: Fetch likes — minimal fields only, no joins
+            const { data: likes } = await supabase
+                .from("likes")
+                .select("id, product_id, created_at")
+                .eq("user_id", user.id)
+                .order("created_at", { ascending: false })
+                .limit(50);
+
+            if (!likes || likes.length === 0) return [];
+
+            // Step 2: Batch-fetch products by id — explicit fields only
+            const productIds = likes.map((l) => l.product_id);
+            const { data: products } = await supabase
+                .from("products")
+                .select("id, title, price, images, avg_rating, latitude, longitude, inventory")
+                .in("id", productIds);
+
+            // Merge likes with their product data
+            const productMap = new Map((products || []).map((p) => [p.id, p]));
+            return likes.map((like) => ({
+                ...like,
+                products: productMap.get(like.product_id) ?? null,
+            }));
         },
         enabled: !!user
     });

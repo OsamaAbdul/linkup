@@ -80,9 +80,10 @@ export function WalletTab() {
         queryFn: async () => {
             const { data, error } = await supabase
                 .from("payout_requests")
-                .select("*")
+                .select("id, amount, fee_amount, status, created_at, bank_name, account_number, account_name")
                 .eq("user_id", user?.id)
-                .order("created_at", { ascending: false });
+                .order("created_at", { ascending: false })
+                .limit(20);
 
             if (error) console.error("Payout history fetch error:", error);
             return data ?? [];

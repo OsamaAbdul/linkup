@@ -15,7 +15,12 @@ export default function Notifications() {
     queryKey: ["notifications", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await supabase.from("notifications").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+      const { data } = await supabase
+        .from("notifications")
+        .select("id, message, read, created_at, type")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
       return data ?? [];
     },
     enabled: !!user,

@@ -48,8 +48,12 @@ export function ShipmentCardV2({ shipment, onClick }: ShipmentCardProps) {
             const orderId = shipment.order_id || shipment.id;
             
             if (newStatus === 'accepted') {
+                // Prefer order_id for the RPC — the updated function handles both
+                // shipment IDs and order IDs, but order_id is the reliable fallback
+                // when no shipment row exists yet (broadcast-only flow).
+                const missionId = shipment.order_id || shipment.id;
                 const { data: claimData, error: claimError } = await (supabase as any).rpc("claim_order_mission", {
-                    p_shipment_id: shipment.id,
+                    p_shipment_id: missionId,
                     p_rider_id: user?.id
                 });
 

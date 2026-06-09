@@ -71,15 +71,24 @@ export function ShipmentFeedV2() {
 
                 if (!orderError && orderMissions) {
                     // Transform Orders into Mission Feed format
-                    broadcastData = orderMissions.map((o: any) => ({
-                        ...(o.shipments?.[0] || {}),
-                        id: o.shipments?.[0]?.id || o.id, // Ensure id is always present for UI stability
-                        order: o,
-                        seller: o.seller, // Pass profile through for utils
-                        buyer: o.buyer, // Pass profile through for utils
-                        pickup_address_text: o.shipments?.[0]?.pickup_address_text || o.seller?.address,
-                        delivery_address_text: o.order_recipient?.[0]?.address_line || o.order_recipient?.address_line || o.buyer?.address
-                    }));
+                    broadcastData = orderMissions.map((o: any) => {
+                        const shipment = o.shipments?.[0];
+                        return {
+                            ...(shipment || {}),
+                            // id: prefer real shipment id, fall back to order id so the card renders
+                            id: shipment?.id || o.id,
+                            // Always carry the real order_id so claim_order_mission gets the right value
+                            order_id: o.id,
+                            order: o,
+                            seller: o.seller,
+                            buyer: o.buyer,
+                            pickup_address_text: shipment?.pickup_address_text || o.seller?.address,
+                            delivery_address_text:
+                                o.order_recipient?.[0]?.address_line ||
+                                o.order_recipient?.address_line ||
+                                o.buyer?.address,
+                        };
+                    });
                 }
             }
 

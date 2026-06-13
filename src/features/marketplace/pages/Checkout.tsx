@@ -152,10 +152,10 @@ export default function Checkout() {
   const crossZoneFee = baseCrossZoneFee * crossZoneSellerCount;
 
   const selectedZone = zones.find((z: any) => z.id === shipping.zone_id);
-  const zoneFee = selectedZone?.delivery_fee;
-  const baseDeliveryFee = (zoneFee === 0 || zoneFee === 1500 || zoneFee === null || zoneFee === undefined)
+  const zFee = (selectedZone as any)?.delivery_fee;
+  const baseDeliveryFee = (zFee === 0 || zFee === 1500 || zFee === null || zFee === undefined)
     ? (shipping.zone_id ? dynamicDefaultFee : 0)
-    : zoneFee;
+    : zFee;
   const deliveryFee = baseDeliveryFee * sellerCount;
   const grandTotal = productTotal + deliveryFee + crossZoneFee;
 

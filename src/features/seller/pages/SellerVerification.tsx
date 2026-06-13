@@ -102,6 +102,7 @@ export default function SellerVerification() {
         onSuccess: () => {
             toast.success("Verification submitted successfully!");
             queryClient.invalidateQueries({ queryKey: ["seller-verification", user?.id] });
+            queryClient.invalidateQueries({ queryKey: ["seller-profile", user?.id] });
         },
         onError: (err: any) => toast.error(err.message),
     });
@@ -118,7 +119,10 @@ export default function SellerVerification() {
                     <CheckCircle className="w-16 h-16 text-primary mx-auto" />
                     <h2 className="text-2xl font-bold">You are Verified!</h2>
                     <p className="text-muted-foreground">Your seller account is active and verified. You can now list products.</p>
-                    <Button onClick={() => navigate("/dashboard")}>Go to Dashboard</Button>
+                    <Button onClick={async () => {
+                        await queryClient.invalidateQueries({ queryKey: ["seller-profile"] });
+                        navigate("/dashboard");
+                    }}>Go to Dashboard</Button>
                 </div>
             </AppLayout>
         );

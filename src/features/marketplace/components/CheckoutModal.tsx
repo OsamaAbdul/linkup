@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import Receipt from "./Receipt";
 import { cn } from "@/lib/utils";
+import { LazyImage } from "@/shared/components/ui/LazyImage";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { getReferralAttribution } from "@/features/promoter/hooks/useReferral";
 import {
@@ -79,7 +80,7 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
     const dynamicDefaultFee = riderFeeConfig?.flat_fee ?? DELIVERY_FEE;
 
     const selectedZone = zones.find(z => z.id === zoneId);
-    const zFee = selectedZone?.delivery_fee;
+    const zFee = (selectedZone as any)?.delivery_fee;
     const baseFee = (zFee === 0 || zFee === 1500 || zFee === null || zFee === undefined) ? dynamicDefaultFee : zFee;
     const deliveryFee = deliveryMethod === "standard" ? baseFee : 0;
     const productPrice = product.price;
@@ -211,7 +212,7 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
                             {/* Product Summary */}
                             <div className="flex gap-4 p-3 bg-white rounded-xl border border-black/5">
                                 <div className="h-20 w-20 rounded-xl bg-muted overflow-hidden flex-shrink-0">
-                                    {product.images?.[0] && <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover" />}
+                                    {product.images?.[0] && <LazyImage src={product.images[0]} alt={product.title} className="w-full h-full object-cover" />}
                                 </div>
                                 <div className="flex-1 space-y-1">
                                     <h3 className="font-semibold text-foreground line-clamp-1">{product.title}</h3>

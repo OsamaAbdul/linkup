@@ -1,5 +1,6 @@
 import { Heart, Star, ShoppingCart, MapPin, Share2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { LazyImage } from "@/shared/components/ui/LazyImage";
 import { m } from "framer-motion";
 import { Badge } from "@/shared/components/ui/badge";
 import { Card, CardContent } from "@/shared/components/ui/card";
@@ -62,14 +63,13 @@ export function ProductCard({
         <Link to={`/product/${id}`} className="block relative">
           <div className="aspect-[4/3] bg-muted relative overflow-hidden">
             {image ? (
-              <img
+              <LazyImage
                 src={image}
                 alt={title}
                 className={cn(
                   "w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110",
                   isOutOfStock && "opacity-50 grayscale"
                 )}
-                loading="lazy"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-secondary/50 text-[10px]">No image</div>

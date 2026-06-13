@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/context/AuthContext";
@@ -84,6 +84,20 @@ export default function SearchPage() {
 
   const products = infiniteData?.pages.flat() || [];
 
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    if (loadMoreRef.current) observer.observe(loadMoreRef.current);
+    return () => observer.disconnect();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
   return (
     <AppLayout>
       <div className="p-4 space-y-4">
@@ -133,15 +147,12 @@ export default function SearchPage() {
           )}
         </div>
         {hasNextPage && (
-          <div className="flex justify-center py-4">
-            <Button
-              variant="outline"
-              onClick={() => fetchNextPage()}
-              disabled={isFetchingNextPage}
-              className="w-full max-w-xs"
-            >
-              {isFetchingNextPage ? "Loading more..." : "Load More"}
-            </Button>
+          <div ref={loadMoreRef} className="flex justify-center py-4">
+            {isFetchingNextPage ? (
+              <span className="text-sm text-muted-foreground">Loading more...</span>
+            ) : (
+              <div className="h-4"></div>
+            )}
           </div>
         )}
       </div>

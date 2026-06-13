@@ -11,9 +11,13 @@ import {
     Globe, 
     Plus, 
     Trash2, 
-    Search, 
     Settings2,
-    Loader2
+    Loader2,
+    Eye,
+    EyeOff,
+    Check,
+    DollarSign,
+    Pencil
 } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
@@ -22,7 +26,8 @@ export default function AdminLogisticsManager() {
     const queryClient = useQueryClient();
     const [newVehicle, setNewVehicle] = useState("");
     const [newCity, setNewCity] = useState("");
-    const [newZone, setNewZone] = useState({ name: "", city_id: "" });
+    const [newZone, setNewZone] = useState({ name: "", city_id: "", delivery_fee: "" });
+    const [editFee, setEditFee] = useState<Record<string, string>>({});
 
     // Fetch Data
     const { data: vehicleTypes = [], isLoading: loadingVehicles } = useQuery({
@@ -34,19 +39,25 @@ export default function AdminLogisticsManager() {
         }
     });
 
-    const { data: cities = [], isLoading: loadingCities } = useQuery({
-        queryKey: ["admin-cities"],
+    const { data: zones = [], isLoading: loadingZones } = useQuery({
+        queryKey: ["admin-delivery-zones"],
         queryFn: async () => {
-            const { data, error } = await supabase.from("cities").select("*").order("name");
+            const { data, error } = await supabase
+                .from("delivery_zones")
+                .select("id, name, is_active, delivery_fee, city_id, cities(name)")
+                .order("name");
             if (error) throw error;
             return data || [];
         }
     });
 
-    const { data: zones = [], isLoading: loadingZones } = useQuery({
-        queryKey: ["admin-delivery-zones"],
+    const { data: cities = [], isLoading: loadingCities } = useQuery({
+        queryKey: ["admin-cities"],
         queryFn: async () => {
-            const { data, error } = await supabase.from("delivery_zones").select("*, cities(name)").order("name");
+            const { data, error } = await supabase
+                .from("cities")
+                .select("id, name, is_active")
+                .order("name");
             if (error) throw error;
             return data || [];
         }
@@ -94,15 +105,18 @@ export default function AdminLogisticsManager() {
             const { error } = await supabase.from("delivery_zones").insert([{ 
                 name: newZone.name, 
                 city_id: newZone.city_id,
+                delivery_fee: newZone.delivery_fee ? parseFloat(newZone.delivery_fee) : null,
                 is_active: true 
             }]);
             if (error) throw error;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["admin-delivery-zones"] });
-            setNewZone({ name: "", city_id: "" });
+            queryClient.invalidateQueries({ queryKey: ["marketplace-zones"] });
+            setNewZone({ name: "", city_id: "", delivery_fee: "" });
             toast.success("Delivery zone added successfully");
-        }
+        },
+        onError: (e: any) => toast.error(e.message)
     });
 
     const deleteZoneMutation = useMutation({
@@ -112,8 +126,67 @@ export default function AdminLogisticsManager() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["admin-delivery-zones"] });
+            queryClient.invalidateQueries({ queryKey: ["marketplace-zones"] });
             toast.success("Zone removed");
         }
+    });
+
+    const toggleZoneMutation = useMutation({
+        mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+            const { error } = await supabase
+                .from("delivery_zones")
+                .update({ is_active })
+                .eq("id", id);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["admin-delivery-zones"] });
+            queryClient.invalidateQueries({ queryKey: ["marketplace-zones"] });
+            queryClient.invalidateQueries({ queryKey: ["marketplace-zones-all"] });
+            toast.success("Zone visibility updated");
+        },
+        onError: (e: any) => toast.error(e.message)
+    });
+
+    const updateFeeMutation = useMutation({
+        mutationFn: async ({ id, delivery_fee }: { id: string; delivery_fee: number | null }) => {
+            const { error } = await supabase
+                .from("delivery_zones")
+                .update({ delivery_fee })
+                .eq("id", id);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["admin-delivery-zones"] });
+            toast.success("Delivery fee updated");
+        },
+        onError: (e: any) => toast.error(e.message)
+    });
+
+    const deleteCityMutation = useMutation({
+        mutationFn: async (id: string) => {
+            const { error } = await supabase.from("cities").delete().eq("id", id);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["admin-cities"] });
+            queryClient.invalidateQueries({ queryKey: ["marketplace-cities"] });
+            toast.success("City removed");
+        },
+        onError: (e: any) => toast.error(e.message)
+    });
+
+    const toggleCityMutation = useMutation({
+        mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+            const { error } = await supabase.from("cities").update({ is_active }).eq("id", id);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["admin-cities"] });
+            queryClient.invalidateQueries({ queryKey: ["marketplace-cities"] });
+            toast.success("City visibility updated");
+        },
+        onError: (e: any) => toast.error(e.message)
     });
 
     return (
@@ -241,6 +314,16 @@ export default function AdminLogisticsManager() {
                                         ))}
                                     </select>
                                 </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Delivery Fee (₦) — Optional</label>
+                                    <Input
+                                        type="number"
+                                        placeholder="e.g. 1500"
+                                        value={newZone.delivery_fee}
+                                        onChange={(e) => setNewZone({ ...newZone, delivery_fee: e.target.value })}
+                                        className="h-12 rounded-xl bg-muted/30 border-none font-bold"
+                                    />
+                                </div>
                                 <Button 
                                     className="w-full h-12 rounded-xl font-black uppercase tracking-widest text-xs"
                                     onClick={() => addZoneMutation.mutate()}
@@ -259,26 +342,80 @@ export default function AdminLogisticsManager() {
                             <div className="divide-y divide-gray-50">
                                 {loadingZones ? (
                                     <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>
+                                ) : zones.length === 0 ? (
+                                    <div className="p-12 text-center text-muted-foreground font-bold italic">No zones added yet.</div>
                                 ) : (
                                     zones.map((z: any) => (
-                                        <div key={z.id} className="p-6 flex items-center justify-between hover:bg-gray-50/50 transition-colors group">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-xl bg-muted/50 flex items-center justify-center text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-all">
-                                                    <MapPin size={20} />
+                                        <div key={z.id} className="p-5 hover:bg-gray-50/50 transition-colors group">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                                                        z.is_active ? "bg-emerald-100 text-emerald-600" : "bg-gray-100 text-gray-400"
+                                                    }`}>
+                                                        <MapPin size={18} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-black text-foreground">{z.name}</p>
+                                                        <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
+                                                            {(z.cities as any)?.name || 'No city'}
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <p className="font-black text-foreground">{z.name}</p>
-                                                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{z.cities?.name || 'Local'} Group</p>
+                                                <div className="flex items-center gap-2">
+                                                    <Badge className={`border-none text-[9px] font-black uppercase ${
+                                                        z.is_active
+                                                            ? "bg-emerald-500/10 text-emerald-600"
+                                                            : "bg-gray-200 text-gray-500"
+                                                    }`}>
+                                                        {z.is_active ? "Visible" : "Hidden"}
+                                                    </Badge>
+                                                    <Button
+                                                        variant="ghost" size="icon"
+                                                        className={`rounded-xl h-9 w-9 ${
+                                                            z.is_active
+                                                                ? "text-emerald-600 hover:bg-emerald-50"
+                                                                : "text-gray-400 hover:bg-gray-100"
+                                                        }`}
+                                                        title={z.is_active ? "Hide from marketplace" : "Show in marketplace"}
+                                                        onClick={() => toggleZoneMutation.mutate({ id: z.id, is_active: !z.is_active })}
+                                                    >
+                                                        {z.is_active ? <Eye size={16} /> : <EyeOff size={16} />}
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost" size="icon"
+                                                        className="rounded-xl h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                                        onClick={() => deleteZoneMutation.mutate(z.id)}
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </Button>
                                                 </div>
                                             </div>
-                                            <Button 
-                                                variant="ghost" 
-                                                size="icon" 
-                                                className="rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                                onClick={() => deleteZoneMutation.mutate(z.id)}
-                                            >
-                                                <Trash2 size={18} />
-                                            </Button>
+                                            {/* Inline delivery fee editor */}
+                                            <div className="flex items-center gap-2 pl-13 ml-13">
+                                                <DollarSign size={13} className="text-muted-foreground shrink-0" />
+                                                <Input
+                                                    type="number"
+                                                    placeholder="Set delivery fee (₦)"
+                                                    value={editFee[z.id] ?? (z.delivery_fee ?? "")}
+                                                    onChange={(e) => setEditFee(f => ({ ...f, [z.id]: e.target.value }))}
+                                                    className="h-8 text-xs rounded-lg bg-muted/20 border border-muted font-bold flex-1"
+                                                />
+                                                <Button
+                                                    size="sm"
+                                                    className="h-8 px-3 rounded-lg text-[10px] font-black uppercase"
+                                                    disabled={editFee[z.id] === undefined || updateFeeMutation.isPending}
+                                                    onClick={() => {
+                                                        const fee = editFee[z.id];
+                                                        updateFeeMutation.mutate({
+                                                            id: z.id,
+                                                            delivery_fee: fee === "" ? null : parseFloat(fee)
+                                                        });
+                                                        setEditFee(f => { const n = { ...f }; delete n[z.id]; return n; });
+                                                    }}
+                                                >
+                                                    <Check size={12} />
+                                                </Button>
+                                            </div>
                                         </div>
                                     ))
                                 )}
@@ -320,17 +457,48 @@ export default function AdminLogisticsManager() {
                                 <CardTitle className="text-xl font-black uppercase tracking-tight italic">Active Cities</CardTitle>
                                 <Badge variant="outline" className="rounded-full bg-primary/10 text-primary border-none px-4 py-1 font-black text-[10px] uppercase">{cities.length} Units</Badge>
                             </div>
-                            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="divide-y divide-gray-50">
                                 {loadingCities ? (
                                     <div className="col-span-full py-12 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>
+                                ) : cities.length === 0 ? (
+                                    <div className="p-12 text-center text-muted-foreground font-bold italic">No cities added yet.</div>
                                 ) : (
                                     cities.map((c: any) => (
-                                        <div key={c.id} className="p-4 rounded-xl border border-black/[0.03] bg-muted/10 flex items-center justify-between group hover:border-primary/20 transition-all">
+                                        <div key={c.id} className="p-5 flex items-center justify-between group hover:bg-gray-50/50 transition-colors">
                                             <div className="flex items-center gap-3">
-                                                <Globe size={16} className="text-muted-foreground group-hover:text-primary transition-colors" />
-                                                <span className="font-bold text-foreground">{c.name}</span>
+                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                                                    c.is_active ? "bg-emerald-100 text-emerald-600" : "bg-gray-100 text-gray-400"
+                                                }`}>
+                                                    <Globe size={16} />
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-foreground">{c.name}</p>
+                                                    <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">
+                                                        {c.is_active ? "Visible in marketplace" : "Hidden from marketplace"}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <Badge variant="outline" className="border-none bg-green-500/10 text-green-600 font-black text-[8px] uppercase">Active</Badge>
+                                            <div className="flex items-center gap-1.5">
+                                                <Button
+                                                    variant="ghost" size="icon"
+                                                    className={`rounded-xl h-9 w-9 ${
+                                                        c.is_active
+                                                            ? "text-emerald-600 hover:bg-emerald-50"
+                                                            : "text-gray-400 hover:bg-gray-100"
+                                                    }`}
+                                                    title={c.is_active ? "Hide city" : "Show city"}
+                                                    onClick={() => toggleCityMutation.mutate({ id: c.id, is_active: !c.is_active })}
+                                                >
+                                                    {c.is_active ? <Eye size={15} /> : <EyeOff size={15} />}
+                                                </Button>
+                                                <Button
+                                                    variant="ghost" size="icon"
+                                                    className="rounded-xl h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                                    onClick={() => deleteCityMutation.mutate(c.id)}
+                                                >
+                                                    <Trash2 size={15} />
+                                                </Button>
+                                            </div>
                                         </div>
                                     ))
                                 )}

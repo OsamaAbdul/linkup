@@ -86,7 +86,7 @@ export function useSellerDashboardData() {
 
       const { data: verification } = await supabase
         .from("seller_verifications")
-        .select("id, user_id, status, business_name, business_address, id_type, id_number, created_at")
+        .select("id, user_id, status, business_name, business_address, created_at")
         .eq("user_id", user.id)
         .maybeSingle();
 

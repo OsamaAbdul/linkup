@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/context/AuthContext";
@@ -17,6 +17,7 @@ import { Badge } from "@/shared/components/ui/badge";
 import {
   Search, SlidersHorizontal, Filter, ChevronDown, X, Grid, MapPin,
   Heart, Sparkles, Shirt, Laptop, Home as HomeIcon, ShoppingBag, Apple,
+  ChevronLeft, ChevronRight,
 } from "lucide-react";
 import {
   Sheet,
@@ -88,6 +89,10 @@ export default function Index() {
 
   const [sortOption, setSortOption] = useState("newest");
   const [priceRange, setPriceRange] = useState([0, 1000000]);
+  const [page, setPage] = useState(0);
+
+  // Reset to first page whenever any filter changes
+  useEffect(() => { setPage(0); }, [searchQuery, selectedTab, sortOption, priceRange, selectedZone]);
 
   // Real-time cache invalidation
   useEffect(() => {
@@ -248,6 +253,19 @@ export default function Index() {
     }
   };
 
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    if (loadMoreRef.current) observer.observe(loadMoreRef.current);
+    return () => observer.disconnect();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   const displayProducts = infiniteProducts?.pages.flat() || [];
 
@@ -377,13 +395,14 @@ export default function Index() {
           <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-2 -mx-2 px-2">
             {CATEGORY_TABS.map(tab => {
               const Icon = CATEGORY_ICON_MAP[(tab as any).icon] || Grid;
-              const isActive = selectedTab === tab.name;
+              const tabName = (tab as any).name;
+              const isActive = selectedTab === tabName;
               return (
                 <button
-                  key={tab.name}
+                  key={tabName}
                   role="tab"
                   aria-selected={isActive}
-                  onClick={() => setSelectedTab(tab.name)}
+                  onClick={() => setSelectedTab(tabName)}
                   className={cn(
                     "px-4 py-2.5 sm:px-6 sm:py-3 rounded-xl sm:rounded-xl text-[10px] sm:text-[11px] font-black transition-all flex items-center gap-2 sm:gap-3 shrink-0 group relative shadow-sm border",
                     isActive
@@ -392,7 +411,7 @@ export default function Index() {
                   )}
                 >
                   <Icon size={14} className={cn("transition-transform group-hover:scale-125 duration-500", isActive && "text-white scale-110")} />
-                  <span className="tracking-tight">{tab.name}</span>
+                  <span className="tracking-tight">{tabName}</span>
                 </button>
               );
             })}
@@ -495,15 +514,12 @@ export default function Index() {
         </div>
 
         {hasNextPage && (
-          <div className="flex justify-center py-8">
-            <Button
-              variant="outline"
-              onClick={() => fetchNextPage()}
-              disabled={isFetchingNextPage}
-              className="min-w-[200px]"
-            >
-              {isFetchingNextPage ? "Loading more..." : "Load More Products"}
-            </Button>
+          <div ref={loadMoreRef} className="flex justify-center py-8">
+            {isFetchingNextPage ? (
+              <WeaveSpinner />
+            ) : (
+              <div className="h-10"></div>
+            )}
           </div>
         )}
 

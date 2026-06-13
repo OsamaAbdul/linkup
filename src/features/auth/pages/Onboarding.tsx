@@ -9,6 +9,7 @@ import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { toast } from "sonner";
+import imageCompression from "browser-image-compression";
 import {
   Store, ShoppingBag, Truck, Megaphone, CheckCircle2, MapPin,
   User, ArrowRight, ArrowLeft, Upload, Calendar, Phone, Home, CreditCard, Users
@@ -188,7 +189,15 @@ export default function Onboarding() {
     try {
       const ext = logisticsData.passportFile.name.split(".").pop();
       const path = `${user!.id}/passport_${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage.from("kyc-documents").upload(path, logisticsData.passportFile);
+      
+      let fileToUpload = logisticsData.passportFile;
+      try {
+          fileToUpload = await imageCompression(logisticsData.passportFile, { maxSizeMB: 0.5, maxWidthOrHeight: 1920, useWebWorker: true });
+      } catch (e) {
+          console.error("Compression error:", e);
+      }
+
+      const { error: uploadError } = await supabase.storage.from("kyc-documents").upload(path, fileToUpload);
       if (uploadError) throw uploadError;
 
       const { error: kycError } = await (supabase as any).from("logistics_kyc").insert({

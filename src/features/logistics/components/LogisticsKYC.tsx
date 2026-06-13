@@ -30,6 +30,7 @@ import {
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import imageCompression from "browser-image-compression";
 
 const FormField = ({ label, icon: Icon, children, className = "" }: any) => (
   <div className={cn("space-y-1.5", className)}>
@@ -125,7 +126,15 @@ export function LogisticsKYC() {
       const uploadFile = async (file: File, prefix: string) => {
         const ext = file.name.split(".").pop();
         const path = `${user!.id}/${prefix}_${Date.now()}.${ext}`;
-        const { error } = await supabase.storage.from("kyc-documents").upload(path, file);
+        
+        let fileToUpload = file;
+        try {
+            fileToUpload = await imageCompression(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1920, useWebWorker: true });
+        } catch (e) {
+            console.error("Compression error:", e);
+        }
+
+        const { error } = await supabase.storage.from("kyc-documents").upload(path, fileToUpload);
         if (error) throw error;
         return path;
       };

@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Upload, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCities, useZones } from "@/shared/hooks/use-marketplace-metadata";
+import imageCompression from "browser-image-compression";
 
 export default function SellerVerification() {
     const { user, roles, loading: authLoading } = useAuth();
@@ -70,13 +71,24 @@ export default function SellerVerification() {
             // Upload ID
             const idExt = nationalIdFile.name.split(".").pop();
             const idPath = `${user!.id}/id_${Date.now()}.${idExt}`;
-            const { error: idError } = await supabase.storage.from("kyc-documents").upload(idPath, nationalIdFile);
+            
+            let idFileToUpload = nationalIdFile;
+            let storeFileToUpload = storePhotoFile;
+
+            try {
+                idFileToUpload = await imageCompression(nationalIdFile, { maxSizeMB: 0.5, maxWidthOrHeight: 1920, useWebWorker: true });
+                storeFileToUpload = await imageCompression(storePhotoFile, { maxSizeMB: 0.5, maxWidthOrHeight: 1920, useWebWorker: true });
+            } catch (e) {
+                console.error("Compression error:", e);
+            }
+
+            const { error: idError } = await supabase.storage.from("kyc-documents").upload(idPath, idFileToUpload);
             if (idError) throw idError;
 
             // Upload Store Photo
             const storeExt = storePhotoFile.name.split(".").pop();
             const storePath = `${user!.id}/store_${Date.now()}.${storeExt}`;
-            const { error: storeError } = await supabase.storage.from("kyc-documents").upload(storePath, storePhotoFile);
+            const { error: storeError } = await supabase.storage.from("kyc-documents").upload(storePath, storeFileToUpload);
             if (storeError) throw storeError;
 
             // Insert Verification Record

@@ -14,6 +14,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Upload, X } from "lucide-react";
 import { Badge } from "@/shared/components/ui/badge";
+import imageCompression from "browser-image-compression";
 
 type FormState = {
   title: string;
@@ -164,7 +165,15 @@ export default function Sell() {
         const uploadPromises = imageFiles.map(async (file) => {
           const ext = file.name.split(".").pop();
           const path = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
-          const { error: uploadError } = await supabase.storage.from("product-images").upload(path, file);
+          
+          let fileToUpload = file;
+          try {
+            fileToUpload = await imageCompression(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1920, useWebWorker: true });
+          } catch (e) {
+            console.error("Compression error:", e);
+          }
+
+          const { error: uploadError } = await supabase.storage.from("product-images").upload(path, fileToUpload);
           if (uploadError) throw uploadError;
           const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
           return urlData.publicUrl;
@@ -251,7 +260,7 @@ export default function Sell() {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {imagePreviews.map((preview, index) => (
                   <div key={preview.id} className="relative aspect-square border-2 border-border rounded-lg overflow-hidden group">
-                    <img src={preview.url} alt={`Product preview ${index + 1}`} className="w-full h-full object-cover" />
+                    <img loading="lazy" src={preview.url} alt={`Product preview ${index + 1}`} className="w-full h-full object-cover" />
                     <button
                       type="button"
                       onClick={() => removeImage(index)}

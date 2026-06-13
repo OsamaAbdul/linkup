@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { toast } from "sonner";
+import imageCompression from "browser-image-compression";
 
 interface OrderCardProps {
     order: {
@@ -113,9 +114,16 @@ export function OrderCard({ order }: OrderCardProps) {
             const fileName = `${user.id}/${order.id}-${Math.random()}.${fileExt}`;
             const filePath = `evidence/${fileName}`;
 
+            let fileToUpload = file;
+            try {
+                fileToUpload = await imageCompression(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1920, useWebWorker: true });
+            } catch (e) {
+                console.error("Compression error:", e);
+            }
+
             const { error: uploadError } = await supabase.storage
                 .from('dispute-evidence')
-                .upload(filePath, file);
+                .upload(filePath, fileToUpload);
 
             if (uploadError) throw uploadError;
 
@@ -251,7 +259,7 @@ export function OrderCard({ order }: OrderCardProps) {
                     {/* Visual Asset */}
                     <div className="relative w-full sm:w-24 h-40 sm:h-24 rounded-lg overflow-hidden bg-muted border border-black/5 flex-shrink-0 group-hover:shadow-lg transition-shadow duration-500">
                         {order.image ? (
-                            <img src={order.image} alt={order.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                            <img loading="lazy" src={order.image} alt={order.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/40 gap-1 p-3">
                                 <Smartphone size={20} strokeWidth={1} />
@@ -455,7 +463,7 @@ export function OrderCard({ order }: OrderCardProps) {
                                                     </div>
                                                     {evidenceUrl && (
                                                         <div className="relative w-full h-40 rounded-xl overflow-hidden border border-black/5 bg-muted">
-                                                            <img src={evidenceUrl} alt="Evidence" className="w-full h-full object-cover" />
+                                                            <img loading="lazy" src={evidenceUrl} alt="Evidence" className="w-full h-full object-cover" />
                                                             <button 
                                                                 onClick={() => setEvidenceUrl("")}
                                                                 className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-lg backdrop-blur-md hover:bg-black/80 transition-colors"
@@ -630,7 +638,7 @@ export function OrderCard({ order }: OrderCardProps) {
                                                     </div>
                                                     {evidenceUrl && (
                                                         <div className="relative w-full h-48 rounded-xl overflow-hidden border border-red-100 bg-muted">
-                                                            <img src={evidenceUrl} alt="Dispute Evidence" className="w-full h-full object-cover" />
+                                                            <img loading="lazy" src={evidenceUrl} alt="Dispute Evidence" className="w-full h-full object-cover" />
                                                             <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                                                             <button 
                                                                 onClick={() => setEvidenceUrl("")}

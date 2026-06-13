@@ -10,6 +10,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { RoleSwitcher } from "@/shared/components/layout/RoleSwitcher";
 import { useState, useRef } from "react";
+import imageCompression from "browser-image-compression";
 
 interface LogisticsHeaderProps {
     activeTab: string;
@@ -51,9 +52,16 @@ export function LogisticsHeader({
             const fileExt = file.name.split(".").pop();
             const filePath = `${user?.id}/avatar_${Math.random()}.${fileExt}`;
 
+            let fileToUpload = file;
+            try {
+                fileToUpload = await imageCompression(file, { maxSizeMB: 0.5, maxWidthOrHeight: 800, useWebWorker: true });
+            } catch (e) {
+                console.error("Compression error:", e);
+            }
+
             const { error: uploadError } = await supabase.storage
                 .from("avatars")
-                .upload(filePath, file);
+                .upload(filePath, fileToUpload);
 
             if (uploadError) throw uploadError;
 

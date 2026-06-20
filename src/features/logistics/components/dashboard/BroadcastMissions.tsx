@@ -152,7 +152,7 @@ export function BroadcastMissions({
                                                     </Badge>
                                                 )}
                                                 <Badge className="bg-green-600 text-white font-black text-[9px] uppercase tracking-wider border-none px-3 shadow-sm shadow-green-600/10">
-                                                    ₦{(mission.delivery_fee_amount || mission.delivery_fee || 0).toLocaleString()} Cut
+                                                    ₦{(mission.delivery_fee_amount || mission.delivery_fee || mission.order?.shipping_fee || 0).toLocaleString()} Cut
                                                 </Badge>
                                                 <span className="text-[10px] font-black text-muted-foreground uppercase opacity-60">
                                                     {mission.zone?.split(" (")[0]}

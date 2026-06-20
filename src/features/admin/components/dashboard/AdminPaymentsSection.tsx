@@ -18,9 +18,9 @@ function ForceReleaseButton() {
     try {
       setLoading(true);
       const { data, error } = await (supabase as any).rpc("force_release_all_funds");
-      
+
       if (error) throw error;
-      
+
       const result = data as any;
       if (result.success) {
         toast.success(result.message);
@@ -77,7 +77,7 @@ export default function AdminPaymentsSection() {
           onClick={() => setActiveTab("payouts")}
         >
           <Landmark size={14} className="mr-2" />
-          Money Sent to Sellers
+          Payouts Request
         </Button>
       </div>
 

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { Navigate } from "react-router-dom";
+import { calculateDistance } from "../../logistics/utils/logistics-utils";
 
 // Modular Components
 import { DashboardSidebar, Tab } from "@/features/seller/components/DashboardSidebar";
@@ -37,7 +38,6 @@ export default function Dashboard() {
     isProfileLoading,
     pendingOrdersCount,
     openIssuesCount,
-    analytics,
     wallet,
     transactions,
     dbCategories,
@@ -65,8 +65,10 @@ export default function Dashboard() {
   const totalOrders = totals?.count || 0;
   const chartData = totals?.chartData || [];
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-primary font-black uppercase tracking-[0.2em] text-xs animate-pulse font-mono">Starting up your dashboard...</div>;
+  if (loading || roles.length === 0) return <div className="min-h-screen flex items-center justify-center text-primary font-black uppercase tracking-[0.2em] text-xs animate-pulse font-mono">Starting up your dashboard...</div>;
   if (!user) return <Navigate to="/auth" replace />;
+  
+  // If roles have loaded and the user doesn't have the seller role, redirect to onboarding
   if (!isSeller) return <Navigate to="/sell" replace />;
   if (isProfileLoading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary border-t-transparent"></div></div>;
   if (sellerProfile?.verification?.status !== 'verified') return <Navigate to="/seller-verification" replace />;
@@ -74,7 +76,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-[#fafafa]">
       <div className="flex items-start">
-        <DashboardSidebar activeTab={tab} setTab={setTab} pendingOrdersCount={pendingOrdersCount} openIssuesCount={openIssuesCount} />
+        <DashboardSidebar activeTab={tab} setTab={setTab} pendingOrdersCount={pendingOrdersCount} openIssuesCount={openIssuesCount} transactions={transactions} />
 
         <main className="flex-1 min-w-0 w-full p-6 lg:p-10 pt-24 lg:pt-10 pb-32 lg:pb-10 max-w-6xl mx-auto space-y-10">
           <ProfileCompletionBanner />
@@ -97,7 +99,7 @@ export default function Dashboard() {
             <OrdersTab
               orders={orders}
               updateOrderStatus={updateOrderStatus}
-              sellerZone={sellerProfile?.zone || undefined}
+              sellerZone={(sellerProfile as any)?.zone || undefined}
               sellerZoneId={(sellerProfile as any)?.zone_id}
               sellerCityId={(sellerProfile as any)?.city_id}
               sellerAddress={sellerProfile?.verification?.business_address || undefined}
@@ -108,8 +110,12 @@ export default function Dashboard() {
                 
                 // Extract existing fees from shipment for the specific seller if available
                 const existingShipment = order?.shipments?.find((s: any) => s.seller_id === user?.id) || order?.shipments?.[0] || {};
-                const deliveryFeeAmount = (existingShipment as any).delivery_fee_amount;
-                const crossZoneFeeAmount = (existingShipment as any).cross_zone_fee_amount;
+                const deliveryFeeAmount = (existingShipment as any).delivery_fee;
+                const crossZoneFeeAmount = (existingShipment as any).cross_zone_fee;
+
+                const distanceKm = existingShipment.buyer_latitude && existingShipment.buyer_longitude && lat && lng
+                  ? calculateDistance(lat, lng, existingShipment.buyer_latitude, existingShipment.buyer_longitude)
+                  : existingShipment.distance_km;
 
                 broadcastOrderMutation.mutate({ 
                   id: orderId, 
@@ -122,7 +128,8 @@ export default function Dashboard() {
                   lat, 
                   lng,
                   deliveryFeeAmount,
-                  crossZoneFeeAmount
+                  crossZoneFeeAmount,
+                  distanceKm
                 });
               }}
             />

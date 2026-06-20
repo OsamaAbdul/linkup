@@ -45,8 +45,8 @@ export function InventoryTab({
 
             {/* Quick Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <MetricCard title="Total Stock" value={totalProducts} icon={Package} trend="+2 new" />
-                <MetricCard title="Active Listings" value={products.length} icon={ShieldCheck} status="verified" />
+                <MetricCard title="Total Stock" value={totalProducts} icon={Package} />
+                <MetricCard title="Active Listings" value={products.length} icon={ShieldCheck} />
 
             </div>
 

@@ -23,6 +23,8 @@ interface DashboardSidebarProps {
     setTab: (tab: Tab) => void;
     pendingOrdersCount?: number;
     openIssuesCount?: number;
+    transactions?: any[];
+    wallet?: any;
 }
 
 
@@ -38,18 +40,23 @@ export const tabs = [
     { id: "profile" as Tab, label: "Store Profile", icon: UserCircle },
 ];
 
-export function DashboardSidebar({ activeTab, setTab, pendingOrdersCount = 0, openIssuesCount = 0 }: DashboardSidebarProps) {
+import { WalletTransactionsNotification } from "./WalletTransactionsNotification";
+
+export function DashboardSidebar({ activeTab, setTab, pendingOrdersCount = 0, openIssuesCount = 0, transactions = [], wallet }: DashboardSidebarProps) {
     const { signOut } = useAuth();
     return (
         <>
             {/* Desktop Sidebar */}
             <aside className="w-64 border-r bg-white/80 backdrop-blur-xl h-screen p-6 hidden lg:block sticky top-0 z-30 overflow-y-auto no-scrollbar">
                 <div className="mb-10 space-y-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">
-                            <LayoutDashboard size={20} />
+                    <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20 shrink-0">
+                                <LayoutDashboard size={20} />
+                            </div>
+                            <h2 className="font-black text-xl tracking-tight truncate">Linkup</h2>
                         </div>
-                        <h2 className="font-black text-xl tracking-tight">Linkup Seller </h2>
+                        <WalletTransactionsNotification transactions={transactions} wallet={wallet} />
                     </div>
                 </div>
 
@@ -113,6 +120,7 @@ export function DashboardSidebar({ activeTab, setTab, pendingOrdersCount = 0, op
                 </div>
 
                 <div className="flex items-center gap-2">
+                    <WalletTransactionsNotification transactions={transactions} />
                     <RoleSwitcher />
                 </div>
 

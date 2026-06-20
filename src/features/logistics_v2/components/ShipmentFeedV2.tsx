@@ -9,10 +9,10 @@ import { Input } from "@/shared/components/ui/input";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export function ShipmentFeedV2() {
+export function ShipmentFeedV2({ defaultFilter = "all" }: { defaultFilter?: string }) {
     const { user } = useAuth();
     const [searchTerm, setSearchTerm] = useState("");
-    const [filterStatus, setFilterStatus] = useState("all");
+    const [filterStatus, setFilterStatus] = useState(defaultFilter);
     const [selectedShipment, setSelectedShipment] = useState<any>(null);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
@@ -44,9 +44,9 @@ export function ShipmentFeedV2() {
 
             if (filterStatus !== "all") {
                 if (filterStatus === "active") {
-                    myAssignmentsQuery = myAssignmentsQuery.in("status", ["accepted", "started", "arrived", "picked_up"]);
+                    myAssignmentsQuery = myAssignmentsQuery.in("status", ["assigned", "picked_up", "in_transit"]);
                 } else if (filterStatus === "pending") {
-                    myAssignmentsQuery = myAssignmentsQuery.eq("status", "accepted"); // Once accepted, they are pending start
+                    myAssignmentsQuery = myAssignmentsQuery.eq("status", "assigned"); // Once assigned, they are pending start
                 } else {
                     myAssignmentsQuery = myAssignmentsQuery.eq("status", filterStatus);
                 }
@@ -82,10 +82,10 @@ export function ShipmentFeedV2() {
                             order: o,
                             seller: o.seller,
                             buyer: o.buyer,
-                            pickup_address_text: shipment?.pickup_address_text || o.seller?.address,
-                            delivery_address_text:
+                            pickup_address: shipment?.pickup_address || o.seller?.address,
+                            delivery_address:
+                                shipment?.delivery_address ||
                                 o.order_recipient?.[0]?.address_line ||
-                                o.order_recipient?.address_line ||
                                 o.buyer?.address,
                         };
                     });
@@ -100,23 +100,28 @@ export function ShipmentFeedV2() {
         },
         enabled: !!user,
         refetchInterval: 10000,
+        refetchOnMount: "always",
     });
 
     const filteredShipments = shipments?.filter((s: any) => 
         (s?.id || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
-        (s?.pickup_address_text || s?.pickup_address || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
-        (s?.delivery_address_text || s?.delivery_address || '').toLowerCase().includes((searchTerm || '').toLowerCase())
+        (s?.pickup_address || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+        (s?.delivery_address || '').toLowerCase().includes((searchTerm || '').toLowerCase())
     );
 
     const { data: walletData } = useQuery({
-        queryKey: ["rider-wallet-simple", user?.id],
+        queryKey: ["rider-wallet-transactions-simple", user?.id],
         queryFn: async () => {
-            const { data } = await (supabase as any)
+            // First get the wallet
+            const { data: wallet } = await (supabase as any)
                 .from("wallets")
-                .select("balance")
+                .select("id, balance, escrow_balance")
                 .eq("user_id", user?.id)
                 .maybeSingle();
-            return data;
+                
+            if (!wallet?.id) return { totalPayout: 0 };
+
+            return { totalPayout: wallet.balance || 0 };
         },
         enabled: !!user,
     });
@@ -160,7 +165,7 @@ export function ShipmentFeedV2() {
             <div className="grid grid-cols-2 gap-3 lg:hidden">
                 <div className="bg-[#E96F28] rounded-3xl p-5 text-white shadow-xl shadow-orange-600/20">
                     <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">Total Payout</p>
-                    <p className="text-xl font-black tracking-tight">₦ {(walletData?.balance || 0).toLocaleString()}</p>
+                    <p className="text-xl font-black tracking-tight">₦ {(walletData?.totalPayout || 0).toLocaleString()}</p>
                 </div>
                 <div className="bg-white rounded-3xl p-5 border border-black/[0.04] shadow-sm">
                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Active Deliveries</p>

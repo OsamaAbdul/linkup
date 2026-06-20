@@ -90,7 +90,7 @@ export function LogisticsOverview({
                     order_recipient (*),
                     buyer:profiles!buyer_id (*), 
                     seller:profiles!seller_id (*),
-                    shipments!inner (*)
+                    shipments (*)
                 `)
                 .eq("status", "awaiting_agent")
                 .order("created_at", { ascending: false });

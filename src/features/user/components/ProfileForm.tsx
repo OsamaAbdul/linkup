@@ -36,24 +36,40 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
     longitude: null as number | null,
   });
 
+  const { data: cities = [] } = useCities();
+  const { data: zones = [] } = useZones(formData.city_id);
+
+  const { data: kyc } = useQuery({
+    queryKey: ["logistics-kyc-profile-fallback", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase
+        .from("logistics_kyc")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user,
+  });
+
   useEffect(() => {
     if (profile) {
       setFormData({
-        display_name: profile.display_name || "",
-        phone: profile.phone || "",
+        display_name: profile.display_name || kyc?.full_name || "",
+        phone: profile.phone || kyc?.phone_number || "",
         bio: profile.bio || "",
-        address: profile.address || "",
-        city_id: profile.city_id || "",
-        zone_id: profile.zone_id || "",
+        address: profile.address || kyc?.home_address || "",
+        city_id: profile.city_id || kyc?.city_id || "",
+        zone_id: profile.zone_id || kyc?.zone_id || "",
         email: profile.email || "",
         latitude: profile.latitude || null,
         longitude: profile.longitude || null,
       });
     }
-  }, [profile]);
-
-  const { data: cities = [] } = useCities();
-  const { data: zones = [] } = useZones(formData.city_id);
+  }, [profile, kyc]);
 
   const updateProfile = useMutation({
     mutationFn: async (updatedData: typeof formData) => {
@@ -61,13 +77,13 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
       const { error } = await (supabase as any)
         .from("profiles")
         .update({
-          display_name: updatedData.display_name,
-          phone: updatedData.phone,
-          bio: updatedData.bio,
-          address: updatedData.address,
-          city_id: updatedData.city_id,
-          zone_id: updatedData.zone_id,
-          email: updatedData.email,
+          display_name: updatedData.display_name || null,
+          phone: updatedData.phone || null,
+          bio: updatedData.bio || null,
+          address: updatedData.address || null,
+          city_id: updatedData.city_id || null,
+          zone_id: updatedData.zone_id || null,
+          email: updatedData.email || null,
           latitude: updatedData.latitude,
           longitude: updatedData.longitude,
           updated_at: new Date().toISOString(),

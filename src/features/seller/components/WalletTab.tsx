@@ -64,7 +64,7 @@ export function WalletTab() {
                     delivery_fee,
                     status,
                     created_at,
-                    orders!inner(total_amount, status, updated_at)
+                    orders!inner(grand_total, status, updated_at)
                 `)
                 .eq("seller_id", user.id)
                 .order("created_at", { ascending: false })
@@ -114,7 +114,7 @@ export function WalletTab() {
         return () => { supabase.removeChannel(ch); };
     }, [user, wallet?.id, queryClient]);
 
-    const settlementTransactions = transactions.filter((t: any) => t.type === "settlement" && t.status === "success");
+    const settlementTransactions = transactions.filter((t: any) => t.type === "settlement" && (t.status === "success" || t.status === "completed"));
     const totalSettled = settlementTransactions.reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
     const escrowBalance = wallet?.escrow_balance ?? 0;
     const thisMonth = new Date();

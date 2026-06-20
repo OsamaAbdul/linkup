@@ -111,14 +111,14 @@ export function PayoutReceiptModal({ isOpen, onClose, request }: PayoutReceiptMo
                         <div className="px-10 pt-16 pb-10 space-y-8 relative">
                             {/* Financial Summary */}
                             <div className="space-y-1">
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground ml-1">Total Paid</p>
+                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground ml-1">Net Payout (To Bank)</p>
                                 <div className="flex items-baseline gap-2">
                                     <h2 className="text-5xl font-black text-foreground tracking-tight">₦{request.amount.toLocaleString()}</h2>
                                     <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest leading-none mb-1">NGN</span>
                                 </div>
                                 <div className="inline-flex items-center gap-1 text-[10px] font-black text-muted-foreground/60 bg-gray-50 px-3 py-1.5 rounded-xl border border-black/[0.03]">
                                     <Wallet size={12} className="text-primary" />
-                                    System Fee Applied: ₦{request.fee_amount.toLocaleString()}
+                                    Total Wallet Deduction: ₦{(request.amount + request.fee_amount).toLocaleString()} (incl. ₦{request.fee_amount.toLocaleString()} fee)
                                 </div>
                             </div>
 

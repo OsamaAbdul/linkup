@@ -258,6 +258,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
                             (item.product_id === productId && isSameSize(item.size, size)) ? { ...item, quantity: item.quantity + quantity } : item
                         )
                     );
+                } else {
+                    // Optimistically append new item to cart
+                    const newItem: CartItem = {
+                        id: `temp-${Date.now()}`,
+                        product_id: productId,
+                        quantity,
+                        size,
+                        user_id: user?.id,
+                        // Provide a placeholder products object so the cart dropdown can render it somewhat gracefully
+                        products: {
+                            id: productId,
+                            title: "Loading...",
+                            price: 0,
+                            images: [],
+                            inventory: 1
+                        }
+                    };
+                    queryClient.setQueryData<CartItem[]>(["cart", user?.id], (old) => [...(old || []), newItem]);
                 }
             }
 

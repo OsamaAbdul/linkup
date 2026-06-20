@@ -81,16 +81,19 @@ export function ZoneBroadcastSelector({
 
     // Count agents in selected zone for confidence display
     const { data: zoneAgentCount = 0 } = useQuery({
-        queryKey: ["zone-agent-count", selectedZone],
+        queryKey: ["zone-agent-count", selectedZone, zones.length],
         queryFn: async () => {
             if (!selectedZone) return 0;
-            const { count } = await (supabase as any)
+            const zoneObj = zones.find((z: any) => z.name === selectedZone);
+            if (!zoneObj) return 0;
+            const { count, error } = await (supabase as any)
                 .from("profiles")
                 .select("id", { count: "exact", head: true })
-                .eq("zone", selectedZone);
+                .eq("zone_id", zoneObj.id);
+            if (error) console.error("Agent count error:", error);
             return count || 0;
         },
-        enabled: !!selectedZone,
+        enabled: !!selectedZone && zones.length > 0,
     });
 
     const handleConfirm = () => {

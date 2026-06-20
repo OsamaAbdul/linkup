@@ -7,16 +7,11 @@ import {
     DialogDescription,
 } from "@/shared/components/ui/dialog";
 import { Button } from "@/shared/components/ui/button";
-import { ScrollArea } from "@/shared/components/ui/scroll-area";
 import { Badge } from "@/shared/components/ui/badge";
 import {
     MapPin,
-    Loader2,
     Banknote,
-    Percent,
-    Info,
     Navigation,
-    Route,
     Package,
     Smartphone,
     ArrowRight,
@@ -189,9 +184,9 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                                                         activeShipment.status === 'arrived_at_destination' ? 'bg-cyan-100 text-cyan-700' :
                                                             'bg-green-100 text-green-700'
                             )}>
-                                {activeShipment.status === 'assigned' ? 'New Mission' : 
-                                 activeShipment.status === 'accepted' ? 'Ready' : 
-                                 activeShipment.status.replace(/_/g, ' ')}
+                                {activeShipment.status === 'assigned' ? 'New Mission' :
+                                    activeShipment.status === 'accepted' ? 'Ready' :
+                                        activeShipment.status.replace(/_/g, ' ')}
                             </Badge>
                         </div>
                     </DialogHeader>
@@ -235,7 +230,7 @@ export function MissionDetailsModal({ shipment, open, onOpenChange }: MissionDet
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-black text-green-700 uppercase tracking-widest leading-none">Mission Reward</p>
-                                    <p className="text-2xl font-black text-green-900 tracking-tight mt-1">₦{(activeShipment.delivery_fee_amount || activeShipment.delivery_fee || 0).toLocaleString()}</p>
+                                    <p className="text-2xl font-black text-green-900 tracking-tight mt-1">₦{(activeShipment.delivery_fee_amount || activeShipment.delivery_fee || activeShipment.order?.shipping_fee || 0).toLocaleString()}</p>
                                 </div>
                             </div>
                             <div className="text-right hidden sm:block">

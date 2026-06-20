@@ -38,13 +38,7 @@ export function AnalyticsTab({ revenue, netRevenue, escrowBalance, totalOrders, 
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
 
-                <MetricCard
-                    title="My Total Earnings"
-                    value={`₦${netRevenue.toLocaleString()}`}
-                    icon={BarChart3}
-                    color="text-green-600"
 
-                />
                 <MetricCard
                     title="Total Orders"
                     value={totalOrders}

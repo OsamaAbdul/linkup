@@ -13,7 +13,7 @@ export function AdminFinancialLedger() {
   const { data: ledger, isLoading } = useQuery({
     queryKey: ["admin-financial-ledger"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).rpc("get_admin_financial_ledger");
+      const { data, error } = await (supabase as any).rpc("get_admin_revenue");
       if (error) throw error;
       return data;
     },

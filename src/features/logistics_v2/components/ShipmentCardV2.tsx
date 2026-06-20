@@ -47,6 +47,21 @@ export function ShipmentCardV2({ shipment, onClick }: ShipmentCardProps) {
             // Use the Order ID as the unique link for the shipment record
             const orderId = shipment.order_id || shipment.id;
             
+            // Try to get rider location
+            let currentLat = null;
+            let currentLng = null;
+            try {
+                if (navigator.geolocation) {
+                    const pos: any = await new Promise((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+                    });
+                    currentLat = pos.coords.latitude;
+                    currentLng = pos.coords.longitude;
+                }
+            } catch (err) {
+                console.warn("Could not get rider location", err);
+            }
+            
             if (newStatus === 'accepted') {
                 // Prefer order_id for the RPC — the updated function handles both
                 // shipment IDs and order IDs, but order_id is the reliable fallback
@@ -61,14 +76,29 @@ export function ShipmentCardV2({ shipment, onClick }: ShipmentCardProps) {
                 if (!claimData?.success) {
                     throw new Error(claimData?.error || "Mission already accepted");
                 }
+                
+                // Quick patch for coordinates if fetched
+                if (currentLat && currentLng) {
+                    await supabase.from("shipments").update({
+                        rider_latitude: currentLat,
+                        rider_longitude: currentLng,
+                    }).eq("order_id", orderId);
+                }
             } else {
                 // For all other transitions, update the existing shipment record
+                const updatePayload: any = { 
+                    status: newStatus,
+                    updated_at: new Date().toISOString()
+                };
+                
+                if (currentLat && currentLng) {
+                    updatePayload.rider_latitude = currentLat;
+                    updatePayload.rider_longitude = currentLng;
+                }
+
                 const { error } = await supabase
                     .from("shipments")
-                    .update({ 
-                        status: newStatus,
-                        updated_at: new Date().toISOString()
-                    })
+                    .update(updatePayload)
                     .eq("order_id", orderId);
 
                 if (error) throw error;
@@ -119,11 +149,11 @@ export function ShipmentCardV2({ shipment, onClick }: ShipmentCardProps) {
                     <div className="flex-1 space-y-4">
                         <div className="leading-tight">
                             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Pickup Point</p>
-                            <p className="text-[14px] font-bold text-foreground line-clamp-1">{shipment.pickup_address_text || "Retrieving point..."}</p>
+                            <p className="text-[14px] font-bold text-foreground line-clamp-1">{shipment.pickup_address || "Retrieving point..."}</p>
                         </div>
                         <div className="leading-tight">
                             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Drop-off Hub</p>
-                            <p className="text-[14px] font-bold text-foreground line-clamp-1">{shipment.delivery_address_text || "Retrieving destination..."}</p>
+                            <p className="text-[14px] font-bold text-foreground line-clamp-1">{shipment.delivery_address || "Retrieving destination..."}</p>
                         </div>
                     </div>
                 </div>
@@ -139,7 +169,7 @@ export function ShipmentCardV2({ shipment, onClick }: ShipmentCardProps) {
                         </div>
                         <div className="flex items-center gap-1.5">
                             <Clock size={16} className="text-muted-foreground" />
-                            <span className="text-sm font-black text-foreground tracking-tight">₦ {shipment.delivery_fee_amount?.toLocaleString() || "0"} <span className="text-[10px] text-muted-foreground uppercase">fee</span></span>
+                            <span className="text-sm font-black text-foreground tracking-tight">₦ {(shipment.delivery_fee || shipment.order?.shipping_fee || 0).toLocaleString()} <span className="text-[10px] text-muted-foreground uppercase">fee</span></span>
                         </div>
                     </div>
                     
@@ -160,28 +190,10 @@ export function ShipmentCardV2({ shipment, onClick }: ShipmentCardProps) {
                         </Button>
                     )}
 
-                    {status === 'accepted' && (
-                        <Button 
-                            onClick={(e) => updateStatus('started', e)}
-                            className="w-full h-11 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[11px] uppercase tracking-widest"
-                        >
-                            Start Mission
-                        </Button>
-                    )}
-
-                    {status === 'started' && (
-                        <Button 
-                            onClick={(e) => updateStatus('arrived', e)}
-                            className="w-full h-11 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-black text-[11px] uppercase tracking-widest"
-                        >
-                            Arrived at Pickup
-                        </Button>
-                    )}
-
-                    {status === 'arrived' && (
+                    {status === 'assigned' && (
                         <Button 
                             onClick={(e) => updateStatus('picked_up', e)}
-                            className="w-full h-11 rounded-2xl bg-pink-600 hover:bg-pink-700 text-white font-black text-[11px] uppercase tracking-widest"
+                            className="w-full h-11 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[11px] uppercase tracking-widest"
                         >
                             Confirm Pickup
                         </Button>
@@ -189,10 +201,19 @@ export function ShipmentCardV2({ shipment, onClick }: ShipmentCardProps) {
 
                     {status === 'picked_up' && (
                         <Button 
+                            onClick={(e) => updateStatus('in_transit', e)}
+                            className="w-full h-11 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-black text-[11px] uppercase tracking-widest"
+                        >
+                            Start Delivery
+                        </Button>
+                    )}
+
+                    {status === 'in_transit' && (
+                        <Button 
                             onClick={(e) => updateStatus('delivered', e)}
                             className="w-full h-11 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[11px] uppercase tracking-widest"
                         >
-                            Mark Delivered
+                            Handed to Buyer
                         </Button>
                     )}
                 </div>

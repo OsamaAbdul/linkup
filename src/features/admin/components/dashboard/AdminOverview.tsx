@@ -20,7 +20,17 @@ export default function AdminOverview() {
             }
             console.log("REVENUE_SUCCESS", data);
             (window as any).LATEST_REVENUE_DATA = data;
-            return data || 0;
+
+            let total = 0;
+            if (data && typeof data === "object") {
+                if (Array.isArray(data) && data.length > 0) {
+                    total = data[0].platform_total ?? data[0].json_build_object?.platform_total ?? 0;
+                } else {
+                    total = data.platform_total ?? data.json_build_object?.platform_total ?? 0;
+                }
+            }
+
+            return typeof total === "object" ? 0 : Number(total) || 0;
         },
     });
 
@@ -32,7 +42,7 @@ export default function AdminOverview() {
             const { count, error } = await supabase
                 .from("orders")
                 .select("*", { count: 'exact', head: true })
-                .not("status", "in", '("completed", "cancelled", "refunded", "delivered")');
+                .not("status", "in", "(completed,cancelled,delivered)");
             if (error) throw error;
 
 
@@ -126,7 +136,7 @@ export default function AdminOverview() {
     };
 
     const stats = [
-        { label: "Total Sales", value: revenueData, icon: TrendingUp, loading: isRevLoading, isCurrency: true },
+
         { label: "Ongoing Orders", value: activeOrdersCount, icon: ShoppingBag, loading: isActiveOrdersLoading },
         { label: "Total Orders", value: totalOrdersCount, icon: Package, loading: isTotalOrdersLoading },
         { label: "Total Users", value: usersCount, icon: Users, loading: isUsersLoading },
@@ -180,7 +190,7 @@ export default function AdminOverview() {
                                     <div className="h-7 w-20 bg-gray-100 animate-pulse rounded-lg" />
                                 ) : (
                                     <>
-                                        {stat.isCurrency && "₦ "}
+
                                         {(stat.value || 0).toLocaleString()}
                                     </>
                                 )}

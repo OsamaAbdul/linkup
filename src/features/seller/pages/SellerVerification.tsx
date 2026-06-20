@@ -7,10 +7,8 @@ import { AppLayout } from "@/shared/components/layout/AppLayout";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
-import { Textarea } from "@/shared/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/shared/components/ui/alert";
 import { toast } from "sonner";
 import { Upload, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -38,7 +36,7 @@ export default function SellerVerification() {
         queryFn: async () => {
             if (!user) return null;
             // @ts-ignore
-            const { data, error } = await supabase.from("seller_verifications").select("*").eq("user_id", user.id).maybeSingle();
+            const { data, error } = await supabase.from("seller_verifications").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
             if (error) throw error;
             return data;
         },
@@ -58,6 +56,20 @@ export default function SellerVerification() {
         }
     });
 
+    // Populate form if data exists
+    useEffect(() => {
+        if (verification) {
+            setValue("business_name", verification.business_name || "");
+            setValue("phone_number", verification.phone_number || "");
+            setValue("business_address", verification.business_address || "");
+            setValue("city_id", verification.city_id || "");
+            setValue("zone_id", verification.zone_id || "");
+            setValue("bank_name", verification.bank_name || "");
+            setValue("account_number", verification.account_number || "");
+            setValue("account_name", verification.account_name || "");
+        }
+    }, [verification, setValue]);
+
     const selectedCityId = watch("city_id");
     const { data: cities = [] } = useCities();
     const { data: zones = [] } = useZones(selectedCityId);
@@ -71,7 +83,7 @@ export default function SellerVerification() {
             // Upload ID
             const idExt = nationalIdFile.name.split(".").pop();
             const idPath = `${user!.id}/id_${Date.now()}.${idExt}`;
-            
+
             let idFileToUpload = nationalIdFile;
             let storeFileToUpload = storePhotoFile;
 
@@ -110,6 +122,19 @@ export default function SellerVerification() {
             });
 
             if (insertError) throw insertError;
+
+            // Update profile with seller business info to save them from re-entering it
+            const { error: profileError } = await (supabase as any)
+                .from("profiles")
+                .update({
+                    display_name: data.business_name || null,
+                    phone: data.phone_number || null,
+                    address: data.business_address || null,
+                    city_id: data.city_id || null,
+                    zone_id: data.zone_id || null,
+                })
+                .eq("id", user!.id);
+            if (profileError) throw profileError;
         },
         onSuccess: () => {
             toast.success("Verification submitted successfully!");
@@ -189,7 +214,8 @@ export default function SellerVerification() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Phone Number</Label>
-                                        <Input {...register("phone_number", { required: true })} placeholder="+234..." />
+                                        <Input {...register("phone_number", { maxLength: 11, minLength: 10, required: true })} placeholder="+081..." maxLength={11} />
+                                        {errors.phone_number && <span className="text-red-500">{errors.phone_number.message}</span>}
                                     </div>
                                     <div className="space-y-2 md:col-span-2">
                                         <Label>Business Address</Label>
@@ -226,7 +252,7 @@ export default function SellerVerification() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Account Number</Label>
-                                        <Input {...register("account_number", { required: true })} placeholder="0123456789" />
+                                        <Input {...register("account_number", { required: true })} placeholder="0123456789" maxLength={12} />
                                     </div>
                                     <div className="space-y-2 md:col-span-2">
                                         <Label>Account Name</Label>

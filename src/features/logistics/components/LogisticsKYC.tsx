@@ -77,7 +77,19 @@ export function LogisticsKYC() {
   });
 
   useEffect(() => {
-
+    if (kyc) {
+      setFormData(prev => ({
+        ...prev,
+        fullName: kyc.full_name || "",
+        phoneNumber: kyc.phone_number || "",
+        homeAddress: kyc.home_address || "",
+        dob: kyc.date_of_birth || "",
+        city_id: kyc.city_id || "",
+        zone_id: kyc.zone_id || "",
+        zone: kyc.zone || "",
+        ninNumber: kyc.nin_number || "",
+      }));
+    }
   }, [kyc, user?.id]);
 
   // Fetch Cities and Zones
@@ -126,12 +138,12 @@ export function LogisticsKYC() {
       const uploadFile = async (file: File, prefix: string) => {
         const ext = file.name.split(".").pop();
         const path = `${user!.id}/${prefix}_${Date.now()}.${ext}`;
-        
+
         let fileToUpload = file;
         try {
-            fileToUpload = await imageCompression(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1920, useWebWorker: true });
+          fileToUpload = await imageCompression(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1920, useWebWorker: true });
         } catch (e) {
-            console.error("Compression error:", e);
+          console.error("Compression error:", e);
         }
 
         const { error } = await supabase.storage.from("kyc-documents").upload(path, fileToUpload);
@@ -156,20 +168,21 @@ export function LogisticsKYC() {
           id_card_photo_url: idCardPath,
           city_id: formData.city_id,
           zone_id: formData.zone_id,
-          zone: formData.zone,
           status: 'pending',
           updated_at: new Date().toISOString()
-        });
+        }, { onConflict: 'user_id' });
 
       if (kycError) throw kycError;
 
-      // 3. Update profile zone info
+      // 3. Update profile zone and personal info
       const { error: profileError } = await (supabase as any)
         .from("profiles")
         .update({
-          zone: formData.zone,
-          city_id: formData.city_id,
-          zone_id: formData.zone_id,
+          city_id: formData.city_id || null,
+          zone_id: formData.zone_id || null,
+          display_name: formData.fullName || null,
+          phone: formData.phoneNumber || null,
+          address: formData.homeAddress || null,
         })
         .eq("id", user!.id);
       if (profileError) throw profileError;
@@ -305,6 +318,7 @@ export function LogisticsKYC() {
                 onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                 placeholder="+234..."
                 className={inputClass}
+                maxLength={11}
                 required
               />
             </FormField>

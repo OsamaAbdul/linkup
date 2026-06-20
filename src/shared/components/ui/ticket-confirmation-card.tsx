@@ -127,6 +127,7 @@ const ConfettiExplosion = () => {
 export interface TicketProps extends React.HTMLAttributes<HTMLDivElement> {
   ticketId: string;
   amount: number;
+  fee: number;
   date: Date;
   cardHolder: string;
   last4Digits: string;
@@ -140,6 +141,7 @@ const AnimatedTicket = React.forwardRef<HTMLDivElement, TicketProps>(
       className,
       ticketId,
       amount,
+      fee,
       date,
       cardHolder,
       last4Digits,
@@ -159,7 +161,6 @@ const AnimatedTicket = React.forwardRef<HTMLDivElement, TicketProps>(
       };
     }, []);
 
-    const fee = 200;
     const netAmount = Math.max(0, amount - fee);
 
     const formattedAmount = new Intl.NumberFormat("en-NG", {
@@ -211,8 +212,8 @@ const AnimatedTicket = React.forwardRef<HTMLDivElement, TicketProps>(
 
               <div className="space-y-3">
                   <div className="flex justify-between items-center text-sm">
-                      <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-black">Requested Amount</p>
-                      <p className="font-bold text-foreground">₦ {amount.toLocaleString()}</p>
+                      <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-black">Total Deduction</p>
+                      <p className="font-bold text-foreground">₦ {(amount + fee).toLocaleString()}</p>
                   </div>
                   <div className="flex justify-between items-center text-sm border-b border-black/[0.04] pb-3">
                       <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-black">Platform Fee</p>
@@ -220,7 +221,12 @@ const AnimatedTicket = React.forwardRef<HTMLDivElement, TicketProps>(
                   </div>
                   <div className="flex justify-between items-center pt-1">
                       <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-black text-[#E96F28]">Net Payout</p>
-                      <p className="font-black text-2xl tracking-tighter text-[#E96F28]">{formattedAmount}</p>
+                      <p className="font-black text-2xl tracking-tighter text-[#E96F28]">
+                          {new Intl.NumberFormat("en-NG", {
+                              style: "currency",
+                              currency: "NGN",
+                          }).format(amount)}
+                      </p>
                   </div>
               </div>
 

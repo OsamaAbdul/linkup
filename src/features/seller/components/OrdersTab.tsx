@@ -57,7 +57,8 @@ export function OrdersTab({ orders, updateOrderStatus, sellerZone, sellerZoneId,
                         </div>
                     </div>
                 ) : orders.map((o) => {
-                    const recipient = o.order_recipient || {};
+                    const recipientData = Array.isArray(o.order_recipient) ? o.order_recipient[0] : o.order_recipient;
+                    const recipient = recipientData || o.shipping_info || {};
                     const shipment = o.shipments?.[0];
                     const orderStatus = o.status.toLowerCase();
                     const status = (["completed", "disputed", "cancelled", "refunded"].includes(orderStatus))
@@ -105,7 +106,7 @@ export function OrdersTab({ orders, updateOrderStatus, sellerZone, sellerZoneId,
                                     <p className="text-[8px] sm:text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Your Earnings</p>
                                     <p className="text-xl sm:text-2xl font-black text-primary tracking-tighter flex items-center sm:justify-end gap-1">
                                         <span className="text-xs sm:text-sm opacity-40">₦</span>
-                                        {((o.order_items as any[])?.reduce((sum, item) => sum + (Number(item.price_at_purchase || 0) * (item.quantity || 1)), 0) || 0).toLocaleString()}
+                                        {(((o.order_items as any[])?.length ? (o.order_items as any[]).reduce((sum, item) => sum + (Number(item.price_at_purchase || 0) * (item.quantity || 1)), 0) : Number(o.order_settlements?.[0]?.seller_amount || o.order_settlements?.seller_amount || o.grand_total)) || 0).toLocaleString()}
                                     </p>
                                 </div>
                             </div>
@@ -181,26 +182,26 @@ export function OrdersTab({ orders, updateOrderStatus, sellerZone, sellerZoneId,
 
 
                                         {/* Assigned Rider Section */}
-                                        {o.shipments?.[0] && (
+                                        {shipment && shipment.status !== 'pending' && (
                                             <div className="p-4 rounded-xl border border-primary/10 bg-primary/5 space-y-3">
                                                 <div className="flex items-center justify-between">
                                                     <h5 className="text-[8px] font-black text-primary uppercase tracking-widest">Connect with a Local Delivery Partner</h5>
                                                     <Badge className="bg-primary/10 text-primary border-none text-[7px] font-black uppercase px-2 py-0.5 rounded-full">
-                                                        {o.shipments[0].status.replace(/_/g, ' ')}
+                                                        {shipment.status.replace(/_/g, ' ')}
                                                     </Badge>
                                                 </div>
                                                 <div className="flex items-center gap-3">
                                                     <Avatar className="h-10 w-10 rounded-xl border border-white">
                                                         <AvatarFallback className="bg-white text-primary text-xs font-black">
-                                                            {(o.shipments[0].rider?.display_name || o.shipments[0].profiles?.display_name)?.[0] || "R"}
+                                                            {(shipment.rider?.display_name || shipment.profiles?.display_name)?.[0] || "R"}
                                                         </AvatarFallback>
                                                     </Avatar>
                                                     <div className="min-w-0">
-                                                        <p className="font-bold text-[13px] text-foreground truncate">{(o.shipments[0].rider?.display_name || o.shipments[0].profiles?.display_name) || "Assigned Rider"}</p>
+                                                        <p className="font-bold text-[13px] text-foreground truncate">{(shipment.rider?.display_name || shipment.profiles?.display_name) || "Waiting for Rider"}</p>
                                                         <div className="flex items-center gap-1.5 mt-0.5">
-                                                            <span className="text-[9px] font-bold text-muted-foreground/60 uppercase">{o.shipments[0].zone?.split(' (')[0] || "Standard Zone"}</span>
+                                                            <span className="text-[9px] font-bold text-muted-foreground/60 uppercase">{shipment.delivery_zones?.name || "Standard Zone"}</span>
                                                             <span className="w-0.5 h-0.5 rounded-full bg-primary/30" />
-                                                            <span className="text-[9px] font-black text-primary/40 uppercase font-mono">{o.shipments[0].tracking_code}</span>
+                                                            <span className="text-[9px] font-black text-primary/40 uppercase font-mono">{shipment.tracking_code}</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -228,7 +229,7 @@ export function OrdersTab({ orders, updateOrderStatus, sellerZone, sellerZoneId,
                                         {updateOrderStatus.isPending && activeOrderId === o.id ? "Confirming..." : "Accept Order"}
                                     </Button>
                                 )}
-                                {(status === "confirmed" || status === "processing") && !shipment && (
+                                {(status === "confirmed" || status === "processing") && (!shipment || shipment.status === "pending") && (
                                     <Button
                                         className="flex-1 rounded-xl h-11 font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 active:scale-95 transition-transform gap-2 bg-primary hover:bg-primary/90"
                                         onClick={() => handleInitiateBroadcast(o.id)}

@@ -25,13 +25,23 @@ export default function AdminUserManagement() {
             const possibleRoles = ['admin', 'seller', 'promoter', 'logistics', 'buyer'];
             const isRoleSearch = searchQuery && possibleRoles.some(r => r.includes(searchLower));
 
+            let matchingUserIds: string[] = [];
+            if (isRoleSearch) {
+                const { data: roleData } = await supabase.from("user_roles").select("user_id").ilike("role", `%${searchQuery}%`);
+                if (roleData) {
+                    matchingUserIds = roleData.map(r => r.user_id);
+                }
+            }
+
             let query = supabase
                 .from("profiles")
-                .select(isRoleSearch ? "*, user_roles!inner(role)" : "*, user_roles(role)", { count: 'exact' });
+                .select("*", { count: 'exact' });
 
             if (searchQuery) {
-                if (isRoleSearch) {
-                    query = query.or(`display_name.ilike.%${searchQuery}%,user_roles.role.ilike.%${searchQuery}%`);
+                if (isRoleSearch && matchingUserIds.length > 0) {
+                    query = query.or(`display_name.ilike.%${searchQuery}%,id.in.(${matchingUserIds.join(",")})`);
+                } else if (isRoleSearch && matchingUserIds.length === 0) {
+                     query = query.ilike("display_name", `%${searchQuery}%`);
                 } else {
                     query = query.ilike("display_name", `%${searchQuery}%`);
                 }
@@ -42,6 +52,22 @@ export default function AdminUserManagement() {
                 .range(start, end);
 
             if (error) throw error;
+            
+            if (data && data.length > 0) {
+                const userIds = data.map(u => u.id);
+                const { data: rolesData } = await supabase.from("user_roles").select("user_id, role").in("user_id", userIds);
+                
+                const rolesMap = new Map<string, any[]>();
+                rolesData?.forEach(r => {
+                    if (!rolesMap.has(r.user_id)) rolesMap.set(r.user_id, []);
+                    rolesMap.get(r.user_id)!.push(r);
+                });
+                
+                data.forEach((u: any) => {
+                    u.user_roles = rolesMap.get(u.id) || [];
+                });
+            }
+
             return { users: data, totalCount: count || 0 };
         },
         staleTime: 1000 * 60 * 5,
@@ -133,7 +159,7 @@ export default function AdminUserManagement() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
-                            {users?.map((u) => {
+                            {users?.map((u: any) => {
                                 const stats = getUserStats(u.id);
                                 return (
                                     <tr key={u.id} className="hover:bg-gray-50/50 transition-colors group">

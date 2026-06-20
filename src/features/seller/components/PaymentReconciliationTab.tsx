@@ -38,17 +38,48 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
     queryKey: ["payment-reconciliation", user?.id, isAdmin],
     queryFn: async () => {
       let query = supabase
-        .from("orders")
-        .select("id, total_amount, status, payment_status, payment_ref, payment_method, created_at, buyer_id, seller_id, settlement_status")
+        .from("order_settlements")
+        .select(`
+          id,
+          order_id,
+          status,
+          created_at,
+          seller_amount,
+          orders!inner (
+            id,
+            grand_total,
+            payment_status,
+            payment_ref,
+            payment_method,
+            created_at,
+            buyer_id,
+            seller_id,
+            status
+          )
+        `)
         .order("created_at", { ascending: false });
 
       if (!isAdmin) {
-        query = query.eq("seller_id", user!.id);
+        query = query.eq("orders.seller_id", user!.id);
       }
 
       const { data, error } = await (query as any);
       if (error) throw error;
-      return (data as any[]) ?? [];
+      
+      // Map the joined data back to the flat shape expected by the UI
+      return (data as any[] || []).map((settlement) => ({
+        id: settlement.orders.id,
+        grand_total: settlement.orders.grand_total,
+        status: settlement.orders.status,
+        payment_status: settlement.orders.payment_status,
+        payment_ref: settlement.orders.payment_ref,
+        payment_method: settlement.orders.payment_method,
+        created_at: settlement.orders.created_at,
+        buyer_id: settlement.orders.buyer_id,
+        seller_id: settlement.orders.seller_id,
+        settlement_status: settlement.status,
+        seller_amount: settlement.seller_amount
+      }));
     },
     enabled: !!user,
   });
@@ -121,15 +152,15 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
       !search ||
       o.id.toLowerCase().includes(search.toLowerCase()) ||
       (o.payment_ref || "").toLowerCase().includes(search.toLowerCase());
-    const matchesFilter = filterStatus === "all" || o.payment_status === filterStatus;
+    const matchesFilter = filterStatus === "all" || o.settlement_status === filterStatus;
     return matchesSearch && matchesFilter;
   });
 
   const stats = {
     total: orders.length,
     paid: orders.filter((o) => o.payment_status === "paid").length,
-    pending: orders.filter((o) => o.payment_status === "pending").length,
-    failed: orders.filter((o) => o.payment_status === "failed").length,
+    pendingSettlement: orders.filter((o) => ["pending", "processing"].includes(o.settlement_status || "")).length,
+    completedSettlement: orders.filter((o) => o.settlement_status === "settled").length,
   };
 
   if (isLoading) {
@@ -152,9 +183,9 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: "Total Orders", value: stats.total, icon: CreditCard, color: "text-foreground" },
-          { label: "Paid", value: stats.paid, icon: CheckCircle2, color: "text-emerald-600" },
-          { label: "Pending", value: stats.pending, icon: AlertTriangle, color: "text-amber-600" },
-          { label: "Failed", value: stats.failed, icon: XCircle, color: "text-red-600" },
+          { label: "Paid by Customer", value: stats.paid, icon: CheckCircle2, color: "text-blue-600" },
+          { label: "Pending Payout", value: stats.pendingSettlement, icon: AlertTriangle, color: "text-amber-600" },
+          { label: "Completed Payout", value: stats.completedSettlement, icon: CheckCircle2, color: "text-emerald-600" },
         ].map((s) => (
           <Card key={s.label} className="rounded-xl border-none shadow-sm bg-background p-6">
             <div className="flex items-center gap-3 mb-2">
@@ -177,8 +208,8 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
             className="pl-11 rounded-xl h-12 border-muted/30 bg-background font-medium"
           />
         </div>
-        <div className="flex gap-2">
-          {["all", "paid", "pending", "failed"].map((s) => (
+        <div className="flex gap-2 flex-wrap">
+          {["all", "pending", "processing", "settled", "failed", "refunded"].map((s) => (
             <Button
               key={s}
               variant={filterStatus === s ? "default" : "outline"}
@@ -186,7 +217,7 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
               className="rounded-xl text-[10px] font-black uppercase tracking-widest"
               onClick={() => setFilterStatus(s)}
             >
-              {s}
+              {s.replace(/_/g, " ")}
             </Button>
           ))}
         </div>
@@ -222,7 +253,7 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
                     <td className="px-6 py-5 text-xs font-medium text-muted-foreground">
                       {new Date(o.created_at).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-5 font-black text-sm">₦{(o.total_amount || 0).toLocaleString()}</td>
+                    <td className="px-6 py-5 font-black text-sm">₦{(o.grand_total || 0).toLocaleString()}</td>
                     <td className="px-6 py-5">
                       <Badge variant="outline" className="rounded-full text-[9px] font-black uppercase tracking-widest border-muted/30 whitespace-nowrap">
                         {o.payment_method || "direct"}
@@ -293,7 +324,7 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-muted/5 p-4 rounded-xl border border-muted/20">
                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Amount</p>
-                  <p className="text-xl font-black text-foreground">₦{(selectedOrder.total_amount || 0).toLocaleString()}</p>
+                  <p className="text-xl font-black text-foreground">₦{(selectedOrder.grand_total || 0).toLocaleString()}</p>
                 </div>
                 <div className="bg-muted/5 p-4 rounded-xl border border-muted/20">
                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Method</p>
@@ -330,7 +361,7 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
                       verifyMutation.mutate({
                         orderId: selectedOrder.id,
                         paymentRef: selectedOrder.payment_ref,
-                        totalKobo: (selectedOrder.total_amount || 0) * 100,
+                        totalKobo: (selectedOrder.grand_total || 0) * 100,
                       })
                     }
                     disabled={verifyMutation.isPending}

@@ -36,7 +36,7 @@ const navItems: NavItem[] = [
     { id: "settings", label: "My Profile", icon: Settings },
 ];
 
-export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 0, escrow_balance = 0, isOnline = false, onOnlineToggle }: {
+export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 0, escrow_balance = 0, isOnline = false, onOnlineToggle, kycStatus = "none" }: {
     children: React.ReactNode;
     activeTab: string;
     onTabChange: (tab: string) => void;
@@ -44,6 +44,7 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
     escrow_balance?: number;
     isOnline?: boolean;
     onOnlineToggle?: (online: boolean) => void;
+    kycStatus?: string;
 }) {
     const { user, profile, signOut } = useAuth();
     const queryClient = useQueryClient();
@@ -256,7 +257,11 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
                         <div className="flex items-center gap-3 group cursor-pointer pl-6 border-l border-black/[0.04]">
                             <div className="text-right">
                                 <p className="text-sm font-black leading-tight group-hover:text-[#E96F28] transition-colors uppercase tracking-tight">{profile?.display_name || "Partner"}</p>
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none mt-1">Verified Partner</p>
+                                {(kycStatus === 'verified' || kycStatus === 'approved') ? (
+                                    <p className="text-[10px] font-bold text-[#E96F28] uppercase tracking-widest leading-none mt-1">Verified Partner</p>
+                                ) : (
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none mt-1">Unverified Partner</p>
+                                )}
                             </div>
                             <Avatar className="h-10 w-10 border border-black/[0.04] shadow-md group-hover:scale-105 transition-transform duration-300">
                                 <AvatarImage src={profile?.avatar_url || ""} />

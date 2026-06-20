@@ -53,31 +53,7 @@ export function LogisticsEarnings() {
     const [accountNumber, setAccountNumber] = useState("");
     const [accountName, setAccountName] = useState("");
 
-    // Earnings ledger from primary financial source — calculates balance from history
-    const { data: ledgerEntries = [], isLoading: ledgerLoading } = useQuery({
-        queryKey: ["rider-ledger", user?.id],
-        queryFn: async () => {
-            if (!user) return [];
-            // 1. Resolve all orders this rider handled
-            const { data: riderShipments } = await (supabase as any)
-                .from("shipments")
-                .select("order_id")
-                .eq("rider_id", user.id);
 
-            const orderIds = riderShipments?.map((s: any) => s.order_id) || [];
-            if (orderIds.length === 0) return [];
-
-            // 2. Fetch breakdown from the system ledger
-            const { data: ledgers, error } = await (supabase as any)
-                .from("revenue_ledgers")
-                .select("*")
-                .in("order_id", orderIds);
-
-            if (error) throw error;
-            return ledgers || [];
-        },
-        enabled: !!user,
-    });
 
     // Wallet metadata — still needed for wallet_id in payout requests
     const { data: wallet } = useQuery({
@@ -104,9 +80,9 @@ export function LogisticsEarnings() {
                     id,
                     order_id,
                     delivery_fee,
-                    zone,
+                    zone_id,
                     created_at,
-                    orders!inner(total_amount, status, updated_at, buyer_id)
+                    orders!inner(status, updated_at, buyer_id)
                 `)
                 .eq("rider_id", user.id)
                 .eq("orders.status", "completed")
@@ -170,21 +146,17 @@ export function LogisticsEarnings() {
     }, [user, queryClient]);
 
     // Metrics come from REAL transaction records
-    const deliveryFees = riderTransactions.filter((t: any) => t.type === 'delivery_fee');
-    const successfulFees = deliveryFees.filter((t: any) => t.status === 'success');
+    const deliveryFees = riderTransactions.filter((t: any) => t.type === 'delivery_fee' || t.type === 'settlement');
+    const successfulFees = deliveryFees.filter((t: any) => t.status === 'success' || t.status === 'completed');
     const pendingFees = deliveryFees.filter((t: any) => t.status === 'pending');
 
     // BALANCE CALCULATION FROM WALLET SOURCE (Most accurate for individual riders)
     const settledEarnings = successfulFees.reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
     const pendingEarnings = pendingFees.reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
 
-    const totalWithdrawn = payoutRequests
-        .filter((w: any) => w.status !== "rejected")
-        .reduce((acc: number, w: any) => acc + (parseFloat(w.amount) || 0) + (parseFloat(w.fee_amount) || 0), 0);
-
-    const availableBalance = Math.max(0, settledEarnings - totalWithdrawn);
-    const settlingBalance = pendingEarnings;
-    const totalEarnings = settledEarnings + pendingEarnings;
+    const availableBalance = wallet?.balance ?? 0;
+    const settlingBalance = wallet?.escrow_balance ?? 0;
+    const totalEarnings = availableBalance + settlingBalance;
 
     const today = new Date().toDateString();
     const todayEarnings = deliveryFees
@@ -273,7 +245,7 @@ export function LogisticsEarnings() {
                         <Button
                             onClick={() => setWithdrawOpen(true)}
                             disabled={availableBalance <= 0}
-                            className="bg-white text-primary rounded-xl h-14 px-4 sm:px-10 w-full sm:w-auto font-black text-xs uppercase tracking-wider sm:tracking-widest shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 gap-2 overflow-hidden"
+                            className="bg-white text-primary rounded-xl h-14 px-4 sm:px-10 w-full sm:w-auto font-black text-xs uppercase tracking-wider sm:tracking-widest shadow-lg active:scale-[0.98] transition-all disabled:opacity-50 gap-2 overflow-hidden"
                         >
                             <ArrowDownToLine size={16} strokeWidth={3} className="shrink-0" />
                             <span className="truncate">Cash Out Earnings</span>
@@ -304,11 +276,11 @@ export function LogisticsEarnings() {
             </div>
 
             {/* Completed Deliveries Table */}
-            <section className="space-y-4">
+            {/* <section className="space-y-4">
                 <h2 className="text-xl font-black tracking-tight flex items-center gap-2">
                     <Package size={18} strokeWidth={2.5} /> Mission History
                 </h2>
-                {ledgerEntries.length === 0 ? (
+                {deliveryFees.length === 0 ? (
                     <div className="py-14 text-center border-2 border-dashed border-black/5 rounded-xl text-muted-foreground text-sm font-medium">
                         <TrendingUp size={32} strokeWidth={1} className="mx-auto mb-3 opacity-20" />
                         No earnings history found.
@@ -325,7 +297,7 @@ export function LogisticsEarnings() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {riderTransactions.filter((t: any) => t.type === 'delivery_fee').map((t: any) => (
+                                {riderTransactions.filter((t: any) => t.type === 'delivery_fee' || t.type === 'settlement').map((t: any) => (
                                     <TableRow key={t.id} className="border-black/[0.03]">
                                         <TableCell className="pl-8">
                                             <Badge variant="outline" className={cn("font-black text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full", t.status === 'pending' ? "border-amber-200 text-amber-700 bg-amber-50" : "border-green-200 text-green-700 bg-green-50")}>
@@ -357,7 +329,7 @@ export function LogisticsEarnings() {
                         </Table>
                     </Card>
                 )}
-            </section>
+            </section> */}
 
             {/* Withdrawal History */}
             {payoutRequests.length > 0 && (
@@ -448,6 +420,7 @@ export function LogisticsEarnings() {
                                                 ref={receiptRef}
                                                 ticketId={selectedPayout.id.substring(0, 13).toUpperCase()}
                                                 amount={selectedPayout.amount}
+                                                fee={selectedPayout.fee_amount || 0}
                                                 date={new Date(selectedPayout.created_at)}
                                                 cardHolder={selectedPayout.account_name || user?.email || "Partner"}
                                                 last4Digits={selectedPayout.account_number?.slice(-4) || "****"}

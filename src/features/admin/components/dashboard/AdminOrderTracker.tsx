@@ -28,26 +28,33 @@ export default function AdminOrderTracker() {
                     *,
                     profiles:buyer_id(display_name, id),
                     order_recipient(full_name, phone, address_line, city_id, zone_id, lat, lng),
-                    shipments(
-                        id,
-                        status,
-                        tracking_code,
-                        pickup_code,
-                        delivery_code,
-                        distance_km,
-                        pickup_address,
-                        delivery_address,
-                        pickup_lat,
-                        pickup_lng,
-                        delivery_lat,
-                        delivery_lng,
-                        rider:profiles!rider_id(display_name, phone, avatar_url),
-                        fee_breakdown
-                    )
+                    shipments(*)
                 `)
                 .order("created_at", { ascending: false })
                 .limit(pageSize);
             if (error) throw error;
+
+            // Fetch riders manually to bypass missing foreign key relation
+            const riderIds = new Set<string>();
+            data?.forEach(o => {
+                const ships = Array.isArray(o.shipments) ? o.shipments : (o.shipments ? [o.shipments] : []);
+                ships.forEach((s: any) => { if (s.rider_id) riderIds.add(s.rider_id); });
+            });
+
+            if (riderIds.size > 0) {
+                const { data: riders } = await supabase.from("profiles").select("id, display_name, phone, avatar_url").in("id", Array.from(riderIds));
+                const riderMap = new Map(riders?.map(r => [r.id, r]) || []);
+                
+                data?.forEach(o => {
+                    const ships = Array.isArray(o.shipments) ? o.shipments : (o.shipments ? [o.shipments] : []);
+                    ships.forEach((s: any) => {
+                        if (s.rider_id) {
+                            s.rider = riderMap.get(s.rider_id);
+                        }
+                    });
+                });
+            }
+
             return data;
         },
         refetchInterval: 30000, // Refresh admin view every 30 seconds

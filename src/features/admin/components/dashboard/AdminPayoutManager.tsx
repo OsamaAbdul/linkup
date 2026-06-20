@@ -15,6 +15,7 @@ export function AdminPayoutManager() {
     const queryClient = useQueryClient();
     const [feeInput, setFeeInput] = useState("");
     const [intervalInput, setIntervalInput] = useState("");
+    const [releaseDaysInput, setReleaseDaysInput] = useState("");
 
     // Fetch payout requests
     const { data: requests = [], isLoading } = useQuery({
@@ -25,13 +26,30 @@ export function AdminPayoutManager() {
                 .select(`
                     *,
                     profiles:user_id(
-                        display_name,
-                        user_roles(role)
+                        display_name
                     )
                 `)
                 .order("created_at", { ascending: false });
             
             if (error) throw error;
+
+            if (data && data.length > 0) {
+                const userIds = data.map(r => r.user_id);
+                const { data: rolesData } = await supabase.from("user_roles").select("user_id, role").in("user_id", userIds);
+                
+                const rolesMap = new Map<string, any[]>();
+                rolesData?.forEach(r => {
+                    if (!rolesMap.has(r.user_id)) rolesMap.set(r.user_id, []);
+                    rolesMap.get(r.user_id)!.push(r);
+                });
+                
+                data.forEach((req: any) => {
+                    if (req.profiles) {
+                        req.profiles.user_roles = rolesMap.get(req.user_id) || [];
+                    }
+                });
+            }
+
             return data ?? [];
         }
     });
@@ -43,14 +61,17 @@ export function AdminPayoutManager() {
             const { data } = await supabase.from("system_settings").select("*");
             const withdrawal_fee = data?.find(s => s.key === 'withdrawal_fee')?.value as any;
             const payout_interval = data?.find(s => s.key === 'payout_interval_days')?.value as any;
+            const escrow_release = data?.find(s => s.key === 'escrow_release_days')?.value as any;
             
             // Sync local inputs if not set
             if (withdrawal_fee && feeInput === "") setFeeInput(withdrawal_fee.amount.toString());
             if (payout_interval && intervalInput === "") setIntervalInput(payout_interval.toString());
+            if (escrow_release && releaseDaysInput === "") setReleaseDaysInput(escrow_release.toString());
             
             return {
                 withdrawal_fee,
-                payout_interval
+                payout_interval,
+                escrow_release
             };
         }
     });
@@ -59,7 +80,7 @@ export function AdminPayoutManager() {
     const { data: ledger } = useQuery({
         queryKey: ["admin-financial-ledger"],
         queryFn: async () => {
-            const { data, error } = await (supabase as any).rpc("get_admin_financial_ledger");
+            const { data, error } = await (supabase as any).rpc("get_admin_revenue");
             if (error) throw error;
             return data;
         }
@@ -105,18 +126,22 @@ export function AdminPayoutManager() {
     });
 
     const updateSettingsMutation = useMutation({
-        mutationFn: async ({ fee, interval }: { fee: number; interval: number }) => {
+        mutationFn: async ({ fee, interval, release }: { fee: number, interval: number, release: number }) => {
             const { error: feeErr } = await supabase
                 .from("system_settings")
                 .update({ value: { amount: fee, type: "flat" } })
                 .eq("key", "withdrawal_fee");
-            
+                
             const { error: intErr } = await supabase
                 .from("system_settings")
                 .update({ value: interval })
                 .eq("key", "payout_interval_days");
+
+            const { error: releaseErr } = await supabase
+                .from("system_settings")
+                .upsert({ key: "escrow_release_days", value: release });
                 
-            if (feeErr || intErr) throw new Error("Update failed");
+            if (feeErr || intErr || releaseErr) throw new Error("Update failed");
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["payout-settings"] });
@@ -144,7 +169,7 @@ export function AdminPayoutManager() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-6">
+                        <div className="grid grid-cols-3 gap-6">
                             <div className="space-y-2">
                                 <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Payout Fee (₦)</Label>
                                 <Input 
@@ -163,10 +188,19 @@ export function AdminPayoutManager() {
                                     className="h-12 rounded-xl border-black/[0.05] bg-gray-50 focus:bg-white font-bold transition-all"
                                 />
                             </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Escrow Release (Days)</Label>
+                                <Input 
+                                    type="number" 
+                                    value={releaseDaysInput} 
+                                    onChange={(e) => setReleaseDaysInput(e.target.value)}
+                                    className="h-12 rounded-xl border-black/[0.05] bg-gray-50 focus:bg-white font-bold transition-all"
+                                />
+                            </div>
                         </div>
 
                         <Button 
-                            onClick={() => updateSettingsMutation.mutate({ fee: Number(feeInput), interval: Number(intervalInput) })}
+                            onClick={() => updateSettingsMutation.mutate({ fee: Number(feeInput), interval: Number(intervalInput), release: Number(releaseDaysInput) })}
                             disabled={updateSettingsMutation.isPending}
                             className="bg-primary text-white h-12 px-8 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
                         >

@@ -27,7 +27,7 @@ export default function Logistics() {
                     order:orders (
                         id,
                         status,
-                        total_amount,
+                        grand_total,
                         shipping_address
                     )
                 `)
@@ -134,7 +134,7 @@ export default function Logistics() {
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-sm font-black text-foreground">‚¦{s.order?.total_amount?.toLocaleString()}</p>
+                                        <p className="text-sm font-black text-foreground">₦{s.order?.grand_total?.toLocaleString()}</p>
                                     </div>
                                 </CardHeader>
 

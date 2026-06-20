@@ -95,7 +95,7 @@ export function OrderCard({ order }: OrderCardProps) {
             const { data, error } = await supabase
                 .from("issues" as any)
                 .select("*")
-                .eq("user_id", user.id)
+                .eq("reporter_id", user.id)
                 .order("created_at", { ascending: false });
             
             if (error) return [];
@@ -146,7 +146,7 @@ export function OrderCard({ order }: OrderCardProps) {
             const { error } = await supabase
                 .from("issues" as any)
                 .insert([{
-                    user_id: user.id,
+                    reporter_id: user.id,
                     order_id: order.id,
                     seller_id: order.sellerId,
                     product_id: order.productId, // Link to specific product
@@ -186,7 +186,7 @@ export function OrderCard({ order }: OrderCardProps) {
             const { error: disputeError } = await supabase
                 .from("issues" as any)
                 .insert([{
-                    user_id: user.id,
+                    reporter_id: user.id,
                     order_id: order.id,
                     seller_id: order.sellerId,
                     product_id: order.productId,
@@ -363,7 +363,7 @@ export function OrderCard({ order }: OrderCardProps) {
                                     disabled={confirmDeliveryMutation.isPending}
                                 >
                                     {confirmDeliveryMutation.isPending ? <Activity className="animate-spin" size={12} /> : <CheckCircle size={12} strokeWidth={3} />}
-                                    Accept Order & Finalize
+                                    Mark Delivered & Finalize
                                 </Button>
                             )}
                             {order.status.toLowerCase() === "completed" && (

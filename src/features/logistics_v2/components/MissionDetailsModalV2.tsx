@@ -169,8 +169,8 @@ export function MissionDetailsModalV2({ shipment, open, onOpenChange }: MissionD
                                     <Banknote size={28} strokeWidth={2.5} />
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest leading-none mb-1">Guaranteed Payout</p>
-                                    <p className="text-3xl font-black text-emerald-950 tracking-tighter">₦{(activeShipment?.delivery_fee_amount || activeShipment?.order?.total_amount || 0).toLocaleString()}</p>
+                                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-2">Delivery Fee</p>
+                                    <p className="text-3xl font-black text-emerald-950 tracking-tighter">₦{(activeShipment?.delivery_fee || activeShipment?.order?.shipping_fee || 0).toLocaleString()}</p>
                                 </div>
                             </div>
                             <ShieldCheck size={32} className="text-emerald-200" />

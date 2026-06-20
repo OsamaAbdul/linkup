@@ -134,7 +134,7 @@ export default function Sell() {
     queryFn: async () => {
       if (!user) return null;
       // @ts-ignore
-      const { data } = await supabase.from("seller_verifications").select("status").eq("user_id", user.id).maybeSingle();
+      const { data } = await supabase.from("seller_verifications").select("status").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
       return data;
     },
     enabled: !!user && !!isSeller,
@@ -290,6 +290,48 @@ export default function Sell() {
               <Textarea value={form.description} onChange={(e) => dispatch({ type: 'SET_FIELD', field: 'description', value: e.target.value })} placeholder="Describe your product" />
             </div>
 
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Category</Label>
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="h-auto p-0 text-primary"
+                  onClick={() => setShowNewCategoryInput(!showNewCategoryInput)}
+                >
+                  {showNewCategoryInput ? "Cancel" : "+ Add New"}
+                </Button>
+              </div>
+
+              {showNewCategoryInput ? (
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="New category name"
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && newCategoryName.trim() && addCategoryMutation.mutate(newCategoryName.trim())}
+                  />
+                  <Button
+                    onClick={() => newCategoryName.trim() && addCategoryMutation.mutate(newCategoryName.trim())}
+                    disabled={addCategoryMutation.isPending}
+                  >
+                    Add
+                  </Button>
+                </div>
+              ) : (
+                <Select value={form.category} onValueChange={(v) => dispatch({ type: 'SET_FIELD', field: 'category', value: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                  <SelectContent>
+                    {dbCategories.map((c: any) => (
+                      <SelectItem key={typeof c === 'object' ? c.name : c} value={typeof c === 'object' ? c.name : c}>
+                        {typeof c === 'object' ? c.name : c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
             {getAvailableSizes(form.category) && (
               <div className="space-y-2">
                 <Label>Available Sizes</Label>
@@ -341,47 +383,6 @@ export default function Sell() {
                   placeholder="1"
                 />
               </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Category</Label>
-                <Button
-                  variant="link"
-                  size="sm"
-                  className="h-auto p-0 text-primary"
-                  onClick={() => setShowNewCategoryInput(!showNewCategoryInput)}
-                >
-                  {showNewCategoryInput ? "Cancel" : "+ Add New"}
-                </Button>
-              </div>
-
-              {showNewCategoryInput ? (
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="New category name"
-                    value={newCategoryName}
-                    onChange={(e) => setNewCategoryName(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && newCategoryName.trim() && addCategoryMutation.mutate(newCategoryName.trim())}
-                  />
-                  <Button
-                    onClick={() => newCategoryName.trim() && addCategoryMutation.mutate(newCategoryName.trim())}
-                    disabled={addCategoryMutation.isPending}
-                  >
-                    Add
-                  </Button>
-                </div>
-              ) : (
-                <Select value={form.category} onValueChange={(v) => dispatch({ type: 'SET_FIELD', field: 'category', value: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
-                  <SelectContent>
-                    {dbCategories.map((c: any) => (
-                      <SelectItem key={typeof c === 'object' ? c.name : c} value={typeof c === 'object' ? c.name : c}>
-                        {typeof c === 'object' ? c.name : c}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3">

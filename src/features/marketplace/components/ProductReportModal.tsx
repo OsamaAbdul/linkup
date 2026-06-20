@@ -30,7 +30,7 @@ export function ProductReportModal({ productId, sellerId, productTitle, trigger 
             const { error } = await supabase
                 .from("issues" as any)
                 .insert([{
-                    user_id: user.id,
+                    reporter_id: user.id,
                     product_id: productId,
                     seller_id: sellerId,
                     title: `[Product] ${issueTitle}`,

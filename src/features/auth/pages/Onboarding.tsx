@@ -1,3 +1,4 @@
+// Force HMR refresh
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -126,6 +127,53 @@ export default function Onboarding() {
     enabled: !!logisticsData.city_id,
   });
 
+  useQuery({
+    queryKey: ["existing-logistics-onboarding", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      
+      const { data: kycData } = await (supabase as any)
+        .from("logistics_kyc")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      const { data: detailsData } = await (supabase as any)
+        .from("logistics_details")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (kycData) {
+        setLogisticsData(prev => ({
+          ...prev,
+          fullName: kycData.full_name || prev.fullName,
+          phoneNumber: kycData.phone_number || prev.phoneNumber,
+          homeAddress: kycData.home_address || prev.homeAddress,
+          dob: kycData.date_of_birth || prev.dob,
+          city_id: kycData.city_id || prev.city_id,
+          zone_id: kycData.zone_id || prev.zone_id,
+        }));
+      }
+
+      if (detailsData) {
+        setOnboardingData(prev => ({
+          ...prev,
+          username: detailsData.username || prev.username,
+          bankName: detailsData.bank_name || prev.bankName,
+          accountNumber: detailsData.account_number || prev.accountNumber,
+          accountName: detailsData.account_name || prev.accountName,
+          nextOfKinName: detailsData.next_of_kin?.name || prev.nextOfKinName,
+          nextOfKinPhone: detailsData.next_of_kin?.phone || prev.nextOfKinPhone,
+          nextOfKinRelation: detailsData.next_of_kin?.relationship || prev.nextOfKinRelation,
+        }));
+      }
+      
+      return { kycData, detailsData };
+    },
+    enabled: !!user,
+  });
+
   useEffect(() => {
     if (authLoading) return;
 
@@ -189,12 +237,12 @@ export default function Onboarding() {
     try {
       const ext = logisticsData.passportFile.name.split(".").pop();
       const path = `${user!.id}/passport_${Date.now()}.${ext}`;
-      
+
       let fileToUpload = logisticsData.passportFile;
       try {
-          fileToUpload = await imageCompression(logisticsData.passportFile, { maxSizeMB: 0.5, maxWidthOrHeight: 1920, useWebWorker: true });
+        fileToUpload = await imageCompression(logisticsData.passportFile, { maxSizeMB: 0.5, maxWidthOrHeight: 1920, useWebWorker: true });
       } catch (e) {
-          console.error("Compression error:", e);
+        console.error("Compression error:", e);
       }
 
       const { error: uploadError } = await supabase.storage.from("kyc-documents").upload(path, fileToUpload);
@@ -208,7 +256,7 @@ export default function Onboarding() {
       if (kycError) throw kycError;
 
       const { error: zoneError } = await (supabase as any).from("profiles")
-        .update({ zone: logisticsData.zone, city_id: logisticsData.city_id, zone_id: logisticsData.zone_id })
+        .update({ city_id: logisticsData.city_id, zone_id: logisticsData.zone_id })
         .eq("id", user!.id);
       if (zoneError) throw zoneError;
 
@@ -225,12 +273,12 @@ export default function Onboarding() {
     setStepLoading(true);
     try {
       if (!skip) {
-        const { error } = await (supabase as any).from("logistics_details").insert({
+        const { error } = await (supabase as any).from("logistics_details").upsert({
           user_id: user!.id, username: onboardingData.username || undefined,
           bank_name: onboardingData.bankName, account_number: onboardingData.accountNumber,
           account_name: onboardingData.accountName,
           next_of_kin: { name: onboardingData.nextOfKinName, phone: onboardingData.nextOfKinPhone, relationship: onboardingData.nextOfKinRelation },
-        });
+        }, { onConflict: 'user_id' });
         if (error) throw error;
       }
       const { error: roleError } = await (supabase as any).rpc("manage_user_roles", {
@@ -480,10 +528,10 @@ export default function Onboarding() {
                       <Input value={logisticsData.fullName} onChange={(e) => setLogisticsData({ ...logisticsData, fullName: e.target.value })} placeholder="Legal name" className={inputWithIcon} required />
                     </FormField>
                     <FormField label="Phone Number" icon={Phone}>
-                      <Input value={logisticsData.phoneNumber} onChange={(e) => setLogisticsData({ ...logisticsData, phoneNumber: e.target.value })} placeholder="+234..." className={inputWithIcon} required />
+                      <Input value={logisticsData.phoneNumber} onChange={(e) => setLogisticsData({ ...logisticsData, phoneNumber: e.target.value })} placeholder="+234..." className={inputWithIcon} maxLength={11} required />
                     </FormField>
                     <FormField label="Home Address" icon={Home} className="sm:col-span-2">
-                      <Input value={logisticsData.homeAddress} onChange={(e) => setLogisticsData({ ...logisticsData, homeAddress: e.target.value })} placeholder="Residential address" className={inputWithIcon} required />
+                      <Input value={logisticsData.homeAddress} onChange={(e) => setLogisticsData({ ...logisticsData, homeAddress: e.target.value })} placeholder="e.g N0. 9 behind...." className={inputWithIcon} required />
                     </FormField>
                     <FormField label="Date of Birth" icon={Calendar}>
                       <Input type="date" value={logisticsData.dob} onChange={(e) => setLogisticsData({ ...logisticsData, dob: e.target.value })} className={inputWithIcon} required />
@@ -569,7 +617,7 @@ export default function Onboarding() {
               <SectionHeader
                 icon={CreditCard}
                 title="Final Details"
-                subtitle="Optional �� you can complete this later"
+                subtitle="Optional you can complete this later"
               />
               <div className="bg-card border border-border/60 rounded-xl p-6 sm:p-8 shadow-sm space-y-6">
                 <FormField label="Username" icon={User}>
@@ -583,7 +631,7 @@ export default function Onboarding() {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Input placeholder="Bank Name" value={onboardingData.bankName} onChange={(e) => setOnboardingData({ ...onboardingData, bankName: e.target.value })} className={inputClass} />
-                    <Input placeholder="Account Number" value={onboardingData.accountNumber} onChange={(e) => setOnboardingData({ ...onboardingData, accountNumber: e.target.value })} className={inputClass} />
+                    <Input placeholder="Account Number" value={onboardingData.accountNumber} onChange={(e) => setOnboardingData({ ...onboardingData, accountNumber: e.target.value })} className={inputClass} maxLength={12} />
                     <Input placeholder="Account Name" value={onboardingData.accountName} onChange={(e) => setOnboardingData({ ...onboardingData, accountName: e.target.value })} className={`${inputClass} sm:col-span-2`} />
                   </div>
                 </div>
@@ -595,7 +643,7 @@ export default function Onboarding() {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Input placeholder="Full Name" value={onboardingData.nextOfKinName} onChange={(e) => setOnboardingData({ ...onboardingData, nextOfKinName: e.target.value })} className={inputClass} />
-                    <Input placeholder="Phone Number" value={onboardingData.nextOfKinPhone} onChange={(e) => setOnboardingData({ ...onboardingData, nextOfKinPhone: e.target.value })} className={inputClass} />
+                    <Input placeholder="Phone Number" maxLength={11} value={onboardingData.nextOfKinPhone} onChange={(e) => setOnboardingData({ ...onboardingData, nextOfKinPhone: e.target.value })} className={inputClass} />
                     <Input placeholder="Relationship" value={onboardingData.nextOfKinRelation} onChange={(e) => setOnboardingData({ ...onboardingData, nextOfKinRelation: e.target.value })} className={`${inputClass} sm:col-span-2`} />
                   </div>
                 </div>

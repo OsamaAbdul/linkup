@@ -79,8 +79,8 @@ export function Header() {
               )}
             </Link>
 
-            {/* Cart - Desktop Only (Mobile has BottomNav or dedicated link) */}
-            <Link to="/cart" className="hidden md:block">
+            {/* Cart - Desktop & Mobile */}
+            <Link to="/cart" className="relative">
               <Button variant="ghost" size="icon" className="relative group rounded-xl hover:bg-primary/5">
                 <ShoppingCart size={20} className="text-foreground/70 group-hover:text-primary transition-colors" />
                 {totalCount > 0 && (

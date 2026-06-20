@@ -1,4 +1,6 @@
+// @ts-ignore
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+// @ts-ignore
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -16,6 +18,18 @@ function toTextAddress(val: unknown): string {
   return "";
 }
 
+function calculateDistance(lat1: number | null, lon1: number | null, lat2: number | null, lon2: number | null): number {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return 0;
+  const R = 6371; // km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return Number((R * c).toFixed(1));
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -24,7 +38,9 @@ serve(async (req: Request) => {
   try {
     console.log("--- create-order Gateway logic ---");
 
+    // @ts-ignore
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    // @ts-ignore
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -75,6 +91,7 @@ serve(async (req: Request) => {
       pickup_lng,
       delivery_lat,
       delivery_lng,
+      rider_fee_breakdown,
     } = body;
 
     console.log(
@@ -266,19 +283,43 @@ serve(async (req: Request) => {
         console.log(`[Attribution] SKIP: No promoter_id provided in checkout payload.`);
       }
 
+      // --- Calculate Exact Financial Splits (Upfront) ---
+      // Rider gets the base delivery fee PLUS the cross zone distance fee
+      const current_rider_fee = (delivery_fee ? (delivery_fee / sellerIds.length) : 0) + (cross_zone_fee ? (cross_zone_fee / sellerIds.length) : 0);
+      
+      const product_total = calculatedSubTotal;
+      let calculated_platform_fee = product_total * 0.05; // 5% Platform
+      let calculated_promoter_fee = 0;
+
+      // Promoters only get a cut if there's a promoter attached
+      if (finalPromoterId) {
+        calculated_promoter_fee = calculated_platform_fee / 2; // Promoter gets half the fee (2.5%)
+        calculated_platform_fee = calculated_platform_fee - calculated_promoter_fee; // Platform keeps the rest
+      }
+
+      // Seller gets the rest of the product total
+      const calculated_seller_earnings = product_total - (calculated_platform_fee + calculated_promoter_fee);
+      
+      const total_order_charge = product_total + current_rider_fee;
+
       // --- Create Transactional Order Record ---
       const { data: order, error: orderError } = await adminClient
         .from("orders")
         .insert({
           buyer_id: user.id,
           seller_id: sId,
-          total_amount: (calculatedSubTotal + (delivery_fee ? (delivery_fee / sellerIds.length) : 0) + (cross_zone_fee ? (cross_zone_fee / sellerIds.length) : 0)) || 0,
+          total: total_order_charge || 0,
+          subtotal: product_total || 0,
+          shipping_fee: current_rider_fee || 0,
+          platform_fee: calculated_platform_fee || 0,
+          promoter_fee: calculated_promoter_fee || 0,
+          seller_earnings: calculated_seller_earnings || 0,
+          grand_total: total_order_charge || 0,
           status: "pending",
           promoter_id: finalPromoterId || null,
           payment_method: payment_method || null,
           payment_ref: payment_ref || null,
           payment_status: payment_status || null,
-          settlement_status: "none",
         })
         .select("id")
         .single();
@@ -291,26 +332,19 @@ serve(async (req: Request) => {
       createdOrderIds.push(order.id);
 
       // --- Create Recipient Record (The Destination Data) ---
+      // --- Run Secondary Inserts Concurrently to reduce Latency ---
       const shipAddrRaw = shipping_address || pickup_address || {};
-      const { error: recipientError } = await adminClient
-        .from("order_recipient")
-        .insert({
-          order_id: order.id,
-          full_name: shipAddrRaw.name || shipAddrRaw.full_name || user.user_metadata?.display_name || "Customer",
-          phone: shipAddrRaw.phone || user.phone || "No phone",
-          address_line: toTextAddress(shipAddrRaw),
-          city_id: city_id || null, 
-          zone_id: zone_id || null,
-          lat: delivery_lat || null,
-          lng: delivery_lng || null,
-        });
+      const recipientPromise = adminClient.from("order_recipient").insert({
+        order_id: order.id,
+        full_name: shipAddrRaw.name || shipAddrRaw.full_name || user.user_metadata?.display_name || "Customer",
+        phone: shipAddrRaw.phone || user.phone || "No phone",
+        address_line: toTextAddress(shipAddrRaw),
+        city_id: city_id || null, 
+        zone_id: zone_id || null,
+        lat: delivery_lat || null,
+        lng: delivery_lng || null,
+      });
 
-      if (recipientError) {
-        console.error("RECIPIENT_INSERT_FAIL:", recipientError);
-        throw new Error(`Failed to save recipient data: ${recipientError.message}`);
-      }
-
-      // --- Create Order Items Relationship ---
       const orderItemsPayload = enrichedSellerItems.map((item) => ({
         order_id: order.id,
         product_id: item.product_id,
@@ -319,45 +353,63 @@ serve(async (req: Request) => {
         price_at_purchase: item.price,
         size: item.size || null,
       }));
+      const itemsPromise = adminClient.from("order_items").insert(orderItemsPayload);
 
-      await adminClient.from("order_items").insert(orderItemsPayload);
-
-      // --- Create Shipment Record (The Logistics Pipeline) ---
       const deliveryAddressStr = toTextAddress(shipping_address);
       const finalPickupAddressStr = toTextAddress(pickup_address) || current_seller_address;
+      
+      const calculated_distance_km = calculateDistance(
+        current_pickup_lat,
+        current_pickup_lng,
+        delivery_lat,
+        delivery_lng
+      );
 
-      const current_rider_fee = delivery_fee ? (delivery_fee / sellerIds.length) : 0;
-      const current_cross_zone_fee = cross_zone_fee ? (cross_zone_fee / sellerIds.length) : 0;
+      const fee_breakdown = {
+        base_fee: delivery_fee ? (delivery_fee / sellerIds.length) : 0,
+        cross_zone_fee: cross_zone_fee ? (cross_zone_fee / sellerIds.length) : 0,
+        total: current_rider_fee,
+        distance_km: calculated_distance_km || body.distance_km || 0
+      };
 
-      const resolvedZone = zone || shipping_address?.zone || body.zone_name || null;
-
-      await adminClient.from("shipments").insert({
+      const shipmentPromise = adminClient.from("shipments").insert({
         order_id: order.id,
         seller_id: sId,
         status: "pending",
-        delivery_address_text: deliveryAddressStr,
-        pickup_address_text: finalPickupAddressStr,
-        delivery_fee_amount: current_rider_fee, 
-        cross_zone_fee_amount: current_cross_zone_fee,
-        bonus_amount: 0,
-        fee_breakdown: {},
+        delivery_address: deliveryAddressStr,
+        pickup_address: finalPickupAddressStr,
+        delivery_fee: current_rider_fee, 
         zone_id: zone_id || null,
-        city_id: city_id || null,
-        zone: resolvedZone,
-        broadcast_zone: resolvedZone,
-        pickup_lat: current_pickup_lat || null,
-        pickup_lng: current_pickup_lng || null,
-        delivery_lat: delivery_lat || null,
-        delivery_lng: delivery_lng || null,
-        distance_km: body.distance_km || null,
+        buyer_latitude: delivery_lat || null,
+        buyer_longitude: delivery_lng || null,
+        distance_km: calculated_distance_km || body.distance_km || null,
+        rider_fee_breakdown: fee_breakdown,
       });
 
-      // --- Notify Seller ---
-      await adminClient.from("notifications").insert({
+      const notificationPromise = adminClient.from("notifications").insert({
         user_id: sId,
         type: "order",
         message: `New order portion received! Order #${order.id.slice(0, 8)}`,
       });
+
+      const settlementPromise = adminClient.from("order_settlements").insert({
+        order_id: order.id,
+        gross_amount: total_order_charge || 0,
+        seller_amount: calculated_seller_earnings || 0,
+        rider_amount: current_rider_fee || 0,
+        platform_amount: calculated_platform_fee || 0,
+        promoter_amount: calculated_promoter_fee || 0,
+        status: "pending",
+      });
+
+      const [recipientRes, itemsRes, shipmentRes, notifRes, settlementRes] = await Promise.all([
+        recipientPromise, itemsPromise, shipmentPromise, notificationPromise, settlementPromise
+      ]);
+
+      if (recipientRes.error) console.error("RECIPIENT_INSERT_FAIL:", recipientRes.error);
+      if (itemsRes.error) console.error("ITEMS_INSERT_FAIL:", itemsRes.error);
+      if (shipmentRes.error) console.error("SHIPMENT_INSERT_FAIL:", shipmentRes.error);
+      if (settlementRes.error) console.error("SETTLEMENT_INSERT_FAIL:", settlementRes.error);
     }
 
     // --- Conversion Tracking (Phase 10/14) ---

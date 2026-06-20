@@ -43,7 +43,7 @@ export default function AdminDashboard({ activeSection = "overview" }: AdminDash
             queryClient.prefetchQuery({
                 queryKey: ["admin-active-orders-count"],
                 queryFn: async () => {
-                    const { count, error } = await supabase.from("orders").select("*", { count: 'exact', head: true }).in("status", ["pending", "processing", "shipped"]);
+                    const { count, error } = await supabase.from("orders").select("*", { count: 'exact', head: true }).not("status", "in", "(completed,cancelled,delivered)");
                     if (error) throw error;
                     return count || 0;
                 },

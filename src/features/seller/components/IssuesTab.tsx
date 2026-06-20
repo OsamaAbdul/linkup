@@ -20,7 +20,7 @@ export function IssuesTab() {
             const { data, error } = await supabase
                 .from("issues" as any)
                 .select(
-                  "id, title, description, status, priority, created_at, order_id, evidence_url, seller_id, user_id, reporter:profiles!user_id(display_name), products(title)"
+                  "id, title, description, status, priority, created_at, order_id, evidence_url, seller_id, reporter_id, reporter:profiles!reporter_id(display_name), products(title)"
                 )
                 .eq("seller_id", user?.id)
                 .order("created_at", { ascending: false })

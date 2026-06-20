@@ -33,10 +33,14 @@ export function useSellerDashboardData() {
     queryKey: ["seller-orders-v3", user?.id, ordersPage],
     queryFn: async () => {
       if (!user) return { data: [], count: 0 };
-      const { data, count } = await supabase
+      const { data, count, error } = await supabase
         .from("orders")
         .select(`
-          id, status, created_at, total_amount, 
+          id, status, created_at, grand_total, 
+          order_settlements(
+            seller_amount,
+            status
+          ),
           order_items (
             id,
             product_id,
@@ -53,23 +57,28 @@ export function useSellerDashboardData() {
             address_line,
             city_id,
             zone_id,
-            cities: city_id (name),
-            delivery_zones: zone_id (name)
+            cities (name),
+            delivery_zones (name)
           ),
           shipments(
-            id, status, tracking_code, zone, zone_id,
-            delivery_fee_amount, cross_zone_fee_amount,
-            profiles: rider_id(
-              display_name, avatar_url
-            )
+            id, status, tracking_code, zone_id,
+            delivery_fee
           )
         `, { count: "exact" })
         .eq("seller_id", user.id)
         .order("created_at", { ascending: false })
         .range(ordersPage * PAGE_SIZE, (ordersPage + 1) * PAGE_SIZE - 1);
+
+      if (error) {
+        console.error("Seller orders error:", error);
+        toast.error("Failed to load orders: " + error.message);
+      }
       return { data: (data as any[]) ?? [], count: count ?? 0 };
     },
     enabled: !!user,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    gcTime: 1000 * 60 * 30, // Keep in garbage collection for 30 minutes
+    refetchOnMount: "always", // Always fetch fresh data when component mounts
   });
 
   const { data: sellerProfile, isLoading: isProfileLoading } = useQuery({
@@ -86,8 +95,10 @@ export function useSellerDashboardData() {
 
       const { data: verification } = await supabase
         .from("seller_verifications")
-        .select("id, user_id, status, business_name, business_address, created_at")
+        .select("*")
         .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       return {
@@ -126,16 +137,6 @@ export function useSellerDashboardData() {
     enabled: !!user,
   });
 
-  const { data: analytics } = useQuery({
-    queryKey: ["seller-analytics", user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data, error } = await supabase.rpc("get_seller_analytics", { seller_uuid: user.id });
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user,
-  });
 
   const { data: wallet } = useQuery({
     queryKey: ["wallet", user?.id],
@@ -143,7 +144,11 @@ export function useSellerDashboardData() {
       if (!user) return null;
       const { data } = await supabase.from("wallets").select("id, balance, escrow_balance").eq("user_id", user.id).maybeSingle();
       if (!data) {
-        const { data: newWallet } = await supabase.from("wallets").insert({ user_id: user.id }).select().single();
+        const { data: newWallet, error } = await supabase.from("wallets").insert({ user_id: user.id }).select().single();
+        if (error) {
+          console.error("Wallet insert error:", error);
+          return { id: "temp", balance: 0, escrow_balance: 0 };
+        }
         return newWallet;
       }
       return data;
@@ -152,14 +157,20 @@ export function useSellerDashboardData() {
   });
 
   const { data: transactions = [] } = useQuery({
-    queryKey: ["wallet-transactions", wallet?.id],
+    queryKey: ["seller-transactions", wallet?.id],
     queryFn: async () => {
-      if (!wallet) return [];
-      const { data } = await supabase.from("wallet_transactions").select("id, amount, type, created_at").eq("wallet_id", wallet.id).order("created_at", { ascending: false }).limit(20);
-      return data ?? [];
+      if (!wallet || wallet.id === "temp") return [];
+      const { data } = await supabase
+        .from("wallet_transactions")
+        .select("*")
+        .eq("wallet_id", wallet.id)
+        .order("created_at", { ascending: false });
+      return data || [];
     },
     enabled: !!wallet,
   });
+
+
 
   const { data: dbCategories = [] } = useCategories();
 
@@ -199,54 +210,45 @@ export function useSellerDashboardData() {
   });
 
   const broadcastOrderMutation = useMutation({
-    mutationFn: async ({ 
-        id, zone, zoneId, cityId, pickupAddress, deliveryAddress, pickupTime, lat, lng,
-        deliveryFeeAmount, crossZoneFeeAmount 
-    }: { 
-        id: string; 
-        zone: string; 
-        zoneId?: string; 
-        cityId?: string; 
-        pickupAddress: string; 
-        deliveryAddress: string;
-        pickupTime: string;
-        lat?: number;
-        lng?: number;
-        deliveryFeeAmount?: number;
-        crossZoneFeeAmount?: number;
+    mutationFn: async ({
+      id, zone, zoneId, cityId, pickupAddress, deliveryAddress, pickupTime, lat, lng,
+      deliveryFeeAmount, crossZoneFeeAmount, distanceKm
+    }: {
+      id: string;
+      zone: string;
+      zoneId?: string;
+      cityId?: string;
+      pickupAddress: string;
+      deliveryAddress: string;
+      pickupTime: string;
+      lat?: number;
+      lng?: number;
+      deliveryFeeAmount?: number;
+      crossZoneFeeAmount?: number;
+      distanceKm?: number;
     }) => {
       const { error: orderError } = await supabase
         .from("orders")
-        .update({ 
+        .update({
           status: "awaiting_agent",
-          updated_at: new Date().toISOString() 
+          updated_at: new Date().toISOString()
         })
         .eq("id", id);
       if (orderError) throw orderError;
 
       const { error: shipmentError } = await supabase
         .from("shipments")
-        .upsert({
-          order_id: id,
+        .update({
           seller_id: user.id,
-          zone: zone,
           zone_id: zoneId,
-          city_id: cityId,
           status: "broadcast",
-          // Sync all redundant address columns
           pickup_address: pickupAddress,
-          pickup_address_text: pickupAddress,
           delivery_address: deliveryAddress,
-          delivery_address_text: deliveryAddress,
-          // Sync existing coordinate columns
-          pickup_lat: lat,
-          pickup_lng: lng,
-          
-          pickup_time: pickupTime ? new Date(pickupTime).toISOString() : null,
-          delivery_fee_amount: deliveryFeeAmount || null,
-          cross_zone_fee_amount: crossZoneFeeAmount || 0,
+          delivery_fee: deliveryFeeAmount || null,
+          distance_km: distanceKm || null,
           updated_at: new Date().toISOString()
-        }, { onConflict: 'order_id' });
+        })
+        .eq('order_id', id);
 
       if (shipmentError) {
         console.error("Secondary Shipment Update Error (Non-Critical):", shipmentError);
@@ -340,12 +342,20 @@ export function useSellerDashboardData() {
       if (!user) return { revenue: 0, count: 0, chartData: [] };
       const { data, error } = await supabase
         .from("orders")
-        .select("total_amount, created_at")
+        .select(`
+          created_at,
+          order_settlements (
+            seller_amount
+          )
+        `)
         .eq("seller_id", user.id)
         .order("created_at", { ascending: true })
         .limit(1000);
       if (error) return { revenue: 0, count: 0, chartData: [] };
-      const totalRevenue = data.reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0);
+      const totalRevenue = data.reduce((sum, o) => {
+        const settlementAmount = o.order_settlements ? (Array.isArray(o.order_settlements) ? o.order_settlements[0]?.seller_amount : (o.order_settlements as any)?.seller_amount) : 0;
+        return sum + (Number(settlementAmount) || 0);
+      }, 0);
       const chartValues = Object.entries(data.reduce((acc: Record<string, number>, o) => {
         const date = new Date(o.created_at).toLocaleDateString();
         acc[date] = (acc[date] || 0) + 1;
@@ -355,7 +365,7 @@ export function useSellerDashboardData() {
     },
     enabled: !!user,
   });
-  
+
   // Realtime Subscriptions
   useEffect(() => {
     if (!user) return;
@@ -409,6 +419,43 @@ export function useSellerDashboardData() {
     };
   }, [user, queryClient]);
 
+  // Realtime Subscriptions for Wallet
+  useEffect(() => {
+    if (!wallet?.id || wallet.id === "temp") return;
+
+    const txChannel = supabase
+      .channel(`wallet-tx-${wallet.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'wallet_transactions',
+          filter: `wallet_id=eq.${wallet.id}`
+        },
+        (payload) => {
+          console.log("Seller Dashboard: Received New Wallet Transaction", payload);
+          queryClient.invalidateQueries({ queryKey: ["seller-transactions"] });
+          queryClient.invalidateQueries({ queryKey: ["wallet"] });
+
+          const newTx = payload.new as any;
+          if (newTx) {
+            const isCredit = newTx.type === 'settlement' || newTx.type === 'deposit';
+            toast(isCredit ? 'Payment Received' : 'Funds Deducted', {
+              description: `${isCredit ? '+' : '-'}₦${Number(newTx.amount).toLocaleString()} for ${newTx.reference || newTx.type}`,
+            });
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log(`Seller Dashboard: Wallet Tx Channel Status: ${status}`);
+      });
+
+    return () => {
+      supabase.removeChannel(txChannel);
+    };
+  }, [wallet?.id, queryClient]);
+
   return {
     products: productsData?.data || [],
     totalProducts: productsData?.count || 0,
@@ -417,7 +464,6 @@ export function useSellerDashboardData() {
     isProfileLoading,
     pendingOrdersCount,
     openIssuesCount,
-    analytics,
     wallet,
     transactions,
     dbCategories,

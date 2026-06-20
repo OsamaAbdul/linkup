@@ -29,26 +29,31 @@ export default function AdminKycManager() {
   const [selectedVerification, setSelectedVerification] = useState<any>(null);
   const [kycType, setKycType] = useState<"seller" | "logistics">("seller");
   const [signedUrls, setSignedUrls] = useState<{ [key: string]: string }>({});
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-  const { data: verifications = [], isLoading } = useQuery({
-    queryKey: ["admin-kyc-verifications", kycType],
+  const { data: allVerifications = [], isLoading } = useQuery({
+    queryKey: ["admin-kyc-verifications-all"],
     queryFn: async () => {
-      const table = kycType === "seller" ? "seller_verifications" : "logistics_kyc";
+      const [sellerRes, logisticsRes] = await Promise.all([
+        supabase.from("seller_verifications").select("*").order("created_at", { ascending: false }),
+        supabase.from("logistics_kyc").select("*").order("created_at", { ascending: false })
+      ]);
+
+      if (sellerRes.error) throw sellerRes.error;
+      if (logisticsRes.error) throw logisticsRes.error;
+
+      const sellerData = (sellerRes.data || []).map(v => ({ ...v, kyc_type: "seller" }));
+      const logisticsData = (logisticsRes.data || []).map(v => ({ ...v, kyc_type: "logistics" }));
       
-      // Pull directly from the Single Source of Truth
-      const { data: kycData, error: kycError } = await supabase
-        .from(table)
-        .select(`*`)
-        .order("created_at", { ascending: false });
-      
-      if (kycError) throw kycError;
-      if (!kycData || kycData.length === 0) return [];
+      const combined = [...sellerData, ...logisticsData].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      if (combined.length === 0) return [];
 
       // Profile Joining (SPOT)
-      const userIds = Array.from(new Set(kycData.map((v: any) => v.user_id)));
+      const userIds = Array.from(new Set(combined.map((v: any) => v.user_id)));
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, display_name, avatar_url, phone, zone")
+        .select("id, display_name, avatar_url, phone")
         .in("id", userIds);
 
       const profileMap = (profiles || []).reduce((acc: any, p: any) => {
@@ -56,21 +61,23 @@ export default function AdminKycManager() {
         return acc;
       }, {});
 
-      return kycData.map((v: any) => {
-        // A record is "Legacy/Healed" if it has no REAL document URLs
-        const hasDocs = kycType === 'seller' 
+      return combined.map((v: any) => {
+        const hasDocs = v.kyc_type === 'seller' 
           ? !!(v.national_id_url && v.national_id_url !== 'LEGACY_VERIFICATION')
           : !!(v.passport_photo_url && v.passport_photo_url !== 'LEGACY_VERIFICATION');
 
         return {
           ...v,
-          is_virtual: !hasDocs, // Labeled as "Virtual" if missing docs
+          is_virtual: !hasDocs,
           status: (!hasDocs && v.status === 'verified') ? 'role_verified' : v.status,
           profiles: profileMap[v.user_id] || null
         };
       });
     },
   });
+
+  const verifications = allVerifications.filter(v => v.kyc_type === kycType);
+  const pendingCount = allVerifications.filter(v => v.status === 'pending').length;
 
   console.log(`Admin [${kycType}] KYC Data:`, verifications);
 
@@ -85,7 +92,7 @@ export default function AdminKycManager() {
       return data;
     },
     onSuccess: (_, { status }) => {
-      queryClient.invalidateQueries({ queryKey: ["admin-kyc-verifications"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-kyc-verifications-all"] });
       toast.success(`Verification ${status === 'verified' ? 'approved' : 'rejected'} successfully`);
       setSelectedVerification(null);
     },
@@ -102,18 +109,18 @@ export default function AdminKycManager() {
 
       const paths: string[] = [];
       if (kycType === 'seller') {
-        if (selectedVerification.national_id_url) paths.push(selectedVerification.national_id_url);
-        if (selectedVerification.store_photo_url) paths.push(selectedVerification.store_photo_url);
+        if (selectedVerification.national_id_url && !selectedVerification.national_id_url.startsWith('http')) paths.push(selectedVerification.national_id_url);
+        if (selectedVerification.store_photo_url && !selectedVerification.store_photo_url.startsWith('http')) paths.push(selectedVerification.store_photo_url);
       } else {
-        if (selectedVerification.passport_photo_url) paths.push(selectedVerification.passport_photo_url);
-        if (selectedVerification.id_card_photo_url) paths.push(selectedVerification.id_card_photo_url);
+        if (selectedVerification.passport_photo_url && !selectedVerification.passport_photo_url.startsWith('http')) paths.push(selectedVerification.passport_photo_url);
+        if (selectedVerification.id_card_photo_url && !selectedVerification.id_card_photo_url.startsWith('http')) paths.push(selectedVerification.id_card_photo_url);
       }
 
       if (paths.length === 0) return;
 
       const urls: { [key: string]: string } = {};
       for (const path of paths) {
-        const { data, error } = await supabase.storage
+        const { data } = await supabase.storage
           .from('kyc-documents')
           .createSignedUrl(path, 3600); // 1 hour expiry
         
@@ -126,6 +133,38 @@ export default function AdminKycManager() {
 
     fetchSignedUrls();
   }, [selectedVerification, kycType]);
+
+  const getImageUrl = (path: string) => {
+    if (!path || path === 'LEGACY_VERIFICATION') return null;
+    if (path.startsWith('http')) return path;
+    return signedUrls[path] || null;
+  };
+
+  const renderImage = (path: string, label: string) => {
+    const url = getImageUrl(path);
+    if (!url) {
+      return (
+        <div className="space-y-2">
+          <p className="text-[10px] font-bold text-muted-foreground">{label}</p>
+          <div className="aspect-[4/3] rounded-xl bg-muted/30 animate-pulse" />
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-2">
+        <p className="text-[10px] font-bold text-muted-foreground">{label}</p>
+        <div 
+          className="block aspect-[4/3] rounded-xl bg-muted/30 border border-black/[0.03] overflow-hidden hover:opacity-90 transition-opacity cursor-pointer relative group"
+          onClick={() => setPreviewImage(url)}
+        >
+          <img src={url} alt={label} className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+            <Eye className="text-white opacity-0 group-hover:opacity-100 drop-shadow-md" size={24} />
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const statusColor = (status: string) => {
     switch (status) {
@@ -146,12 +185,12 @@ export default function AdminKycManager() {
           <p className="text-sm text-muted-foreground font-medium">Check and approve new sellers and delivery agents.</p>
         </div>
         <Tabs value={kycType} onValueChange={(v: any) => setKycType(v)} className="w-full sm:w-auto">
-          <TabsList className="grid grid-cols-2 w-full sm:w-[300px] h-11 bg-white/50 backdrop-blur-sm border-none p-1 rounded-xl shadow-sm">
+          <TabsList className="grid grid-cols-2 w-full sm:w-[350px] h-11 bg-white/50 backdrop-blur-sm border-none p-1 rounded-xl shadow-sm">
             <TabsTrigger value="seller" className="rounded-xl font-bold text-[10px] uppercase tracking-widest gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <Users size={14} /> Sellers
+              <Users size={14} /> Sellers {allVerifications.filter(v => v.kyc_type === 'seller' && v.status === 'pending').length > 0 && `(${allVerifications.filter(v => v.kyc_type === 'seller' && v.status === 'pending').length})`}
             </TabsTrigger>
             <TabsTrigger value="logistics" className="rounded-xl font-bold text-[10px] uppercase tracking-widest gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <Truck size={14} /> Riders
+              <Truck size={14} /> Riders {allVerifications.filter(v => v.kyc_type === 'logistics' && v.status === 'pending').length > 0 && `(${allVerifications.filter(v => v.kyc_type === 'logistics' && v.status === 'pending').length})`}
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -294,49 +333,13 @@ export default function AdminKycManager() {
                 <div className="grid grid-cols-2 gap-4">
                   {kycType === 'seller' ? (
                     <>
-                      <div className="space-y-2">
-                        <p className="text-[10px] font-bold text-muted-foreground">National ID</p>
-                        {signedUrls[selectedVerification.national_id_url] ? (
-                          <a href={signedUrls[selectedVerification.national_id_url]} target="_blank" rel="noreferrer" className="block aspect-[4/3] rounded-xl bg-muted/30 border border-black/[0.03] overflow-hidden hover:opacity-90 transition-opacity">
-                             <img src={signedUrls[selectedVerification.national_id_url]} alt="National ID" className="w-full h-full object-cover" />
-                          </a>
-                        ) : (
-                          <div className="aspect-[4/3] rounded-xl bg-muted/30 animate-pulse" />
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-[10px] font-bold text-muted-foreground">Store Front</p>
-                        {signedUrls[selectedVerification.store_photo_url] ? (
-                          <a href={signedUrls[selectedVerification.store_photo_url]} target="_blank" rel="noreferrer" className="block aspect-[4/3] rounded-xl bg-muted/30 border border-black/[0.03] overflow-hidden hover:opacity-90 transition-opacity">
-                             <img src={signedUrls[selectedVerification.store_photo_url]} alt="Store Front" className="w-full h-full object-cover" />
-                          </a>
-                        ) : (
-                          <div className="aspect-[4/3] rounded-xl bg-muted/30 animate-pulse" />
-                        )}
-                      </div>
+                      {renderImage(selectedVerification.national_id_url, 'National ID')}
+                      {renderImage(selectedVerification.store_photo_url, 'Store Front')}
                     </>
                   ) : (
                     <>
-                      <div className="space-y-2">
-                          <p className="text-[10px] font-bold text-muted-foreground">Passport Photograph</p>
-                          {signedUrls[selectedVerification.passport_photo_url] ? (
-                            <a href={signedUrls[selectedVerification.passport_photo_url]} target="_blank" rel="noreferrer" className="block aspect-square max-w-[200px] rounded-xl bg-muted/30 border border-black/[0.03] overflow-hidden hover:opacity-90 transition-opacity">
-                               <img src={signedUrls[selectedVerification.passport_photo_url]} alt="Passport" className="w-full h-full object-cover" />
-                            </a>
-                          ) : (
-                            <div className="aspect-square max-w-[200px] rounded-xl bg-muted/30 animate-pulse" />
-                          )}
-                      </div>
-                      <div className="space-y-2">
-                          <p className="text-[10px] font-bold text-muted-foreground">ID Card (NIN/Voter's)</p>
-                          {signedUrls[selectedVerification.id_card_photo_url] ? (
-                            <a href={signedUrls[selectedVerification.id_card_photo_url]} target="_blank" rel="noreferrer" className="block aspect-[4/3] rounded-xl bg-muted/30 border border-black/[0.03] overflow-hidden hover:opacity-90 transition-opacity">
-                               <img src={signedUrls[selectedVerification.id_card_photo_url]} alt="ID Card" className="w-full h-full object-cover" />
-                            </a>
-                          ) : (
-                            <div className="aspect-[4/3] rounded-xl bg-muted/30 animate-pulse" />
-                          )}
-                      </div>
+                      {renderImage(selectedVerification.passport_photo_url, 'Passport Photograph')}
+                      {renderImage(selectedVerification.id_card_photo_url, "ID Card (NIN/Voter's)")}
                     </>
                   )}
                 </div>
@@ -387,6 +390,13 @@ export default function AdminKycManager() {
               </div>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Image Preview Dialog */}
+      <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] rounded-xl p-0 overflow-hidden border-none shadow-2xl bg-black/95 flex flex-col items-center justify-center">
+          {previewImage && <img src={previewImage} alt="Preview" className="max-w-full max-h-full object-contain" />}
         </DialogContent>
       </Dialog>
     </div>

@@ -70,7 +70,7 @@ export default function Orders() {
                     seller:profiles!seller_id(display_name),
                     product:products(title, images)
                 `)
-                .eq("user_id", user.id)
+                .eq("reporter_id", user.id)
                 .order("created_at", { ascending: false });
             if (error) throw error;
             return data;
@@ -196,10 +196,19 @@ export default function Orders() {
         
         const orderItems = order.order_items || [];
         const normalizedItem = orderItems[0] || null;
-        const productData = normalizedItem?.products || null;
+        
+        // Supabase might return an array for foreign relationships depending on schema
+        let productData = normalizedItem?.products || null;
+        if (Array.isArray(productData)) {
+            productData = productData[0];
+        }
 
-        const title = productData?.title || `Order #${order.id.slice(0, 8)}`;
-        const image = productData?.images?.[0] || "";
+        // Fallback for older orders that saved items into a JSON column directly
+        const legacyItems = Array.isArray(order.items) ? order.items : [];
+        const legacyItem = legacyItems[0] || null;
+
+        const title = productData?.title || legacyItem?.title || `Order #${order.id.slice(0, 8)}`;
+        const image = productData?.images?.[0] || legacyItem?.image || legacyItem?.images?.[0] || "";
         const price = order.total_amount || 0;
         const store = "Linkup Partner";
 

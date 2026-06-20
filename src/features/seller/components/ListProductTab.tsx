@@ -233,6 +233,33 @@ export function ListProductTab() {
           <Textarea value={form.description} onChange={(e) => dispatch({ type: "SET_FIELD", field: "description", value: e.target.value })} placeholder="Describe your product" className="rounded-xl min-h-[100px]" />
         </div>
 
+        {/* Category */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs font-black uppercase tracking-widest">Category</Label>
+            <Button variant="link" size="sm" className="h-auto p-0 text-primary text-xs" onClick={() => setShowNewCategoryInput(!showNewCategoryInput)}>
+              {showNewCategoryInput ? "Cancel" : "+ Add New"}
+            </Button>
+          </div>
+          {showNewCategoryInput ? (
+            <div className="flex gap-2">
+              <Input placeholder="New category name" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && newCategoryName.trim() && addCategoryMutation.mutate(newCategoryName.trim())} className="rounded-xl h-12" />
+              <Button onClick={() => newCategoryName.trim() && addCategoryMutation.mutate(newCategoryName.trim())} disabled={addCategoryMutation.isPending} className="rounded-xl h-12">Add</Button>
+            </div>
+          ) : (
+            <Select value={form.category} onValueChange={(v) => dispatch({ type: "SET_FIELD", field: "category", value: v })}>
+              <SelectTrigger className="rounded-xl h-12"><SelectValue placeholder="Select category" /></SelectTrigger>
+              <SelectContent>
+                {dbCategories.map((c: any) => (
+                  <SelectItem key={typeof c === "object" ? c.name : c} value={typeof c === "object" ? c.name : c}>
+                    {typeof c === "object" ? c.name : c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+
         {getAvailableSizes(form.category) && (
           <div className="space-y-3">
             <Label className="text-xs font-black uppercase tracking-widest">Available Sizes</Label>
@@ -270,33 +297,6 @@ export function ListProductTab() {
             <Label className="text-xs font-black uppercase tracking-widest">Quantity available</Label>
             <Input type="number" min="1" value={form.inventory} onChange={(e) => dispatch({ type: "SET_FIELD", field: "inventory", value: Math.max(1, parseInt(e.target.value) || 1).toString() })} className="rounded-xl h-12" />
           </div>
-        </div>
-
-        {/* Category */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label className="text-xs font-black uppercase tracking-widest">Category</Label>
-            <Button variant="link" size="sm" className="h-auto p-0 text-primary text-xs" onClick={() => setShowNewCategoryInput(!showNewCategoryInput)}>
-              {showNewCategoryInput ? "Cancel" : "+ Add New"}
-            </Button>
-          </div>
-          {showNewCategoryInput ? (
-            <div className="flex gap-2">
-              <Input placeholder="New category name" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && newCategoryName.trim() && addCategoryMutation.mutate(newCategoryName.trim())} className="rounded-xl h-12" />
-              <Button onClick={() => newCategoryName.trim() && addCategoryMutation.mutate(newCategoryName.trim())} disabled={addCategoryMutation.isPending} className="rounded-xl h-12">Add</Button>
-            </div>
-          ) : (
-            <Select value={form.category} onValueChange={(v) => dispatch({ type: "SET_FIELD", field: "category", value: v })}>
-              <SelectTrigger className="rounded-xl h-12"><SelectValue placeholder="Select category" /></SelectTrigger>
-              <SelectContent>
-                {dbCategories.map((c: any) => (
-                  <SelectItem key={typeof c === "object" ? c.name : c} value={typeof c === "object" ? c.name : c}>
-                    {typeof c === "object" ? c.name : c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
         </div>
 
         {/* City & Zone */}

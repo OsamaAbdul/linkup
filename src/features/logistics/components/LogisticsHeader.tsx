@@ -158,8 +158,10 @@ export function LogisticsHeader({
                             <span className="text-[10px] font-black text-foreground tracking-tight capitalize line-clamp-1 max-w-[60px] sm:max-w-none">
                                 {profile?.display_name || "Agent"}
                             </span>
-                            {(kycStatus === 'verified' || kycStatus === 'approved') && (
-                                <span className="text-[7px] font-black text-[#E96F28] uppercase tracking-widest leading-none">Verified</span>
+                            {(kycStatus === 'verified' || kycStatus === 'approved') ? (
+                                <span className="text-[8px] font-black text-[#E96F28] uppercase tracking-widest leading-none">Verified Partner</span>
+                            ) : (
+                                <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest leading-none">Unverified Partner</span>
                             )}
                         </div>
                         <Button variant="ghost" size="icon" className="rounded-xl relative bg-gray-50/50 hover:bg-gray-100 transition-all border border-transparent hover:border-black/5">

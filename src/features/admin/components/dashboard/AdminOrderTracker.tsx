@@ -28,7 +28,8 @@ export default function AdminOrderTracker() {
                     *,
                     profiles:buyer_id(display_name, id),
                     order_recipient(full_name, phone, address_line, city_id, zone_id, lat, lng),
-                    shipments(*)
+                    shipments(*),
+                    order_settlements(*)
                 `)
                 .order("created_at", { ascending: false })
                 .limit(pageSize);
@@ -270,12 +271,13 @@ export default function AdminOrderTracker() {
                     <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
                         <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-100 bg-gray-50/30">
                             {[
-                                { label: 'Rider Payout', key: 'rider', icon: Bike, color: 'text-indigo-600' },
-                                { label: 'Seller Payout', key: 'seller', icon: User, color: 'text-emerald-600' },
-                                { label: 'Platform Rev', key: 'platform', icon: ShieldCheck, color: 'text-blue-600' },
-                                { label: 'Promoter', key: 'promoter', icon: ArrowUpRight, color: 'text-orange-600' }
+                                { label: 'Rider Payout', key: 'rider_amount', icon: Bike, color: 'text-indigo-600' },
+                                { label: 'Seller Payout', key: 'seller_amount', icon: User, color: 'text-emerald-600' },
+                                { label: 'Platform Rev', key: 'platform_amount', icon: ShieldCheck, color: 'text-blue-600' },
+                                { label: 'Promoter', key: 'promoter_amount', icon: ArrowUpRight, color: 'text-orange-600' }
                             ].map((item: any) => {
-                                const value = shipment?.fee_breakdown?.[item.key] || 0;
+                                const settlement = Array.isArray(order.order_settlements) ? order.order_settlements[0] : order.order_settlements;
+                                const value = settlement?.[item.key] || 0;
                                 return (
                                     <div key={item.key} className="p-4 flex flex-col gap-1">
                                         <div className="flex items-center gap-1.5 opacity-60">

@@ -10,7 +10,6 @@ import { ListProductTab } from "@/features/seller/components/ListProductTab";
 import { OrdersTab } from "@/features/seller/components/OrdersTab";
 import { WalletTab } from "@/features/seller/components/WalletTab";
 import { AnalyticsTab } from "@/features/seller/components/AnalyticsTab";
-import { CategoryTab } from "@/features/seller/components/CategoryTab";
 import { IssuesTab } from "@/features/seller/components/IssuesTab";
 import { EditProductModal } from "@/features/seller/components/EditProductModal";
 import { PaymentReconciliationTab } from "@/features/seller/components/PaymentReconciliationTab";
@@ -25,7 +24,6 @@ export default function Dashboard() {
   const { user, roles, loading } = useAuth();
   const isSeller = roles?.includes("seller");
   const [tab, setTab] = useState<Tab>("products");
-  const [newCategoryName, setNewCategoryName] = useState("");
 
   const data = useSellerDashboardData();
   useSellerRealtime(user);
@@ -53,8 +51,6 @@ export default function Dashboard() {
     broadcastOrderMutation,
     updateProfileMutation,
     deleteProductMutation,
-    addCategoryMutation,
-    deleteCategoryMutation,
     PAGE_SIZE,
   } = data;
 
@@ -147,15 +143,6 @@ export default function Dashboard() {
             />
           )}
 
-          {tab === "categories" && (
-            <CategoryTab
-              dbCategories={dbCategories}
-              newCategoryName={newCategoryName}
-              setNewCategoryName={setNewCategoryName}
-              addCategoryMutation={addCategoryMutation}
-              deleteCategoryMutation={deleteCategoryMutation}
-            />
-          )}
 
           {tab === "issues" && <IssuesTab />}
 

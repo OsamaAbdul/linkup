@@ -311,30 +311,7 @@ export function useSellerDashboardData() {
     onError: (err: any) => toast.error("Failed to delete asset: " + err.message),
   });
 
-  const addCategoryMutation = useMutation({
-    mutationFn: async (name: string) => {
-      const slug = name.toLowerCase().replace(/\s+/g, '-');
-      const { error } = await supabase.from("categories").insert({ name, slug });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["product-categories", "full"] });
-      toast.success("Category added");
-    },
-    onError: (err: any) => toast.error(err.message),
-  });
 
-  const deleteCategoryMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("categories").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["product-categories", "full"] });
-      toast.success("Category deleted");
-    },
-    onError: (err: any) => toast.error(err.message),
-  });
 
   const { data: totals } = useQuery({
     queryKey: ["seller-totals", user?.id],
@@ -479,8 +456,6 @@ export function useSellerDashboardData() {
     broadcastOrderMutation,
     updateProfileMutation,
     deleteProductMutation,
-    addCategoryMutation,
-    deleteCategoryMutation,
     PAGE_SIZE,
   };
 }

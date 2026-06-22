@@ -56,8 +56,6 @@ export default function Sell() {
 
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<{ id: string; url: string }[]>([]);
-  const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState("");
 
   const { data: roles, isLoading: isRolesLoading } = useQuery({
     queryKey: ["my-roles", user?.id],
@@ -97,23 +95,7 @@ export default function Sell() {
     }
   }, [profile, form.city_id, form.zone_id]);
 
-  const addCategoryMutation = useMutation({
-    mutationFn: async (name: string) => {
-      const slug = name.toLowerCase().replace(/\s+/g, '-');
-      const { error } = await (supabase as any).from("categories").insert({ name, slug });
-      if (error) throw error;
-      return name;
-    },
-    onSuccess: (name) => {
-      queryClient.invalidateQueries({ queryKey: ["product-categories"] });
-      queryClient.invalidateQueries({ queryKey: ["product-categories", "full"] });
-      dispatch({ type: 'SET_FIELD', field: 'category', value: name });
-      toast.success(`Category "${name}" added!`);
-      setShowNewCategoryInput(false);
-      setNewCategoryName("");
-    },
-    onError: (err: any) => toast.error(err.message),
-  });
+
 
   const becomeSellerMutation = useMutation({
     mutationFn: async () => {
@@ -291,45 +273,17 @@ export default function Sell() {
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Category</Label>
-                <Button
-                  variant="link"
-                  size="sm"
-                  className="h-auto p-0 text-primary"
-                  onClick={() => setShowNewCategoryInput(!showNewCategoryInput)}
-                >
-                  {showNewCategoryInput ? "Cancel" : "+ Add New"}
-                </Button>
-              </div>
-
-              {showNewCategoryInput ? (
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="New category name"
-                    value={newCategoryName}
-                    onChange={(e) => setNewCategoryName(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && newCategoryName.trim() && addCategoryMutation.mutate(newCategoryName.trim())}
-                  />
-                  <Button
-                    onClick={() => newCategoryName.trim() && addCategoryMutation.mutate(newCategoryName.trim())}
-                    disabled={addCategoryMutation.isPending}
-                  >
-                    Add
-                  </Button>
-                </div>
-              ) : (
-                <Select value={form.category} onValueChange={(v) => dispatch({ type: 'SET_FIELD', field: 'category', value: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
-                  <SelectContent>
-                    {dbCategories.map((c: any) => (
-                      <SelectItem key={typeof c === 'object' ? c.name : c} value={typeof c === 'object' ? c.name : c}>
-                        {typeof c === 'object' ? c.name : c}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+              <Label>Category</Label>
+              <Select value={form.category} onValueChange={(v) => dispatch({ type: 'SET_FIELD', field: 'category', value: v })}>
+                <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                <SelectContent>
+                  {dbCategories.map((c: any) => (
+                    <SelectItem key={typeof c === 'object' ? c.name : c} value={typeof c === 'object' ? c.name : c}>
+                      {typeof c === 'object' ? c.name : c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {getAvailableSizes(form.category) && (

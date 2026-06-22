@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
@@ -15,6 +15,7 @@ import {
 } from "@/shared/components/ui/dialog";
 
 export default function AdminOrderTracker() {
+    const queryClient = useQueryClient();
     const [pageSize, setPageSize] = useState(50);
     const [selectedOrder, setSelectedOrder] = useState<any>(null);
     const [isSettling, setIsSettling] = useState(false);
@@ -91,8 +92,16 @@ export default function AdminOrderTracker() {
                     import("sonner").then(({ toast }) => {
                         toast.success(result.message || "Funds released successfully");
                     });
-                    setSelectedOrder(null);
-                    // Standard refetch handled by the query key
+                    
+                    setSelectedOrder((prev: any) => prev ? {
+                        ...prev,
+                        settlement_status: 'settled',
+                        status: prev.status === 'delivered' ? 'completed' : prev.status
+                    } : null);
+                    
+                    queryClient.invalidateQueries({ queryKey: ["admin-all-orders"] });
+                    // Modal stays open but now shows "Settlement Finalized"
+
                 } else {
                     throw new Error(result.error || "Failed to release funds");
                 }

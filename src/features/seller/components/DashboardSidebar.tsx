@@ -16,7 +16,7 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import { Link } from "react-router-dom";
 
-export type Tab = "products" | "list-product" | "orders" | "wallet" | "analytics" | "categories" | "issues" | "payments" | "profile";
+export type Tab = "products" | "list-product" | "orders" | "wallet" | "analytics" | "issues" | "payments" | "profile";
 
 interface DashboardSidebarProps {
     activeTab: Tab;
@@ -35,7 +35,6 @@ export const tabs = [
     { id: "issues" as Tab, label: "Issues", icon: AlertCircle },
     { id: "wallet" as Tab, label: "Wallet", icon: Wallet },
     { id: "analytics" as Tab, label: "Insights", icon: BarChart3 },
-    { id: "categories" as Tab, label: "Category Settings", icon: TrendingUp },
     { id: "payments" as Tab, label: "Payments History", icon: CreditCard },
     { id: "profile" as Tab, label: "Store Profile", icon: UserCircle },
 ];

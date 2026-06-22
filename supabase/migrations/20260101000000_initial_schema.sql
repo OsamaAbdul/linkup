@@ -2203,3 +2203,55 @@ DO $admin_pol_os$ BEGIN
     DROP POLICY IF EXISTS "Admins can update all order_settlements" ON public.order_settlements;
     CREATE POLICY "Admins can update all order_settlements" ON public.order_settlements FOR UPDATE USING (EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin'));
 END $admin_pol_os$;
+
+-- Admin Release Order Funds RPC
+CREATE OR REPLACE FUNCTION public.admin_release_order_funds(p_order_id UUID)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_order record;
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin') THEN
+        RAISE EXCEPTION 'Unauthorized';
+    END IF;
+
+    -- Fetch order
+    SELECT * INTO v_order FROM public.orders WHERE id = p_order_id;
+    IF v_order.id IS NULL THEN
+        RETURN json_build_object('success', false, 'error', 'Order not found');
+    END IF;
+
+    -- Force transition to completed if not already
+    IF v_order.status != 'completed' THEN
+        UPDATE public.orders 
+        SET status = 'completed',
+            settlement_status = 'settled',
+            updated_at = NOW()
+        WHERE id = p_order_id;
+    ELSE
+        -- Just update settlement status on order
+        UPDATE public.orders 
+        SET settlement_status = 'settled',
+            updated_at = NOW()
+        WHERE id = p_order_id;
+    END IF;
+
+    -- Now force the settlement to 'settled' to trigger payout
+    UPDATE public.order_settlements
+    SET status = 'settled',
+        updated_at = NOW()
+    WHERE order_id = p_order_id AND status IN ('pending', 'processing');
+
+    RETURN json_build_object(
+        'success', true,
+        'message', 'Successfully released funds for order ' || p_order_id
+    );
+EXCEPTION WHEN OTHERS THEN
+    RETURN json_build_object(
+        'success', false,
+        'error', SQLERRM
+    );
+END;
+$$;

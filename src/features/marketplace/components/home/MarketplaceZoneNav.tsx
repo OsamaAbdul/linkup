@@ -24,12 +24,12 @@ export function MarketplaceZoneNav({
 
   return (
     <div className="flex items-center gap-4 py-2">
-      <div className="hidden sm:flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground border-r pr-6 mr-2">
-        <MapPin size={14} className="text-primary" />
-        Location Based
+      <div className="hidden sm:flex items-center gap-2 text-xs font-bold text-muted-foreground border-r pr-6 mr-2">
+        <MapPin size={16} className="text-primary" />
+        Filter By Zone
         {position && (
-          <Badge variant="outline" className="h-5 px-1.5 text-[8px] border-success/30 bg-success/5 text-success animate-in fade-in zoom-in duration-500 ml-1">
-            Live Precision
+          <Badge variant="outline" className="h-5 px-2 text-[10px] border-success/30 bg-success/5 text-success animate-in fade-in zoom-in duration-500 ml-1">
+            Live
           </Badge>
         )}
       </div>
@@ -48,18 +48,18 @@ export function MarketplaceZoneNav({
         <button
           onClick={() => setSelectedZone("")}
           className={cn(
-            "px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap transition-all shrink-0",
+            "px-6 py-3 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0",
             !selectedZone ? "bg-primary text-white shadow-xl shadow-primary/20 scale-105" : "bg-white text-muted-foreground border border-border/30 hover:bg-muted/30"
           )}
         >
-          Nationwide
+          All Zones
         </button>
         {zones.map((z: any) => (
           <button
             key={z.id}
             onClick={() => setSelectedZone(z.id)}
             className={cn(
-              "px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap transition-all shrink-0",
+              "px-6 py-3 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0",
               selectedZone === z.id ? "bg-primary text-white shadow-xl shadow-primary/20 scale-105" : "bg-white text-muted-foreground border border-border/30 hover:bg-muted/30"
             )}
           >

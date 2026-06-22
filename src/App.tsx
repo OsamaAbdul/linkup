@@ -111,6 +111,7 @@ const App = () => (
                             <Route path="payments" element={<AdminDashboard activeSection="payments" />} />
                             <Route path="logistics" element={<AdminDashboard activeSection="logistics" />} />
                             <Route path="fees" element={<AdminDashboard activeSection="fees" />} />
+                            <Route path="categories" element={<AdminDashboard activeSection="categories" />} />
                           </Routes>
                         </AdminLayout>
                       </AdminRoute>

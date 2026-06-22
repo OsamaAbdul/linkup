@@ -60,6 +60,7 @@ export default function AdminFeeConfig() {
     const getIcon = (type: string) => {
         switch (type) {
             case 'platform': return <ShieldCheck className="text-blue-500" />;
+            case 'platform_rider_cut': return <ShieldCheck className="text-indigo-500" />;
             case 'rider': return <Banknote className="text-green-500" />;
             case 'promoter': return <Percent className="text-purple-500" />;
             case 'rider_out_of_zone': return <MapIcon className="text-orange-500" />;

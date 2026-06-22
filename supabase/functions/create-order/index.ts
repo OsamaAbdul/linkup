@@ -100,6 +100,22 @@ serve(async (req: Request) => {
 
     if (!items || items.length === 0) throw new Error("No items in order");
 
+    // --- Fetch Global Fee Config ---
+    const { data: feeConfigs } = await adminClient
+      .from("fee_config")
+      .select("fee_type, rate")
+      .in("fee_type", ["platform", "platform_rider_cut"]);
+
+    let platformProductRate = 0.05; // default 5%
+    let platformRiderRate = 0.10; // default 10%
+    if (feeConfigs) {
+      const pFee = feeConfigs.find((f: any) => f.fee_type === "platform");
+      if (pFee?.rate) platformProductRate = Number(pFee.rate);
+
+      const prFee = feeConfigs.find((f: any) => f.fee_type === "platform_rider_cut");
+      if (prFee?.rate) platformRiderRate = Number(prFee.rate);
+    }
+
     // --- Group Items by Seller ---
     const itemsBySeller: Record<string, any[]> = {};
     for (const item of items) {
@@ -115,6 +131,7 @@ serve(async (req: Request) => {
     const createdOrderIds: string[] = [];
     let finalPromoterId = null;
     let matchedReferralId = null;
+    let totalPromoterEarnings = 0;
 
     // --- Process each Seller as a separate Order ---
     // --- IDEMPOTENCY GUARD (Phase 14) ---
@@ -234,6 +251,10 @@ serve(async (req: Request) => {
         }
       }
 
+      let matchedReferralId = null;
+      let promotedProductId = null;
+      let promotedCampaignId = null;
+
       // SECURE: Referral Verification Guard (Phase 10/14)
       // We verify that a matching referral entry exists in the ledger.
       if (promoter_id) {
@@ -243,7 +264,7 @@ serve(async (req: Request) => {
         // enforce expires_at if it's missing (assume non-expiring).
         const { data: referralRecord, error: referralLookupError } = await adminClient
           .from("referrals")
-          .select("id, buyer_id, visitor_id")
+          .select("id, buyer_id, visitor_id, product_id, campaign_id")
           .eq("promoter_id", promoter_id)
           .or(`buyer_id.eq.${user.id},visitor_id.eq.${body.visitor_id}`)
           .order("created_at", { ascending: false })
@@ -258,6 +279,8 @@ serve(async (req: Request) => {
           console.log(`[Attribution] SUCCESS: Found matching referral record ${referralRecord.id}`);
           finalPromoterId = promoter_id;
           matchedReferralId = referralRecord.id;
+          promotedProductId = referralRecord.product_id;
+          promotedCampaignId = referralRecord.campaign_id;
         } else {
           // Fallback: If we have the promoter_id in checkout and the buyer isn't the promoter,
           // we can allow a more lenient "Identity Healing" if they just clicked the link.
@@ -265,7 +288,7 @@ serve(async (req: Request) => {
           
           const { data: recentClick } = await adminClient
             .from("referrals")
-            .select("id")
+            .select("id, product_id, campaign_id")
             .eq("promoter_id", promoter_id)
             .or(`buyer_id.eq.${user.id},visitor_id.eq.${body.visitor_id}`)
             .limit(1)
@@ -275,6 +298,8 @@ serve(async (req: Request) => {
             console.log(`[Attribution] HEALED: Found a recent click. Attributing order.`);
             finalPromoterId = promoter_id;
             matchedReferralId = recentClick.id;
+            promotedProductId = recentClick.product_id;
+            promotedCampaignId = recentClick.campaign_id;
           } else {
             console.error(`[Attribution] FAILED: No record found for promoter ${promoter_id} and buyer ${user.id}`);
           }
@@ -288,17 +313,43 @@ serve(async (req: Request) => {
       const current_rider_fee = (delivery_fee ? (delivery_fee / sellerIds.length) : 0) + (cross_zone_fee ? (cross_zone_fee / sellerIds.length) : 0);
       
       const product_total = calculatedSubTotal;
-      let calculated_platform_fee = product_total * 0.05; // 5% Platform
+      let calculated_platform_fee = product_total * platformProductRate; // Dynamic Platform Product Cut
+      
+      // Platform Rider Cut: Deduct percentage from the rider's fee and give it to the platform
+      const rider_platform_cut = current_rider_fee * platformRiderRate;
+      const final_rider_fee = Math.max(0, current_rider_fee - rider_platform_cut);
+      calculated_platform_fee += rider_platform_cut;
+      
       let calculated_promoter_fee = 0;
 
-      // Promoters only get a cut if there's a promoter attached
-      if (finalPromoterId) {
-        calculated_promoter_fee = calculated_platform_fee / 2; // Promoter gets half the fee (2.5%)
-        calculated_platform_fee = calculated_platform_fee - calculated_promoter_fee; // Platform keeps the rest
+      // Calculate promoter fee only if they promoted a specific product that is in the cart
+      if (finalPromoterId && promotedProductId && promotedCampaignId) {
+        const { data: campaign } = await adminClient
+          .from("promoter_campaigns")
+          .select("commission_rate")
+          .eq("id", promotedCampaignId)
+          .maybeSingle();
+
+        if (campaign && campaign.commission_rate) {
+          // Find the promoted items in the cart
+          let promoted_items_total = 0;
+          for (const item of enrichedSellerItems) {
+            if (item.product_id === promotedProductId) {
+              promoted_items_total += (Number(item.price) || 0) * (item.quantity || 1);
+            }
+          }
+          
+          if (promoted_items_total > 0) {
+            calculated_promoter_fee = promoted_items_total * (Number(campaign.commission_rate) / 100);
+            // Promoter's fee is deducted from the platform earnings
+            calculated_platform_fee = Math.max(0, calculated_platform_fee - calculated_promoter_fee);
+            totalPromoterEarnings += calculated_promoter_fee;
+          }
+        }
       }
 
-      // Seller gets the rest of the product total
-      const calculated_seller_earnings = product_total - (calculated_platform_fee + calculated_promoter_fee);
+      // Seller gets exactly what is left of the product total after the product platform cut
+      const calculated_seller_earnings = product_total - (product_total * platformProductRate);
       
       const total_order_charge = product_total + current_rider_fee;
 
@@ -396,7 +447,7 @@ serve(async (req: Request) => {
         order_id: order.id,
         gross_amount: total_order_charge || 0,
         seller_amount: calculated_seller_earnings || 0,
-        rider_amount: current_rider_fee || 0,
+        rider_amount: final_rider_fee || 0,
         platform_amount: calculated_platform_fee || 0,
         promoter_amount: calculated_promoter_fee || 0,
         status: "pending",
@@ -428,7 +479,8 @@ serve(async (req: Request) => {
           converted_at: new Date().toISOString(), 
           order_id: createdOrderIds[0],
           status: 'conversion',
-          buyer_id: user.id 
+          buyer_id: user.id,
+          earnings: totalPromoterEarnings
         });
 
        if (matchedReferralId) {

@@ -14,9 +14,10 @@ const AdminPaymentsSection = lazy(() => import("@/features/admin/components/dash
 const AdminLogisticsManager = lazy(() => import("@/features/admin/components/dashboard/AdminLogisticsManager"));
 const AdminFeeConfig = lazy(() => import("@/features/admin/components/dashboard/AdminFeeConfig"));
 const AdminDisputeManager = lazy(() => import("@/features/admin/components/dashboard/AdminDisputeManager"));
+const AdminCategoryManager = lazy(() => import("@/features/admin/components/dashboard/AdminCategoryManager"));
 
 interface AdminDashboardProps {
-    activeSection?: "overview" | "orders" | "users" | "issues" | "disputes" | "history" | "kyc" | "payments" | "logistics" | "fees";
+    activeSection?: "overview" | "orders" | "users" | "issues" | "disputes" | "history" | "kyc" | "payments" | "logistics" | "fees" | "categories";
 }
 
 export default function AdminDashboard({ activeSection = "overview" }: AdminDashboardProps) {
@@ -103,6 +104,7 @@ export default function AdminDashboard({ activeSection = "overview" }: AdminDash
                 {activeSection === "logistics" && <AdminLogisticsManager />}
                 {activeSection === "fees" && <AdminFeeConfig />}
                 {activeSection === "disputes" && <AdminDisputeManager />}
+                {activeSection === "categories" && <AdminCategoryManager />}
             </Suspense>
         </div>
     );

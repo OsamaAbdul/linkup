@@ -52,8 +52,6 @@ export function ListProductTab() {
   const [form, dispatch] = useReducer(formReducer, initialState);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<{ id: string; url: string }[]>([]);
-  const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState("");
 
   const { data: dbCategories = [] } = useQuery({
     queryKey: ["product-categories"],
@@ -97,22 +95,7 @@ export function ListProductTab() {
     if (profile?.zone_id && !form.zone_id) dispatch({ type: "SET_FIELD", field: "zone_id", value: profile.zone_id });
   }, [profile, form.city_id, form.zone_id]);
 
-  const addCategoryMutation = useMutation({
-    mutationFn: async (name: string) => {
-      const slug = name.toLowerCase().replace(/\s+/g, "-");
-      const { error } = await (supabase as any).from("categories").insert({ name, slug });
-      if (error) throw error;
-      return name;
-    },
-    onSuccess: (name) => {
-      queryClient.invalidateQueries({ queryKey: ["product-categories"] });
-      dispatch({ type: "SET_FIELD", field: "category", value: name });
-      toast.success(`Category "${name}" added!`);
-      setShowNewCategoryInput(false);
-      setNewCategoryName("");
-    },
-    onError: (err: any) => toast.error(err.message),
-  });
+
 
   const createProduct = useMutation({
     mutationFn: async () => {
@@ -235,29 +218,17 @@ export function ListProductTab() {
 
         {/* Category */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label className="text-xs font-black uppercase tracking-widest">Category</Label>
-            <Button variant="link" size="sm" className="h-auto p-0 text-primary text-xs" onClick={() => setShowNewCategoryInput(!showNewCategoryInput)}>
-              {showNewCategoryInput ? "Cancel" : "+ Add New"}
-            </Button>
-          </div>
-          {showNewCategoryInput ? (
-            <div className="flex gap-2">
-              <Input placeholder="New category name" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && newCategoryName.trim() && addCategoryMutation.mutate(newCategoryName.trim())} className="rounded-xl h-12" />
-              <Button onClick={() => newCategoryName.trim() && addCategoryMutation.mutate(newCategoryName.trim())} disabled={addCategoryMutation.isPending} className="rounded-xl h-12">Add</Button>
-            </div>
-          ) : (
-            <Select value={form.category} onValueChange={(v) => dispatch({ type: "SET_FIELD", field: "category", value: v })}>
-              <SelectTrigger className="rounded-xl h-12"><SelectValue placeholder="Select category" /></SelectTrigger>
-              <SelectContent>
-                {dbCategories.map((c: any) => (
-                  <SelectItem key={typeof c === "object" ? c.name : c} value={typeof c === "object" ? c.name : c}>
-                    {typeof c === "object" ? c.name : c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+          <Label className="text-xs font-black uppercase tracking-widest">Category</Label>
+          <Select value={form.category} onValueChange={(v) => dispatch({ type: "SET_FIELD", field: "category", value: v })}>
+            <SelectTrigger className="rounded-xl h-12"><SelectValue placeholder="Select category" /></SelectTrigger>
+            <SelectContent>
+              {dbCategories.map((c: any) => (
+                <SelectItem key={typeof c === "object" ? c.name : c} value={typeof c === "object" ? c.name : c}>
+                  {typeof c === "object" ? c.name : c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {getAvailableSizes(form.category) && (

@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import {
     LayoutDashboard, Users, ShoppingBag, AlertTriangle,
-    History, LogOut, ShieldCheck, Bell, Menu, FileCheck, CreditCard, Truck, Wallet, Scale
+    History, LogOut, ShieldCheck, Bell, Menu, FileCheck, CreditCard, Truck, Wallet, Scale, Grid
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
@@ -136,6 +136,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         { icon: Truck, label: "Shipping Center", path: "/admin/logistics" },
         { icon: CreditCard, label: "Income & Payouts", path: "/admin/payments" },
         { icon: Wallet, label: "Pricing Rules", path: "/admin/fees" },
+        { icon: Grid, label: "Categories", path: "/admin/categories" },
         { icon: History, label: "Platform Activity", path: "/admin/history" },
     ];
 

@@ -18,13 +18,13 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
-      registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'logoo.jpeg', 'link-up.png', 'logo.png'],
-      workbox: {
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      injectManifest: {
         maximumFileSizeToCacheInBytes: 4000000,
-        skipWaiting: true,
-        clientsClaim: true,
       },
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'logoo.jpeg', 'link-up.png', 'logo.png'],
       manifest: {
         name: 'LinkUp Marketplace',
         short_name: 'LinkUp',

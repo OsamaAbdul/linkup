@@ -5,11 +5,14 @@ import { AppLayout } from "@/shared/components/layout/AppLayout";
 import { Navigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
-import { Bell } from "lucide-react";
+import { Bell, BellRing } from "lucide-react";
+import { usePushNotifications } from "@/shared/hooks/usePushNotifications";
+import { Button } from "@/shared/components/ui/button";
 
 export default function Notifications() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { isSupported, permission, subscription, subscribe } = usePushNotifications();
 
   const { data: notifications = [] } = useQuery({
     queryKey: ["notifications", user?.id],
@@ -59,7 +62,14 @@ export default function Notifications() {
   return (
     <AppLayout>
       <div className="p-4">
-        <h1 className="text-xl font-bold mb-4">Notifications</h1>
+        <div className="flex items-center justify-between mb-4">
+            <h1 className="text-xl font-bold">Notifications</h1>
+            {isSupported && permission !== 'granted' && !subscription && (
+                <Button size="sm" onClick={subscribe} variant="outline" className="gap-2">
+                    <BellRing size={16} /> Enable Push Alerts
+                </Button>
+            )}
+        </div>
         {notifications.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <Bell size={32} className="mx-auto mb-2 opacity-50" />

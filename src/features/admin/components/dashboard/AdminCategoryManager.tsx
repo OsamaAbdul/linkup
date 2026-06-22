@@ -7,7 +7,7 @@ import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { toast } from "sonner";
 import * as lucideIcons from "lucide-react";
-import { X, Grid } from "lucide-react";
+import { X, Grid, Eye, EyeOff } from "lucide-react";
 import { useCategories } from "@/shared/hooks/use-marketplace-metadata";
 
 export default function AdminCategoryManager() {
@@ -37,6 +37,18 @@ export default function AdminCategoryManager() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["product-categories", "full"] });
             toast.success("Category deleted");
+        },
+        onError: (err: any) => toast.error(err.message),
+    });
+
+    const toggleCategoryMutation = useMutation({
+        mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+            const { error } = await supabase.from("categories").update({ is_active }).eq("id", id);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["product-categories", "full"] });
+            toast.success("Category visibility updated");
         },
         onError: (err: any) => toast.error(err.message),
     });
@@ -87,24 +99,50 @@ export default function AdminCategoryManager() {
                     {dbCategories.map((c) => (
                         <div key={c.id} className="group flex items-center justify-between p-6 bg-white border border-black/[0.03] rounded-xl hover:shadow-xl hover:shadow-black/[0.02] transition-all duration-300">
                             <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-xl bg-muted/30 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-500">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors duration-500 ${
+                                    (c as any).is_active !== false 
+                                        ? "bg-muted/30 text-primary group-hover:bg-primary group-hover:text-white" 
+                                        : "bg-gray-100 text-gray-400"
+                                }`}>
                                     {renderIcon(c.icon)}
                                 </div>
-                                <span className="font-black text-sm uppercase tracking-tight">{c.name}</span>
+                                <div>
+                                    <span className="font-black text-sm uppercase tracking-tight">{c.name}</span>
+                                    {(c as any).is_active === false && (
+                                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Hidden</p>
+                                    )}
+                                </div>
                             </div>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="rounded-xl w-10 h-10 p-0 text-muted-foreground hover:bg-red-50 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100"
-                                onClick={() => {
-                                    if(confirm("Are you sure you want to delete this category?")) {
-                                        deleteCategoryMutation.mutate(c.id);
-                                    }
-                                }}
-                                disabled={deleteCategoryMutation.isPending}
-                            >
-                                <X size={18} strokeWidth={3} />
-                            </Button>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className={`rounded-xl w-10 h-10 p-0 ${
+                                        (c as any).is_active !== false 
+                                            ? "text-primary hover:bg-primary/10" 
+                                            : "text-muted-foreground hover:bg-gray-100"
+                                    }`}
+                                    onClick={() => toggleCategoryMutation.mutate({ id: c.id, is_active: (c as any).is_active === false ? true : false })}
+                                    disabled={toggleCategoryMutation.isPending}
+                                    title={(c as any).is_active !== false ? "Hide Category" : "Show Category"}
+                                >
+                                    {(c as any).is_active !== false ? <Eye size={18} strokeWidth={2.5} /> : <EyeOff size={18} strokeWidth={2.5} />}
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="rounded-xl w-10 h-10 p-0 text-muted-foreground hover:bg-red-50 hover:text-red-500 transition-all"
+                                    onClick={() => {
+                                        if(confirm("Are you sure you want to delete this category? This might fail if products are still assigned to it. Hiding it might be safer.")) {
+                                            deleteCategoryMutation.mutate(c.id);
+                                        }
+                                    }}
+                                    disabled={deleteCategoryMutation.isPending}
+                                    title="Delete Category"
+                                >
+                                    <X size={18} strokeWidth={3} />
+                                </Button>
+                            </div>
                         </div>
                     ))}
                 </div>

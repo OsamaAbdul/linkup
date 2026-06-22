@@ -19,19 +19,19 @@ interface AdminLayoutProps {
     children: ReactNode;
 }
 
-const SidebarContent = ({ 
-    navItems, 
-    location, 
-    setIsMobileOpen, 
-    openIssuesCount, 
-    openDisputesCount, 
-    signOut, 
-    navigate 
-}: { 
-    navItems: any[], 
-    location: any, 
-    setIsMobileOpen: (o: boolean) => void, 
-    openIssuesCount: number, 
+const SidebarContent = ({
+    navItems,
+    location,
+    setIsMobileOpen,
+    openIssuesCount,
+    openDisputesCount,
+    signOut,
+    navigate
+}: {
+    navItems: any[],
+    location: any,
+    setIsMobileOpen: (o: boolean) => void,
+    openIssuesCount: number,
     openDisputesCount: number,
     signOut: () => Promise<void>,
     navigate: any
@@ -128,16 +128,17 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         }
     });
     const navItems = [
-        { icon: LayoutDashboard, label: "Summary", path: "/admin" },
-        { icon: ShoppingBag, label: "Sales & Orders", path: "/admin/orders" },
-        { icon: Users, label: "Members List", path: "/admin/users" },
-        { icon: FileCheck, label: "Identity Checks", path: "/admin/kyc" },
-        { icon: AlertTriangle, label: "Support Tickets", path: "/admin/issues" },
+        { icon: LayoutDashboard, label: "Overview", path: "/admin" },
+        { icon: ShoppingBag, label: "All Orders", path: "/admin/orders" },
+        { icon: Users, label: "All Users", path: "/admin/users" },
+        { icon: FileCheck, label: "KYC Verifications", path: "/admin/kyc" },
+        { icon: AlertTriangle, label: "Complaints", path: "/admin/issues" },
         { icon: Truck, label: "Shipping Center", path: "/admin/logistics" },
         { icon: CreditCard, label: "Income & Payouts", path: "/admin/payments" },
-        { icon: Wallet, label: "Pricing Rules", path: "/admin/fees" },
         { icon: Grid, label: "Categories", path: "/admin/categories" },
-        { icon: History, label: "Platform Activity", path: "/admin/history" },
+        { icon: Wallet, label: "Price Configuration", path: "/admin/fees" },
+
+
     ];
 
     const sidebarProps = {

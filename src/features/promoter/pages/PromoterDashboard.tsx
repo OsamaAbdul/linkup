@@ -53,16 +53,25 @@ export default function PromoterDashboard() {
     queryKey: ["promoter-code", user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("promoter_codes")
         .select("code")
         .eq("user_id", user.id)
         .maybeSingle();
 
+      if (error) {
+        console.error("[PromoterDebug] Error fetching code:", error);
+      }
+
       if (data) return data.code;
 
       const code = "PX" + Math.random().toString(36).substring(2, 8).toUpperCase();
-      await supabase.from("promoter_codes").insert({ user_id: user.id, code });
+      const { error: insertError } = await supabase.from("promoter_codes").insert({ user_id: user.id, code });
+      
+      if (insertError) {
+        console.error("[PromoterDebug] Error inserting code:", insertError);
+      }
+      
       return code;
     },
     enabled: !!user,

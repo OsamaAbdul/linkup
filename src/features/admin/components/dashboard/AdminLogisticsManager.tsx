@@ -27,7 +27,8 @@ export default function AdminLogisticsManager() {
     const [newVehicle, setNewVehicle] = useState("");
     const [newCity, setNewCity] = useState("");
     const [newZone, setNewZone] = useState({ name: "", city_id: "", delivery_fee: "" });
-    const [editFee, setEditFee] = useState<Record<string, string>>({});
+    const [editingZoneId, setEditingZoneId] = useState<string | null>(null);
+    const [editZoneData, setEditZoneData] = useState({ name: "", city_id: "", delivery_fee: "" });
 
     // Fetch Data
     const { data: vehicleTypes = [], isLoading: loadingVehicles } = useQuery({
@@ -148,17 +149,19 @@ export default function AdminLogisticsManager() {
         onError: (e: any) => toast.error(e.message)
     });
 
-    const updateFeeMutation = useMutation({
-        mutationFn: async ({ id, delivery_fee }: { id: string; delivery_fee: number | null }) => {
+    const updateZoneMutation = useMutation({
+        mutationFn: async ({ id, data }: { id: string; data: any }) => {
             const { error } = await supabase
                 .from("delivery_zones")
-                .update({ delivery_fee })
+                .update(data)
                 .eq("id", id);
             if (error) throw error;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["admin-delivery-zones"] });
-            toast.success("Delivery fee updated");
+            queryClient.invalidateQueries({ queryKey: ["marketplace-zones"] });
+            setEditingZoneId(null);
+            toast.success("Zone updated successfully");
         },
         onError: (e: any) => toast.error(e.message)
     });
@@ -347,75 +350,126 @@ export default function AdminLogisticsManager() {
                                 ) : (
                                     zones.map((z: any) => (
                                         <div key={z.id} className="p-5 hover:bg-gray-50/50 transition-colors group">
-                                            <div className="flex items-center justify-between mb-3">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-                                                        z.is_active ? "bg-emerald-100 text-emerald-600" : "bg-gray-100 text-gray-400"
-                                                    }`}>
-                                                        <MapPin size={18} />
+                                            {editingZoneId === z.id ? (
+                                                <div className="flex flex-col gap-3 mt-3 bg-muted/20 p-4 rounded-xl border border-muted">
+                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                                        <div className="space-y-1">
+                                                            <label className="text-[10px] font-bold uppercase text-muted-foreground">Zone Name</label>
+                                                            <Input
+                                                                value={editZoneData.name}
+                                                                onChange={(e) => setEditZoneData({ ...editZoneData, name: e.target.value })}
+                                                                className="h-9 text-xs"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <label className="text-[10px] font-bold uppercase text-muted-foreground">City</label>
+                                                            <select 
+                                                                className="w-full h-9 rounded-md bg-background border border-input px-3 text-xs outline-none"
+                                                                value={editZoneData.city_id}
+                                                                onChange={(e) => setEditZoneData({ ...editZoneData, city_id: e.target.value })}
+                                                            >
+                                                                <option value="">Select City</option>
+                                                                {cities.map((c: any) => (
+                                                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <label className="text-[10px] font-bold uppercase text-muted-foreground">Fee (₦)</label>
+                                                            <Input
+                                                                type="number"
+                                                                value={editZoneData.delivery_fee}
+                                                                onChange={(e) => setEditZoneData({ ...editZoneData, delivery_fee: e.target.value })}
+                                                                className="h-9 text-xs"
+                                                            />
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <p className="font-black text-foreground">{z.name}</p>
-                                                        <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-                                                            {(z.cities as any)?.name || 'No city'}
-                                                        </p>
+                                                    <div className="flex items-center justify-end gap-2 mt-1">
+                                                        <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setEditingZoneId(null)}>Cancel</Button>
+                                                        <Button 
+                                                            size="sm" 
+                                                            className="h-8 text-xs"
+                                                            disabled={!editZoneData.name || !editZoneData.city_id || updateZoneMutation.isPending}
+                                                            onClick={() => updateZoneMutation.mutate({
+                                                                id: z.id,
+                                                                data: {
+                                                                    name: editZoneData.name,
+                                                                    city_id: editZoneData.city_id,
+                                                                    delivery_fee: editZoneData.delivery_fee ? parseFloat(editZoneData.delivery_fee) : null
+                                                                }
+                                                            })}
+                                                        >
+                                                            Save Changes
+                                                        </Button>
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                    <Badge className={`border-none text-[9px] font-black uppercase ${
-                                                        z.is_active
-                                                            ? "bg-emerald-500/10 text-emerald-600"
-                                                            : "bg-gray-200 text-gray-500"
-                                                    }`}>
-                                                        {z.is_active ? "Visible" : "Hidden"}
-                                                    </Badge>
-                                                    <Button
-                                                        variant="ghost" size="icon"
-                                                        className={`rounded-xl h-9 w-9 ${
+                                            ) : (
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                                                            z.is_active ? "bg-emerald-100 text-emerald-600" : "bg-gray-100 text-gray-400"
+                                                        }`}>
+                                                            <MapPin size={18} />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-black text-foreground">{z.name}</p>
+                                                            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
+                                                                <span>{(z.cities as any)?.name || 'No city'}</span>
+                                                                <span>•</span>
+                                                                <span>{z.delivery_fee ? `₦${z.delivery_fee.toLocaleString()}` : "Free"}</span>
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Badge className={`border-none text-[9px] font-black uppercase ${
                                                             z.is_active
-                                                                ? "text-emerald-600 hover:bg-emerald-50"
-                                                                : "text-gray-400 hover:bg-gray-100"
-                                                        }`}
-                                                        title={z.is_active ? "Hide from marketplace" : "Show in marketplace"}
-                                                        onClick={() => toggleZoneMutation.mutate({ id: z.id, is_active: !z.is_active })}
-                                                    >
-                                                        {z.is_active ? <Eye size={16} /> : <EyeOff size={16} />}
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost" size="icon"
-                                                        className="rounded-xl h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                                        onClick={() => deleteZoneMutation.mutate(z.id)}
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </Button>
+                                                                ? "bg-emerald-500/10 text-emerald-600"
+                                                                : "bg-gray-200 text-gray-500"
+                                                        }`}>
+                                                            {z.is_active ? "Visible" : "Hidden"}
+                                                        </Badge>
+                                                        <Button
+                                                            variant="ghost" size="icon"
+                                                            className={`rounded-xl h-9 w-9 ${
+                                                                z.is_active
+                                                                    ? "text-emerald-600 hover:bg-emerald-50"
+                                                                    : "text-gray-400 hover:bg-gray-100"
+                                                            }`}
+                                                            title={z.is_active ? "Hide from marketplace" : "Show in marketplace"}
+                                                            onClick={() => toggleZoneMutation.mutate({ id: z.id, is_active: !z.is_active })}
+                                                        >
+                                                            {z.is_active ? <Eye size={16} /> : <EyeOff size={16} />}
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost" size="icon"
+                                                            className="rounded-xl h-9 w-9 text-blue-600 hover:bg-blue-50"
+                                                            title="Edit Zone"
+                                                            onClick={() => {
+                                                                setEditZoneData({
+                                                                    name: z.name,
+                                                                    city_id: z.city_id,
+                                                                    delivery_fee: z.delivery_fee ? z.delivery_fee.toString() : ""
+                                                                });
+                                                                setEditingZoneId(z.id);
+                                                            }}
+                                                        >
+                                                            <Pencil size={16} />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost" size="icon"
+                                                            className="rounded-xl h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                                            title="Delete Zone"
+                                                            onClick={() => {
+                                                                if (confirm("Are you sure you want to delete this zone? This may fail if it is currently assigned to users, products, or orders.")) {
+                                                                    deleteZoneMutation.mutate(z.id);
+                                                                }
+                                                            }}
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </Button>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            {/* Inline delivery fee editor */}
-                                            <div className="flex items-center gap-2 pl-13 ml-13">
-                                                <DollarSign size={13} className="text-muted-foreground shrink-0" />
-                                                <Input
-                                                    type="number"
-                                                    placeholder="Set delivery fee (₦)"
-                                                    value={editFee[z.id] ?? (z.delivery_fee ?? "")}
-                                                    onChange={(e) => setEditFee(f => ({ ...f, [z.id]: e.target.value }))}
-                                                    className="h-8 text-xs rounded-lg bg-muted/20 border border-muted font-bold flex-1"
-                                                />
-                                                <Button
-                                                    size="sm"
-                                                    className="h-8 px-3 rounded-lg text-[10px] font-black uppercase"
-                                                    disabled={editFee[z.id] === undefined || updateFeeMutation.isPending}
-                                                    onClick={() => {
-                                                        const fee = editFee[z.id];
-                                                        updateFeeMutation.mutate({
-                                                            id: z.id,
-                                                            delivery_fee: fee === "" ? null : parseFloat(fee)
-                                                        });
-                                                        setEditFee(f => { const n = { ...f }; delete n[z.id]; return n; });
-                                                    }}
-                                                >
-                                                    <Check size={12} />
-                                                </Button>
-                                            </div>
+                                            )}
                                         </div>
                                     ))
                                 )}

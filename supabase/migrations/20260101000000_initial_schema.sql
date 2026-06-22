@@ -333,6 +333,13 @@ CREATE TABLE IF NOT EXISTS public.referrals (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS public.promoter_codes (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE UNIQUE NOT NULL,
+    code TEXT UNIQUE NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS public.cart_items (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
@@ -387,6 +394,202 @@ DO $rls$ BEGIN
     ALTER TABLE public.seller_verifications ENABLE ROW LEVEL SECURITY;
     ALTER TABLE public.promoter_campaigns ENABLE ROW LEVEL SECURITY;
     ALTER TABLE public.referrals ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.promoter_codes ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.cart_items ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.likes ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+END $rls$;
+
+-- Policies
+DO $pol$ BEGIN
+buyer_longitude DOUBLE PRECISION,
+    rider_latitude DOUBLE PRECISION,
+    rider_longitude DOUBLE PRECISION,
+    last_seen TIMESTAMPTZ,
+    pickup_code TEXT DEFAULT substring(md5(random()::text) from 1 for 6),
+    delivery_code TEXT DEFAULT substring(md5(random()::text) from 1 for 6),
+    tracking_code TEXT UNIQUE DEFAULT substring(md5(random()::text) from 1 for 12),
+    delivery_fee NUMERIC DEFAULT 1500,
+    zone_id UUID REFERENCES public.delivery_zones(id),
+    distance_km NUMERIC,
+    rider_fee_breakdown JSONB,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.order_items DROP CONSTRAINT IF EXISTS order_items_shipment_id_fkey;
+ALTER TABLE public.order_items ADD CONSTRAINT order_items_shipment_id_fkey FOREIGN KEY (shipment_id) REFERENCES public.shipments(id) ON DELETE SET NULL;
+
+CREATE TABLE IF NOT EXISTS public.wallets (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES public.profiles(id) UNIQUE,
+    seller_id UUID REFERENCES auth.users(id), -- Historical
+    balance NUMERIC(10,2) NOT NULL DEFAULT 0,
+    escrow_balance NUMERIC(10,2) NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.wallet_transactions (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    wallet_id UUID REFERENCES public.wallets(id) ON DELETE CASCADE NOT NULL,
+    amount NUMERIC(10,2) NOT NULL,
+    type TEXT NOT NULL,
+    reference TEXT,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 7. CHAT SYSTEM
+CREATE TABLE IF NOT EXISTS public.conversations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    buyer_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    seller_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    product_id UUID REFERENCES public.products(id),
+    last_message_at TIMESTAMPTZ DEFAULT now(),
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    conversation_id UUID REFERENCES public.conversations(id) ON DELETE CASCADE NOT NULL,
+    sender_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    text TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 8. VERIFICATION & KYC
+CREATE TABLE IF NOT EXISTS public.logistics_kyc (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL UNIQUE,
+    full_name TEXT NOT NULL,
+    phone_number TEXT NOT NULL,
+    home_address TEXT NOT NULL,
+    date_of_birth DATE,
+    nin_number TEXT,
+    passport_photo_url TEXT,
+    id_card_photo_url TEXT,
+    city_id UUID REFERENCES public.cities(id),
+    zone_id UUID REFERENCES public.delivery_zones(id),
+    status TEXT DEFAULT 'pending',
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.logistics_details (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL UNIQUE,
+    username TEXT,
+    bank_name TEXT,
+    account_number TEXT,
+    account_name TEXT,
+    next_of_kin JSONB,
+    vehicle_type TEXT,
+    notification_settings JSONB DEFAULT '{"new_order": true, "order_delivered": true, "issue_reported": true, "promoter_earnings": true}'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.seller_verifications (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    business_name TEXT NOT NULL,
+    phone_number TEXT NOT NULL,
+    business_address TEXT NOT NULL,
+    national_id_url TEXT NOT NULL,
+    store_photo_url TEXT NOT NULL,
+    bank_details JSONB NOT NULL,
+    status public.verification_status DEFAULT 'pending',
+    city_id UUID REFERENCES public.cities(id),
+    zone_id UUID REFERENCES public.delivery_zones(id),
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE(user_id)
+);
+
+-- 9. PROMOTER & SOCIAL
+CREATE TABLE IF NOT EXISTS public.promoter_campaigns (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    product_id UUID NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
+    seller_id UUID NOT NULL REFERENCES public.profiles(id),
+    commission_rate DECIMAL(5, 2) NOT NULL CHECK (commission_rate > 0 AND commission_rate <= 100),
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE(product_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.referrals (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    promoter_id UUID NOT NULL REFERENCES public.profiles(id),
+    campaign_id UUID NOT NULL REFERENCES public.promoter_campaigns(id),
+    order_id UUID REFERENCES public.orders(id),
+    status TEXT CHECK (status IN ('click', 'conversion')) DEFAULT 'click',
+    earnings DECIMAL(10, 2) DEFAULT 0.00,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.promoter_codes (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE UNIQUE NOT NULL,
+    code TEXT UNIQUE NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.cart_items (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    product_id UUID REFERENCES public.products(id) ON DELETE CASCADE NOT NULL,
+    quantity INTEGER NOT NULL DEFAULT 1,
+    size TEXT,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.likes (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    product_id UUID REFERENCES public.products(id) ON DELETE CASCADE NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE(user_id, product_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.notifications (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    type TEXT NOT NULL,
+    message TEXT NOT NULL,
+    read BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 10. INDEXES
+CREATE INDEX IF NOT EXISTS idx_products_title_trgm ON public.products USING GIN (title gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_products_location ON public.products (latitude, longitude);
+CREATE INDEX IF NOT EXISTS idx_orders_buyer ON public.orders(buyer_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_order ON public.order_items(order_id);
+
+-- 11. SECURITY (RLS)
+DO $rls$ BEGIN
+    ALTER TABLE public.cities ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.delivery_zones ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.vehicle_types ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.order_recipient ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.shipments ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.wallets ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.wallet_transactions ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.conversations ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.logistics_kyc ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.logistics_details ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.seller_verifications ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.promoter_campaigns ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.referrals ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.promoter_codes ENABLE ROW LEVEL SECURITY;
     ALTER TABLE public.cart_items ENABLE ROW LEVEL SECURITY;
     ALTER TABLE public.likes ENABLE ROW LEVEL SECURITY;
     ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
@@ -403,6 +606,10 @@ DO $pol$ BEGIN
     CREATE POLICY "Anyone can view categories" ON public.categories FOR SELECT USING (true);
     DROP POLICY IF EXISTS "Public insert categories" ON public.categories;
     CREATE POLICY "Public insert categories" ON public.categories FOR INSERT WITH CHECK (true);
+    DROP POLICY IF EXISTS "Admins can update categories" ON public.categories;
+    CREATE POLICY "Admins can update categories" ON public.categories FOR UPDATE TO authenticated USING (EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin'));
+    DROP POLICY IF EXISTS "Admins can delete categories" ON public.categories;
+    CREATE POLICY "Admins can delete categories" ON public.categories FOR DELETE TO authenticated USING (EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin'));
 
     DROP POLICY IF EXISTS "Anyone can view vehicle types" ON public.vehicle_types;
     CREATE POLICY "Anyone can view vehicle types" ON public.vehicle_types FOR SELECT USING (true);
@@ -559,6 +766,12 @@ DO $pol$ BEGIN
     CREATE POLICY "Admins can manage all seller verifications" ON public.seller_verifications FOR ALL USING (
         EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin')
     );
+
+    -- Promoter Codes
+    DROP POLICY IF EXISTS "Users view own promoter code" ON public.promoter_codes;
+    CREATE POLICY "Users view own promoter code" ON public.promoter_codes FOR SELECT USING (user_id = auth.uid());
+    DROP POLICY IF EXISTS "Users create own promoter code" ON public.promoter_codes;
+    CREATE POLICY "Users create own promoter code" ON public.promoter_codes FOR INSERT WITH CHECK (user_id = auth.uid());
 
     -- Notifications
     DROP POLICY IF EXISTS "Users view own notifications" ON public.notifications;
@@ -948,9 +1161,8 @@ INSERT INTO public.fee_config (fee_type, name, rate, flat_fee, priority) VALUES
 ('rider', 'Rider Base Delivery', 0, 1000, 90),
 ('promoter', 'Promoter Commission', 0.05, 0, 80),
 ('rider_out_of_zone', 'Out of Zone Delivery', 0, 2000, 85),
-('rider_distance', 'Distance Delivery (Per KM)', 0, 100, 70),
-FOR EACH ROW
-EXECUTE FUNCTION public.handle_rider_escrow_funding();
+('rider_distance', 'Distance Delivery (Per KM)', 0, 100, 70)
+ON CONFLICT (fee_type) DO NOTHING;
 
 
 -- Escrow Release Trigger (On Order Completion - No Dispute)
@@ -1200,181 +1412,6 @@ CREATE POLICY "Anyone can view product reviews" ON public.product_reviews FOR SE
 CREATE POLICY "Users can insert their own reviews" ON public.product_reviews FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update their own reviews" ON public.product_reviews FOR UPDATE USING (auth.uid() = user_id);
 
--- End of schema
-
--- 18. SCHEMA RELOAD
--- Refreshes PostgREST cache to prevent 'column not found in schema cache' errors.
-NOTIFY pgrst, 'reload schema';
--- Migration: Financial Architecture Upgrade v4
--- Adds order_settlements, wallet concurrency, escrow_transactions, order_promotions
--- Updates orders table with fee breakdown
-
--- 1. ALTERS TO WALLETS & TRANSACTIONS
-ALTER TABLE public.wallets 
-ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1;
-
-ALTER TABLE public.wallet_transactions 
-ADD COLUMN IF NOT EXISTS idempotency_key TEXT UNIQUE,
-ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'completed',
-ADD COLUMN IF NOT EXISTS order_id UUID REFERENCES public.orders(id);
-
--- 2. NEW TABLE: order_settlements
-CREATE TABLE IF NOT EXISTS public.order_settlements (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE UNIQUE NOT NULL,
-    gross_amount NUMERIC(10,2) NOT NULL DEFAULT 0,
-    seller_amount NUMERIC(10,2) NOT NULL DEFAULT 0,
-    rider_amount NUMERIC(10,2) NOT NULL DEFAULT 0,
-    platform_amount NUMERIC(10,2) NOT NULL DEFAULT 0,
-    promoter_amount NUMERIC(10,2) NOT NULL DEFAULT 0,
-    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'settled', 'partially_settled', 'failed', 'refunded')),
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
-    updated_at TIMESTAMPTZ DEFAULT now()
-);
-
--- 4. NEW TABLE: order_promotions
-CREATE TABLE IF NOT EXISTS public.order_promotions (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE,
-    promoter_id UUID REFERENCES public.profiles(id),
-    commission_rate DECIMAL(5, 2) NOT NULL,
-    commission_amount NUMERIC(10,2) NOT NULL DEFAULT 0,
-    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'cancelled')),
-    created_at TIMESTAMPTZ DEFAULT now()
-);
-
--- 5. ALTER orders TABLE
-ALTER TABLE public.orders 
-ADD COLUMN IF NOT EXISTS subtotal NUMERIC(10,2) DEFAULT 0,
-ADD COLUMN IF NOT EXISTS shipping_fee NUMERIC(10,2) DEFAULT 0,
-ADD COLUMN IF NOT EXISTS platform_fee NUMERIC(10,2) DEFAULT 0,
-ADD COLUMN IF NOT EXISTS promoter_fee NUMERIC(10,2) DEFAULT 0,
-ADD COLUMN IF NOT EXISTS discount NUMERIC(10,2) DEFAULT 0,
-ADD COLUMN IF NOT EXISTS tax NUMERIC(10,2) DEFAULT 0,
-ADD COLUMN IF NOT EXISTS grand_total NUMERIC(10,2) DEFAULT 0;
-
--- Optional: You may want to populate grand_total from total if it's already there
-UPDATE public.orders SET grand_total = total WHERE grand_total = 0 AND total > 0;
-
--- 6. SECURITY / RLS
-ALTER TABLE public.order_settlements ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.escrow_transactions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.order_promotions ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users view own order settlements" ON public.order_settlements 
-FOR SELECT USING (
-    EXISTS (SELECT 1 FROM public.orders WHERE id = order_settlements.order_id AND (buyer_id = auth.uid() OR seller_id = auth.uid()))
-    OR EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin')
-);
-
-CREATE POLICY "Users view own escrow transactions" ON public.escrow_transactions 
-FOR SELECT USING (
-    EXISTS (SELECT 1 FROM public.wallets WHERE id = escrow_transactions.wallet_id AND (user_id = auth.uid() OR seller_id = auth.uid()))
-    OR EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin')
-);
-
--- 7. UPDATED FUNCTIONS & TRIGGERS
-
--- A. Seller Escrow Funding
-CREATE OR REPLACE FUNCTION public.handle_seller_escrow_funding()
-RETURNS TRIGGER AS $$
-DECLARE
-    v_seller_wallet_id UUID;
-    v_seller_earnings NUMERIC;
-BEGIN
-    IF NEW.payment_status::TEXT = 'paid' AND (TG_OP = 'INSERT' OR OLD.payment_status::TEXT != 'paid') THEN
-        
-        -- Pull earnings from settlement if it exists, otherwise fallback to NEW.subtotal or NEW.total
-        SELECT seller_amount INTO v_seller_earnings FROM public.order_settlements WHERE order_id = NEW.id LIMIT 1;
-        
-        IF v_seller_earnings IS NULL THEN
-            v_seller_earnings := COALESCE(NEW.subtotal, NEW.total, 0);
-        END IF;
-        
-        SELECT id INTO v_seller_wallet_id FROM public.wallets 
-        WHERE user_id = NEW.seller_id OR seller_id = NEW.seller_id LIMIT 1;
-        
-        IF v_seller_wallet_id IS NOT NULL AND v_seller_earnings > 0 THEN
-            UPDATE public.wallets 
-            SET escrow_balance = escrow_balance + v_seller_earnings,
-                version = version + 1,
-                updated_at = NOW()
-            WHERE id = v_seller_wallet_id;
-
-            INSERT INTO public.escrow_transactions (order_id, wallet_id, amount, status)
-            VALUES (NEW.id, v_seller_wallet_id, v_seller_earnings, 'held');
-        END IF;
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- B. Rider Escrow Funding
-CREATE OR REPLACE FUNCTION public.handle_rider_escrow_funding()
-RETURNS TRIGGER AS $$
-DECLARE
-    v_rider_wallet_id UUID;
-    v_rider_fee NUMERIC;
-BEGIN
-    IF NEW.status::TEXT = 'assigned' AND OLD.status::TEXT != 'assigned' AND NEW.rider_id IS NOT NULL THEN
-        SELECT id INTO v_rider_wallet_id FROM public.wallets 
-        WHERE user_id = NEW.rider_id OR seller_id = NEW.rider_id LIMIT 1;
-        
-        IF v_rider_wallet_id IS NOT NULL THEN
-            SELECT rider_amount INTO v_rider_fee FROM public.order_settlements WHERE order_id = NEW.order_id LIMIT 1;
-            IF v_rider_fee IS NULL THEN
-                v_rider_fee := COALESCE((NEW.rider_fee_breakdown->>'total')::NUMERIC, NEW.delivery_fee, 0);
-            END IF;
-            
-            IF v_rider_fee > 0 THEN
-                UPDATE public.wallets 
-                SET escrow_balance = escrow_balance + v_rider_fee,
-                    version = version + 1,
-                    updated_at = NOW()
-                WHERE id = v_rider_wallet_id;
-
-                INSERT INTO public.escrow_transactions (order_id, wallet_id, amount, status)
-                VALUES (NEW.order_id, v_rider_wallet_id, v_rider_fee, 'held');
-            END IF;
-        END IF;
-    END IF;
-    
-    IF NEW.status::TEXT = 'pending' AND OLD.status::TEXT = 'assigned' AND OLD.rider_id IS NOT NULL THEN
-        SELECT id INTO v_rider_wallet_id FROM public.wallets 
-        WHERE user_id = OLD.rider_id OR seller_id = OLD.rider_id LIMIT 1;
-        
-        IF v_rider_wallet_id IS NOT NULL THEN
-            SELECT rider_amount INTO v_rider_fee FROM public.order_settlements WHERE order_id = NEW.order_id LIMIT 1;
-            IF v_rider_fee IS NULL THEN
-                v_rider_fee := COALESCE((OLD.rider_fee_breakdown->>'total')::NUMERIC, OLD.delivery_fee, 0);
-            END IF;
-            
-            UPDATE public.wallets 
-            SET escrow_balance = GREATEST(0, escrow_balance - v_rider_fee),
-                version = version + 1,
-                updated_at = NOW()
-            WHERE id = v_rider_wallet_id;
-
-            -- Mark escrow as refunded/cancelled
-            UPDATE public.escrow_transactions 
-            SET status = 'refunded', updated_at = NOW()
-            WHERE order_id = NEW.order_id AND wallet_id = v_rider_wallet_id AND status = 'held';
-        END IF;
-    END IF;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- C. Escrow Release
-CREATE OR REPLACE FUNCTION public.handle_order_completion_settlement()
-RETURNS TRIGGER AS $$
-DECLARE
-    v_seller_wallet_id UUID;
-    v_seller_earnings NUMERIC;
-    v_shipment RECORD;
-    v_rider_wallet_id UUID;
 -- End of schema
 
 -- 18. SCHEMA RELOAD
@@ -1768,6 +1805,15 @@ TO authenticated
 USING (EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin'));
 
 -- Issues/Disputes Table
+CREATE TABLE IF NOT EXISTS public.categories (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL UNIQUE,
+    slug TEXT NOT NULL UNIQUE,
+    icon TEXT, -- Lucide icon name
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS public.issues (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT NOT NULL,

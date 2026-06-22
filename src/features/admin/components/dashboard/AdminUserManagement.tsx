@@ -224,7 +224,7 @@ export default function AdminUserManagement() {
                 </div>
             </Card>
 
-            {totalPages > 1 && (
+            {totalPages > 0 && (
                 <div className="flex items-center justify-between mt-6 bg-white p-4 rounded-xl border border-gray-50 shadow-sm">
                     <div className="text-xs font-bold text-muted-foreground px-4">
                         Page {currentPage} of {totalPages}

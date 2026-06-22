@@ -16,14 +16,18 @@ import {
 
 export default function AdminOrderTracker() {
     const queryClient = useQueryClient();
-    const [pageSize, setPageSize] = useState(50);
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 10;
     const [selectedOrder, setSelectedOrder] = useState<any>(null);
     const [isSettling, setIsSettling] = useState(false);
 
-    const { data: orders, isLoading } = useQuery({
-        queryKey: ["admin-all-orders", pageSize],
+    const { data: queryData, isLoading } = useQuery({
+        queryKey: ["admin-all-orders", currentPage],
         queryFn: async () => {
-            const { data, error } = await supabase
+            const start = (currentPage - 1) * ITEMS_PER_PAGE;
+            const end = start + ITEMS_PER_PAGE - 1;
+
+            const { data, error, count } = await supabase
                 .from("orders")
                 .select(`
                     *,
@@ -31,9 +35,9 @@ export default function AdminOrderTracker() {
                     order_recipient(full_name, phone, address_line, city_id, zone_id, lat, lng),
                     shipments(*),
                     order_settlements(*)
-                `)
+                `, { count: 'exact' })
                 .order("created_at", { ascending: false })
-                .limit(pageSize);
+                .range(start, end);
             if (error) throw error;
 
             // Fetch riders manually to bypass missing foreign key relation
@@ -57,13 +61,17 @@ export default function AdminOrderTracker() {
                 });
             }
 
-            return data;
+            return { orders: data, count };
         },
         refetchInterval: 30000, // Refresh admin view every 30 seconds
         staleTime: 1000 * 60 * 2, // 2 minutes
     });
 
     if (isLoading) return <div className="p-12 text-center text-muted-foreground font-bold bg-white rounded-xl">Loading all orders...</div>;
+
+    const orders = queryData?.orders || [];
+    const totalCount = queryData?.count || 0;
+    const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
     const renderOrderDetails = (order: any) => {
         if (!order) return null;
@@ -369,7 +377,7 @@ export default function AdminOrderTracker() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-black">All Orders</h2>
-                <Badge className="bg-primary/10 text-primary border-none">{orders?.length} Total Orders</Badge>
+                <Badge className="bg-primary/10 text-primary border-none">{totalCount} Total Orders</Badge>
             </div>
 
             <Card className="border-none shadow-sm rounded-xl bg-white overflow-hidden">
@@ -479,15 +487,28 @@ export default function AdminOrderTracker() {
                         </tbody>
                     </table>
                 </div>
-                {orders && orders.length >= pageSize && (
-                    <div className="p-6 bg-gray-50/30 border-t border-gray-100 flex justify-center">
+                {totalPages > 1 && (
+                    <div className="p-6 bg-gray-50/30 border-t border-gray-100 flex items-center justify-between">
                         <Button
                             variant="outline"
                             size="sm"
-                            className="rounded-xl font-bold text-[10px] uppercase tracking-widest px-8 bg-white hover:bg-primary hover:text-white transition-all border-none shadow-sm"
-                            onClick={() => setPageSize(prev => prev + 50)}
+                            className="rounded-xl font-bold text-[10px] uppercase tracking-widest px-6 bg-white hover:bg-gray-50 transition-all border-none shadow-sm"
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
                         >
-                            Load More Historical Data
+                            Previous
+                        </Button>
+                        <span className="text-xs font-bold text-muted-foreground">
+                            Page {currentPage} of {totalPages}
+                        </span>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-xl font-bold text-[10px] uppercase tracking-widest px-6 bg-white hover:bg-gray-50 transition-all border-none shadow-sm"
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                        >
+                            Next
                         </Button>
                     </div>
                 )}

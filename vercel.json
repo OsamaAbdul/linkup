@@ -43,7 +43,7 @@
       "destination": "/manifest.webmanifest"
     },
     {
-      "source": "/((?!manifest.webmanifest|sw.js|favicon.ico|assets/|logo.png|logoo.jpeg|link-up.png).*)",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ]

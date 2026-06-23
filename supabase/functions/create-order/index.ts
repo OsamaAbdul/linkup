@@ -323,12 +323,17 @@ serve(async (req: Request) => {
       let calculated_promoter_fee = 0;
 
       // Calculate promoter fee only if they promoted a specific product that is in the cart
-      if (finalPromoterId && promotedProductId && promotedCampaignId) {
-        const { data: campaign } = await adminClient
-          .from("promoter_campaigns")
-          .select("commission_rate")
-          .eq("id", promotedCampaignId)
-          .maybeSingle();
+      // We look up the campaign either by ID or by the product ID if the campaign ID was missing in the referral record
+      if (finalPromoterId && promotedProductId) {
+        let campaignQuery = adminClient.from("promoter_campaigns").select("commission_rate").eq("is_active", true);
+        
+        if (promotedCampaignId) {
+            campaignQuery = campaignQuery.eq("id", promotedCampaignId);
+        } else {
+            campaignQuery = campaignQuery.eq("product_id", promotedProductId);
+        }
+
+        const { data: campaign } = await campaignQuery.maybeSingle();
 
         if (campaign && campaign.commission_rate) {
           // Find the promoted items in the cart
@@ -443,6 +448,45 @@ serve(async (req: Request) => {
         message: `New order portion received! Order #${order.id.slice(0, 8)}`,
       });
 
+      const pushPromise = adminClient.functions.invoke("send-push", {
+        body: {
+          target_user_id: sId,
+          title: "New Order Received! 🛒",
+          message: `You received a new order #${order.id.slice(0, 8)}. Check your dashboard!`,
+          url: "/dashboard", // routes to seller dashboard
+        },
+        headers: {
+          Authorization: authHeader || "",
+        }
+      });
+
+      // Find all logistics riders in the same zone
+      const { data: zoneProfiles } = await adminClient
+        .from("profiles")
+        .select("id")
+        .eq("zone_id", zone_id || "");
+
+      const { data: logisticsRoles } = await adminClient
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "logistics");
+      
+      const zoneRiderIds = (zoneProfiles || [])
+         .filter(p => (logisticsRoles || []).some(r => r.user_id === p.id))
+         .map(p => p.id);
+
+      const riderPushPromises = zoneRiderIds.map(rId => 
+        adminClient.functions.invoke("send-push", {
+          body: {
+            target_user_id: rId,
+            title: "New Mission Available! 🏍️",
+            message: `A new delivery mission is available in your zone. Claim it now!`,
+            url: "/logistics",
+          },
+          headers: { Authorization: authHeader || "" }
+        })
+      );
+
       const settlementPromise = adminClient.from("order_settlements").insert({
         order_id: order.id,
         gross_amount: total_order_charge || 0,
@@ -453,13 +497,14 @@ serve(async (req: Request) => {
         status: "pending",
       });
 
-      const [recipientRes, itemsRes, shipmentRes, notifRes, settlementRes] = await Promise.all([
-        recipientPromise, itemsPromise, shipmentPromise, notificationPromise, settlementPromise
+      const [recipientRes, itemsRes, shipmentRes, notifRes, pushRes, settlementRes, ...riderPushResults] = await Promise.all([
+        recipientPromise, itemsPromise, shipmentPromise, notificationPromise, pushPromise, settlementPromise, ...riderPushPromises
       ]);
 
       if (recipientRes.error) console.error("RECIPIENT_INSERT_FAIL:", recipientRes.error);
       if (itemsRes.error) console.error("ITEMS_INSERT_FAIL:", itemsRes.error);
       if (shipmentRes.error) console.error("SHIPMENT_INSERT_FAIL:", shipmentRes.error);
+      if (pushRes.error) console.error("PUSH_NOTIFY_FAIL:", pushRes.error);
       if (settlementRes.error) console.error("SETTLEMENT_INSERT_FAIL:", settlementRes.error);
     }
 

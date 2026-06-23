@@ -47,7 +47,6 @@ export function useReferral() {
               .from("promoter_campaigns")
               .select("id")
               .eq("product_id", productId)
-              .eq("seller_id", codeRow.user_id)
               .eq("is_active", true)
               .maybeSingle();
             campaignId = campaign?.id;

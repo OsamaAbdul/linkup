@@ -96,6 +96,48 @@ export function PayoutRequestModal({ isOpen, onClose, wallet, balanceOverride }:
         mutationFn: async (payload: any) => {
             const { error } = await supabase.from("payout_requests").insert(payload);
             if (error) throw error;
+
+            // Notify the user
+            if (user?.id) {
+                await supabase.from("notifications").insert({
+                    user_id: user.id,
+                    type: "payout_request",
+                    message: `Your payout request for ₦${Number(payload.amount).toLocaleString()} has been submitted and is pending review.`
+                });
+                
+                // Push notify the user
+                supabase.functions.invoke("send-push", {
+                    body: {
+                        target_user_id: user.id,
+                        title: "Payout Requested 💸",
+                        message: `Your withdrawal of ₦${Number(payload.amount).toLocaleString()} is being processed.`,
+                        url: "/wallet"
+                    }
+                }).catch(console.error);
+            }
+
+            // Notify admins
+            const { data: admins } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+            if (admins && admins.length > 0) {
+                const adminNotifications = admins.map(a => ({
+                    user_id: a.user_id,
+                    type: "admin_payout_alert",
+                    message: `A new payout request of ₦${Number(payload.amount).toLocaleString()} was just placed and needs review.`
+                }));
+                await supabase.from("notifications").insert(adminNotifications);
+                
+                // Push notify admins
+                Promise.all(admins.map(a => 
+                    supabase.functions.invoke("send-push", {
+                        body: {
+                            target_user_id: a.user_id,
+                            title: "Action Required: New Payout Request 💰",
+                            message: `A new payout request of ₦${Number(payload.amount).toLocaleString()} needs review.`,
+                            url: "/admin/payments"
+                        }
+                    })
+                )).catch(console.error);
+            }
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["wallet"] });

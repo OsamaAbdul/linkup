@@ -101,6 +101,25 @@ export function MissionDetailsModalV2({ shipment, open, onOpenChange }: MissionD
                     .eq("order_id", orderId);
 
                 if (error) throw error;
+
+                if (newStatus === 'delivered') {
+                    const buyerId = activeShipment?.order?.buyer_id || activeShipment?.buyer?.id;
+                    if (buyerId) {
+                        await supabase.from("notifications").insert({
+                            user_id: buyerId,
+                            type: "delivery_completed",
+                            message: `Your order #${String(orderId).slice(-8)} has been delivered! Please confirm delivery.`
+                        });
+                        supabase.functions.invoke("send-push", {
+                            body: {
+                                target_user_id: buyerId,
+                                title: "Package Delivered! 📦",
+                                message: `Your order #${String(orderId).slice(-8)} has arrived. Tap to confirm.`,
+                                url: `/orders`
+                            }
+                        }).catch(console.error);
+                    }
+                }
             }
         },
         onSuccess: () => {

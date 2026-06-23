@@ -165,7 +165,7 @@ export default function Sell() {
         imageUrls.push(...uploadedUrls);
       }
 
-      const { error } = await supabase.from("products").insert({
+      const { data: productData, error } = await supabase.from("products").insert({
         seller_id: user.id,
         title: form.title,
         description: form.description,
@@ -178,8 +178,41 @@ export default function Sell() {
         city_id: form.city_id,
         zone_id: form.zone_id,
         sizes: form.sizes
-      });
+      }).select().single();
       if (error) throw error;
+
+      // --- Notify Buyers ---
+      try {
+        const { data: zoneProfiles } = await supabase.from("profiles").select("id").eq("zone_id", form.zone_id);
+        const { data: buyerRoles } = await supabase.from("user_roles").select("user_id").eq("role", "buyer");
+        
+        const buyerIds = (zoneProfiles || [])
+           .filter(p => p.id !== user.id && (buyerRoles || []).some(r => r.user_id === p.id))
+           .map(p => p.id);
+
+        if (buyerIds.length > 0) {
+          const notifications = buyerIds.map(bId => ({
+             user_id: bId,
+             type: "new_product",
+             message: `A new product "${form.title}" was just added in your zone! Check it out.`
+          }));
+          await supabase.from("notifications").insert(notifications);
+
+          Promise.all(buyerIds.map(bId => 
+             supabase.functions.invoke("send-push", {
+                body: {
+                   target_user_id: bId,
+                   title: "New Product Alert! 🛍️",
+                   message: `A new product "${form.title}" was just added in your zone! Check it out.`,
+                   url: `/product/${productData?.id}` // or simply home /
+                }
+             })
+          )).catch(console.error); // Do not block UI
+        }
+      } catch (notifyErr) {
+        console.error("Failed to notify buyers:", notifyErr);
+      }
+      // ----------------------
     },
     onSuccess: () => {
       toast.success("Product listed!");

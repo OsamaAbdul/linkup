@@ -108,7 +108,55 @@ export default function AdminOrderTracker() {
                     } : null);
                     
                     queryClient.invalidateQueries({ queryKey: ["admin-all-orders"] });
-                    // Modal stays open but now shows "Settlement Finalized"
+
+                    // Notify all parties of their earnings
+                    try {
+                        const sellerId = order.seller_id;
+                        const settlement = Array.isArray(order.order_settlements) ? order.order_settlements[0] : order.order_settlements;
+                        const shipment = Array.isArray(order.shipments) ? order.shipments[0] : order.shipments;
+                        const riderId = shipment?.rider_id;
+                        const promoterId = order.promoter_id;
+
+                        const notificationPromises = [];
+                        const pushPromises = [];
+
+                        if (sellerId && settlement?.seller_amount > 0) {
+                            notificationPromises.push(supabase.from("notifications").insert({
+                                user_id: sellerId,
+                                type: "earning",
+                                message: `You earned ₦${Number(settlement.seller_amount).toLocaleString()} for Order #${order.id.slice(0,8)}.`
+                            }));
+                            pushPromises.push(supabase.functions.invoke("send-push", {
+                                body: { target_user_id: sellerId, title: "Earnings Received! 💰", message: `You earned ₦${Number(settlement.seller_amount).toLocaleString()} for Order #${order.id.slice(0,8)}.`, url: "/wallet" }
+                            }));
+                        }
+
+                        if (riderId && settlement?.rider_amount > 0) {
+                            notificationPromises.push(supabase.from("notifications").insert({
+                                user_id: riderId,
+                                type: "earning",
+                                message: `You earned ₦${Number(settlement.rider_amount).toLocaleString()} for delivering Order #${order.id.slice(0,8)}.`
+                            }));
+                            pushPromises.push(supabase.functions.invoke("send-push", {
+                                body: { target_user_id: riderId, title: "Delivery Earnings! 🏍️", message: `You earned ₦${Number(settlement.rider_amount).toLocaleString()} for delivering Order #${order.id.slice(0,8)}.`, url: "/logistics/wallet" }
+                            }));
+                        }
+
+                        if (promoterId && settlement?.promoter_amount > 0) {
+                            notificationPromises.push(supabase.from("notifications").insert({
+                                user_id: promoterId,
+                                type: "earning",
+                                message: `You earned ₦${Number(settlement.promoter_amount).toLocaleString()} commission for Order #${order.id.slice(0,8)}.`
+                            }));
+                            pushPromises.push(supabase.functions.invoke("send-push", {
+                                body: { target_user_id: promoterId, title: "Commission Received! 📈", message: `You earned ₦${Number(settlement.promoter_amount).toLocaleString()} commission for Order #${order.id.slice(0,8)}.`, url: "/promoter/wallet" }
+                            }));
+                        }
+
+                        Promise.all([...notificationPromises, ...pushPromises.map(p => p.catch(console.error))]).catch(console.error);
+                    } catch (notificationError) {
+                        console.error("Failed to send earnings notifications:", notificationError);
+                    }
 
                 } else {
                     throw new Error(result.error || "Failed to release funds");

@@ -104,16 +104,20 @@ serve(async (req: Request) => {
     const { data: feeConfigs } = await adminClient
       .from("fee_config")
       .select("fee_type, rate")
-      .in("fee_type", ["platform", "platform_rider_cut"]);
+      .in("fee_type", ["platform", "platform_rider_cut", "promoter"]);
 
     let platformProductRate = 0.05; // default 5%
     let platformRiderRate = 0.10; // default 10%
+    let globalPromoterRate = 0.05; // default 5%
     if (feeConfigs) {
       const pFee = feeConfigs.find((f: any) => f.fee_type === "platform");
-      if (pFee?.rate) platformProductRate = Number(pFee.rate);
+      if (pFee?.rate !== undefined) platformProductRate = Number(pFee.rate);
 
       const prFee = feeConfigs.find((f: any) => f.fee_type === "platform_rider_cut");
-      if (prFee?.rate) platformRiderRate = Number(prFee.rate);
+      if (prFee?.rate !== undefined) platformRiderRate = Number(prFee.rate);
+
+      const promoFee = feeConfigs.find((f: any) => f.fee_type === "promoter");
+      if (promoFee?.rate !== undefined) globalPromoterRate = Number(promoFee.rate);
     }
 
     // --- Group Items by Seller ---
@@ -262,11 +266,12 @@ serve(async (req: Request) => {
         
         // HEAL: We are more flexible now. We check for a matching click and don't strictly 
         // enforce expires_at if it's missing (assume non-expiring).
+        const safeVisitorId = body.visitor_id || 'none';
         const { data: referralRecord, error: referralLookupError } = await adminClient
           .from("referrals")
           .select("id, buyer_id, visitor_id, product_id, campaign_id")
           .eq("promoter_id", promoter_id)
-          .or(`buyer_id.eq.${user.id},visitor_id.eq.${body.visitor_id}`)
+          .or(`buyer_id.eq.${user.id},visitor_id.eq.${safeVisitorId}`)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -290,7 +295,7 @@ serve(async (req: Request) => {
             .from("referrals")
             .select("id, product_id, campaign_id")
             .eq("promoter_id", promoter_id)
-            .or(`buyer_id.eq.${user.id},visitor_id.eq.${body.visitor_id}`)
+            .or(`buyer_id.eq.${user.id},visitor_id.eq.${safeVisitorId}`)
             .limit(1)
             .maybeSingle();
             
@@ -302,6 +307,8 @@ serve(async (req: Request) => {
             promotedCampaignId = recentClick.campaign_id;
           } else {
             console.error(`[Attribution] FAILED: No record found for promoter ${promoter_id} and buyer ${user.id}`);
+            console.log(`[Attribution] HEALED: Forcing attribution from checkout payload to prevent dropping.`);
+            finalPromoterId = promoter_id;
           }
         }
       } else {
@@ -322,34 +329,46 @@ serve(async (req: Request) => {
       
       let calculated_promoter_fee = 0;
 
-      // Calculate promoter fee only if they promoted a specific product that is in the cart
-      // We look up the campaign either by ID or by the product ID if the campaign ID was missing in the referral record
-      if (finalPromoterId && promotedProductId) {
-        let campaignQuery = adminClient.from("promoter_campaigns").select("commission_rate").eq("is_active", true);
-        
-        if (promotedCampaignId) {
-            campaignQuery = campaignQuery.eq("id", promotedCampaignId);
-        } else {
-            campaignQuery = campaignQuery.eq("product_id", promotedProductId);
-        }
+      // Calculate promoter fee
+      if (finalPromoterId) {
+        let hasCampaign = false;
 
-        const { data: campaign } = await campaignQuery.maybeSingle();
+        if (promotedProductId) {
+          let campaignQuery = adminClient.from("promoter_campaigns").select("commission_rate").eq("is_active", true);
+          
+          if (promotedCampaignId) {
+              campaignQuery = campaignQuery.eq("id", promotedCampaignId);
+          } else {
+              campaignQuery = campaignQuery.eq("product_id", promotedProductId);
+          }
 
-        if (campaign && campaign.commission_rate) {
-          // Find the promoted items in the cart
-          let promoted_items_total = 0;
-          for (const item of enrichedSellerItems) {
-            if (item.product_id === promotedProductId) {
-              promoted_items_total += (Number(item.price) || 0) * (item.quantity || 1);
+          const { data: campaign } = await campaignQuery.maybeSingle();
+
+          if (campaign && campaign.commission_rate) {
+            hasCampaign = true;
+            // Find the promoted items in the cart
+            let promoted_items_total = 0;
+            for (const item of enrichedSellerItems) {
+              if (item.product_id === promotedProductId) {
+                promoted_items_total += (Number(item.price) || 0) * (item.quantity || 1);
+              }
+            }
+            
+            if (promoted_items_total > 0) {
+              calculated_promoter_fee = promoted_items_total * (Number(campaign.commission_rate) / 100);
             }
           }
-          
-          if (promoted_items_total > 0) {
-            calculated_promoter_fee = promoted_items_total * (Number(campaign.commission_rate) / 100);
-            // Promoter's fee is deducted from the platform earnings
-            calculated_platform_fee = Math.max(0, calculated_platform_fee - calculated_promoter_fee);
-            totalPromoterEarnings += calculated_promoter_fee;
-          }
+        }
+
+        // If no specific campaign was used, fallback to the global admin promoter rate on the whole subtotal
+        if (!hasCampaign && globalPromoterRate > 0) {
+          calculated_promoter_fee = calculatedSubTotal * globalPromoterRate;
+        }
+
+        if (calculated_promoter_fee > 0) {
+          // Promoter's fee is deducted from the platform earnings
+          calculated_platform_fee = Math.max(0, calculated_platform_fee - calculated_promoter_fee);
+          totalPromoterEarnings += calculated_promoter_fee;
         }
       }
 

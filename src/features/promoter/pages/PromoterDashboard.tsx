@@ -122,7 +122,7 @@ export default function PromoterDashboard() {
       if (!user) return [];
       const { data } = await supabase
         .from("referrals")
-        .select("id, status, created_at, buyer_id, visitor_id, product_id")
+        .select("id, status, created_at, order_id, orders(buyer_id), promoter_campaigns(product_id)")
         .eq("promoter_id", user.id)
         .order("created_at", { ascending: false })
         .limit(50);
@@ -139,7 +139,7 @@ export default function PromoterDashboard() {
       if (!user) return [];
       const { data } = await (supabase
         .from("payout_requests" as any)
-        .select("id, amount, status, created_at, admin_note")
+        .select("id, amount, status, created_at, admin_notes")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(20) as any);
@@ -493,11 +493,11 @@ export default function PromoterDashboard() {
                               <td className="px-4 py-4">
                                 <div className="flex flex-col gap-0.5">
                                   <span className="text-[10px] font-mono text-muted-foreground truncate max-w-[100px]">
-                                    {r.buyer_id ? "ID: " + r.buyer_id.slice(0,8) : "Visitor: " + r.visitor_id?.slice(0,8)}
+                                    {r.orders?.buyer_id ? "Buyer: " + r.orders.buyer_id.slice(0,8) : "Click ID: " + r.id.slice(0,8)}
                                   </span>
-                                  {r.product_id && (
+                                  {r.promoter_campaigns?.product_id && (
                                     <span className="text-[9px] text-primary flex items-center gap-1">
-                                      <Package size={8} /> Product: {r.product_id.slice(0,6)}
+                                      <Package size={8} /> Product: {r.promoter_campaigns.product_id.slice(0,6)}
                                     </span>
                                   )}
                                 </div>
@@ -724,8 +724,8 @@ export default function PromoterDashboard() {
                             <Badge className="capitalize rounded-lg px-3">
                               {w.status}
                             </Badge>
-                            {w.admin_note && (
-                              <p className="text-[10px] text-muted-foreground mt-1 max-w-[150px] line-clamp-1">{w.admin_note}</p>
+                            {w.admin_notes && (
+                              <p className="text-[10px] text-muted-foreground mt-1 max-w-[150px] line-clamp-1">{w.admin_notes}</p>
                             )}
                           </div>
                         </div>

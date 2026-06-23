@@ -768,8 +768,8 @@ DO $pol$ BEGIN
     );
 
     -- Promoter Codes
-    DROP POLICY IF EXISTS "Users view own promoter code" ON public.promoter_codes;
-    CREATE POLICY "Users view own promoter code" ON public.promoter_codes FOR SELECT USING (user_id = auth.uid());
+    DROP POLICY IF EXISTS "Anyone can view promoter codes" ON public.promoter_codes;
+    CREATE POLICY "Anyone can view promoter codes" ON public.promoter_codes FOR SELECT USING (true);
     DROP POLICY IF EXISTS "Users create own promoter code" ON public.promoter_codes;
     CREATE POLICY "Users create own promoter code" ON public.promoter_codes FOR INSERT WITH CHECK (user_id = auth.uid());
 
@@ -1783,6 +1783,7 @@ CREATE TABLE IF NOT EXISTS public.payout_requests (
     bank_name TEXT NOT NULL,
     account_number TEXT NOT NULL,
     account_name TEXT NOT NULL,
+    admin_notes TEXT,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -2301,3 +2302,27 @@ EXCEPTION WHEN OTHERS THEN
     );
 END;
 $$;
+
+-- Commissions Table
+CREATE TABLE IF NOT EXISTS public.commissions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    promoter_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    order_id UUID REFERENCES public.orders(id) ON DELETE SET NULL,
+    amount NUMERIC(10,2) NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'cancelled')),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.commissions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Promoters can view their own commissions" 
+ON public.commissions FOR SELECT 
+USING (auth.uid() = promoter_id);
+
+CREATE POLICY "Admins can view all commissions" 
+ON public.commissions FOR SELECT 
+USING (EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin'));
+
+CREATE POLICY "Admins can update commissions" 
+ON public.commissions FOR UPDATE 
+USING (EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin'));

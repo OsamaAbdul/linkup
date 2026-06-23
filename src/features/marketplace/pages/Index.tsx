@@ -346,7 +346,12 @@ export default function Index() {
             {isFetchingNextPage ? (
               <WeaveSpinner />
             ) : (
-              <div className="h-10"></div>
+              <button 
+                onClick={() => fetchNextPage()}
+                className="px-8 py-3 rounded-full border border-black/[0.05] bg-white hover:bg-gray-50 shadow-sm font-black text-[10px] uppercase tracking-widest transition-all hover:scale-105 active:scale-95"
+              >
+                Load More Products
+              </button>
             )}
           </div>
         )}

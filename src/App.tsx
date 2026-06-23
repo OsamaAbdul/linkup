@@ -62,10 +62,13 @@ persistQueryClient({
   persister,
 });
 
+import { GlobalPermissions } from "@/shared/components/GlobalPermissions";
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <LazyMotion features={domAnimation}>
       <AuthProvider>
+        <GlobalPermissions />
         <CartProvider>
           <TooltipProvider>
             <Toaster />

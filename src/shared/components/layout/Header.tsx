@@ -12,19 +12,54 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
 import { useAuth } from "@/features/auth/context/AuthContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/features/marketplace/context/CartContext";
 import { RoleSwitcher } from "./RoleSwitcher";
 import { EditProfileModal } from "@/features/user/components/EditProfileModal";
 import { UserCog } from "lucide-react";
 import Logo from "@/assets/logo.png";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+import { Badge } from "@/shared/components/ui/badge";
+import { cn } from "@/lib/utils";
+
+function NotificationsList({ user }: { user: any }) {
+  const { data: notifications = [], isLoading } = useQuery({
+    queryKey: ["recent-notifications", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data } = await supabase
+        .from("notifications")
+        .select("id, message, read, created_at, type")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      return data ?? [];
+    },
+    enabled: !!user,
+  });
+
+  if (isLoading) return <div className="p-4 text-center text-sm text-muted-foreground">Loading...</div>;
+  if (notifications.length === 0) return <div className="p-4 text-center text-sm text-muted-foreground">No recent notifications.</div>;
+
+  return (
+    <div className="flex flex-col">
+      {notifications.map((n: any) => (
+        <div key={n.id} className={cn("p-3 border-b border-white/5 text-sm transition-colors hover:bg-white/5 cursor-pointer", n.read ? "bg-transparent opacity-80" : "bg-primary/5 border-l-2 border-l-primary")}>
+          <p className="line-clamp-2 leading-tight">{n.message}</p>
+          <p className="text-[10px] text-muted-foreground mt-1 opacity-70 font-medium uppercase tracking-wider">{new Date(n.created_at).toLocaleDateString()}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function Header() {
   const { user, profile, signOut } = useAuth();
   const { totalCount } = useCart();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data: unreadCount = 0 } = useQuery({
     queryKey: ["unread-notifications", user?.id],
@@ -39,6 +74,37 @@ export function Header() {
     },
     enabled: !!user,
   });
+
+  useEffect(() => {
+    if (!user) return;
+    
+    const channel = supabase
+      .channel(`global-notifications-${user.id}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, (payload) => {
+        // Invalidate queries to update bell and dropdown immediately
+        queryClient.invalidateQueries({ queryKey: ["unread-notifications"] });
+        queryClient.invalidateQueries({ queryKey: ["recent-notifications"] });
+        queryClient.invalidateQueries({ queryKey: ["notifications"] });
+        
+        // Show in-app toast for real-time feedback
+        if (payload.new && payload.new.message) {
+            import("sonner").then(({ toast }) => {
+                toast("New Notification", {
+                   description: payload.new.message,
+                   action: {
+                      label: "View",
+                      onClick: () => window.location.href = "/notifications"
+                   }
+                });
+            });
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
 
   return (
     <header className="sticky top-0 z-50 glass border-b-[0.5px] border-white/10">
@@ -68,16 +134,36 @@ export function Header() {
 
 
             {/* Notifications */}
-            <Link to="/notifications" className="relative">
-              <Button variant="ghost" size="icon" className="rounded-full md:rounded-xl hover:bg-primary/5">
-                <Bell size={20} className="text-foreground/80 md:text-foreground/70" />
-              </Button>
-              {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white shadow-lg border-2 border-background">
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </span>
-              )}
-            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <div className="relative cursor-pointer">
+                  <Button variant="ghost" size="icon" className="rounded-full md:rounded-xl hover:bg-primary/5">
+                    <Bell size={20} className="text-foreground/80 md:text-foreground/70" />
+                  </Button>
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white shadow-lg border-2 border-background">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80 glass border-white/10 rounded-xl p-0 mt-4 shadow-2xl overflow-hidden">
+                <div className="flex items-center justify-between p-4 border-b border-white/10 bg-background/50">
+                  <span className="font-heading font-bold text-base">Notifications</span>
+                  {unreadCount > 0 && (
+                     <Badge variant="default" className="text-[10px] px-2 py-0 h-5 bg-primary text-white font-black">{unreadCount} New</Badge>
+                  )}
+                </div>
+                <div className="max-h-[300px] overflow-y-auto">
+                  <NotificationsList user={user} />
+                </div>
+                <div className="p-2 border-t border-white/10 bg-background/50">
+                  <Link to="/notifications" className="block text-center text-xs font-bold text-primary hover:text-primary/80 py-2">
+                    View All Notifications
+                  </Link>
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Cart - Desktop & Mobile */}
             <Link to="/cart" className="relative">

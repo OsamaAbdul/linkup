@@ -491,10 +491,10 @@ serve(async (req: Request) => {
         .eq("role", "logistics");
       
       const zoneRiderIds = (zoneProfiles || [])
-         .filter(p => (logisticsRoles || []).some(r => r.user_id === p.id))
-         .map(p => p.id);
+         .filter((p: any) => (logisticsRoles || []).some((r: any) => r.user_id === p.id))
+         .map((p: any) => p.id);
 
-      const riderPushPromises = zoneRiderIds.map(rId => 
+      const riderPushPromises = zoneRiderIds.map((rId: string) => 
         adminClient.functions.invoke("send-push", {
           body: {
             target_user_id: rId,
@@ -527,7 +527,7 @@ serve(async (req: Request) => {
       if (settlementRes.error) console.error("SETTLEMENT_INSERT_FAIL:", settlementRes.error);
     }
 
-    // --- Conversion Tracking (Phase 10/14) ---
+    // --- Conversion Tracking & Promoter Notifications (Phase 10/14) ---
     if (finalPromoterId && createdOrderIds.length > 0) {
        console.log(`[Attribution] Finalizing conversion for order: ${createdOrderIds[0]}`);
        
@@ -557,6 +557,26 @@ serve(async (req: Request) => {
        }
        
        console.log(`[Attribution] Conversion update triggered.`);
+
+       // Notify Promoter (In-app and Push)
+       await adminClient.from("notifications").insert({
+         user_id: finalPromoterId,
+         type: "payment",
+         message: `Cha-ching! Someone just placed an order using your link.`,
+       });
+
+       await adminClient.functions.invoke("send-push", {
+         body: {
+           target_user_id: finalPromoterId,
+           title: "New Referral Sale! 🎉",
+           message: `Someone just placed an order using your link. Check your dashboard for your pending commission!`,
+           url: "/promoter",
+         },
+         headers: {
+           Authorization: authHeader || "",
+         }
+       });
+       console.log(`[Attribution] Promoter notifications sent.`);
     }
 
     return new Response(

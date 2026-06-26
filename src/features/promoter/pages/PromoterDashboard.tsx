@@ -67,11 +67,11 @@ export default function PromoterDashboard() {
 
       const code = "PX" + Math.random().toString(36).substring(2, 8).toUpperCase();
       const { error: insertError } = await supabase.from("promoter_codes").insert({ user_id: user.id, code });
-      
+
       if (insertError) {
         console.error("[PromoterDebug] Error inserting code:", insertError);
       }
-      
+
       return code;
     },
     enabled: !!user,
@@ -82,15 +82,30 @@ export default function PromoterDashboard() {
     queryKey: ["commissions", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data } = await supabase
-        .from("commissions")
-        .select("id, amount, status, created_at, order_id")
-        .eq("promoter_id", user.id)
+      const { data, error } = await supabase
+        .from("order_settlements")
+        .select(`
+          id,
+          promoter_amount,
+          status,
+          created_at,
+          order_id,
+          orders!inner(promoter_id)
+        `)
+        .eq("orders.promoter_id", user.id)
+        .gt("promoter_amount", 0)
         .order("created_at", { ascending: false })
         .limit(50);
-      console.log("this is the promoter's comission", data)
-      return data ?? [];
 
+      if (error) {
+        console.error("[PromoterDebug] Error fetching order_settlements:", error);
+      }
+
+
+      return (data || []).map((d: any) => ({
+        ...d,
+        amount: d.promoter_amount
+      }));
     },
     enabled: !!user,
   });
@@ -105,7 +120,7 @@ export default function PromoterDashboard() {
         .select("balance, escrow_balance")
         .eq("user_id", user.id)
         .maybeSingle() as any);
-      
+
       console.log("[PromoterDebug] Wallet Balance State:", {
         available: data?.balance,
         escrow: data?.escrow_balance
@@ -246,7 +261,7 @@ export default function PromoterDashboard() {
       toast.error("Please enter a valid amount");
       return;
     }
-    
+
     if (!bankName || !accountNumber || !accountName) {
       toast.error("Please fill in all bank details");
       return;
@@ -277,12 +292,12 @@ export default function PromoterDashboard() {
     .reduce((sum: number, c: any) => sum + Number(c.amount || 0), 0);
   const totalOrders = commissions.length;
 
-  console.log(`[PromoterDebug] Render Stats:`, { 
-    totalEarnings, 
-    pendingEarnings, 
-    totalOrders, 
+  console.log(`[PromoterDebug] Render Stats:`, {
+    totalEarnings,
+    pendingEarnings,
+    totalOrders,
     commissionsCount: commissions.length,
-    referralsCount: referrals.length 
+    referralsCount: referrals.length
   });
 
   return (
@@ -493,11 +508,11 @@ export default function PromoterDashboard() {
                               <td className="px-4 py-4">
                                 <div className="flex flex-col gap-0.5">
                                   <span className="text-[10px] font-mono text-muted-foreground truncate max-w-[100px]">
-                                    {r.orders?.buyer_id ? "Buyer: " + r.orders.buyer_id.slice(0,8) : "Click ID: " + r.id.slice(0,8)}
+                                    {r.orders?.buyer_id ? "Buyer: " + r.orders.buyer_id.slice(0, 8) : "Click ID: " + r.id.slice(0, 8)}
                                   </span>
                                   {r.promoter_campaigns?.product_id && (
                                     <span className="text-[9px] text-primary flex items-center gap-1">
-                                      <Package size={8} /> Product: {r.promoter_campaigns.product_id.slice(0,6)}
+                                      <Package size={8} /> Product: {r.promoter_campaigns.product_id.slice(0, 6)}
                                     </span>
                                   )}
                                 </div>
@@ -591,9 +606,9 @@ export default function PromoterDashboard() {
 
                   <Dialog open={isWithdrawModalOpen} onOpenChange={setIsWithdrawModalOpen}>
                     <DialogTrigger asChild>
-                      <Button 
-                        className="w-full h-12 gap-2" 
-                        size="lg" 
+                      <Button
+                        className="w-full h-12 gap-2"
+                        size="lg"
                         disabled={!wallet || wallet.balance < 1000}
                       >
                         Request Withdrawal <ArrowUpRight size={18} />
@@ -611,10 +626,10 @@ export default function PromoterDashboard() {
                           <div className="flex items-center justify-between">
                             <Label htmlFor="amount">Amount to Withdraw (₦)</Label>
                             {wallet && (
-                              <Button 
-                                type="button" 
-                                variant="link" 
-                                className="h-auto p-0 text-[10px]" 
+                              <Button
+                                type="button"
+                                variant="link"
+                                className="h-auto p-0 text-[10px]"
                                 onClick={() => setWithdrawalAmount(wallet.balance.toString())}
                               >
                                 Use Max: ₦{wallet.balance.toLocaleString()}
@@ -630,7 +645,7 @@ export default function PromoterDashboard() {
                             required
                           />
                         </div>
-                        
+
                         <div className="space-y-2">
                           <Label htmlFor="bank">Bank Name</Label>
                           <Input
@@ -666,9 +681,9 @@ export default function PromoterDashboard() {
                         </div>
 
                         <DialogFooter className="pt-4">
-                          <Button 
-                            type="submit" 
-                            className="w-full h-12" 
+                          <Button
+                            type="submit"
+                            className="w-full h-12"
                             disabled={withdrawalMutation.isPending}
                           >
                             {withdrawalMutation.isPending ? "Submitting..." : "Confirm Withdrawal"}

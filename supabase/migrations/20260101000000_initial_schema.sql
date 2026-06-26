@@ -1,4 +1,4 @@
--- CLEAN SYSTEM SCHEMA v3
+﻿-- CLEAN SYSTEM SCHEMA v3
 -- High-fidelity, idempotent database definition for Linkup Marketplace.
 -- Standardizes table names (order_items_new -> order_items) and reconciles all history.
 
@@ -1002,7 +1002,7 @@ BEGIN
             VALUES (v_seller_wallet_id, v_seller_earnings, 'settlement', 'Escrow release for Order #' || NEW.id);
             
             INSERT INTO public.notifications (user_id, type, message)
-            VALUES (NEW.seller_id, 'payment', 'Payment of ₦' || v_seller_earnings || ' released from escrow for order #' || LEFT(NEW.id::TEXT, 8));
+            VALUES (NEW.seller_id, 'payment', 'Payment of â‚¦' || v_seller_earnings || ' released from escrow for order #' || LEFT(NEW.id::TEXT, 8));
         END IF;
 
         -- Find and pay the Rider
@@ -1024,7 +1024,7 @@ BEGIN
                 VALUES (v_rider_wallet_id, v_rider_fee, 'settlement', 'Delivery payout for Order #' || NEW.id);
                 
                 INSERT INTO public.notifications (user_id, type, message)
-                VALUES (v_shipment.rider_id, 'payment', 'Delivery fee of ₦' || v_rider_fee || ' released for order #' || LEFT(NEW.id::TEXT, 8));
+                VALUES (v_shipment.rider_id, 'payment', 'Delivery fee of â‚¦' || v_rider_fee || ' released for order #' || LEFT(NEW.id::TEXT, 8));
             END IF;
         END LOOP;
     END IF;
@@ -1196,7 +1196,7 @@ BEGIN
             VALUES (v_seller_wallet_id, v_seller_earnings, 'settlement', 'Escrow release for Order #' || NEW.id);
             
             INSERT INTO public.notifications (user_id, type, message)
-            VALUES (NEW.seller_id, 'payment', 'Payment of ₦' || v_seller_earnings || ' released from escrow for order #' || LEFT(NEW.id::TEXT, 8));
+            VALUES (NEW.seller_id, 'payment', 'Payment of â‚¦' || v_seller_earnings || ' released from escrow for order #' || LEFT(NEW.id::TEXT, 8));
         END IF;
 
         -- Find and pay the Rider
@@ -1223,7 +1223,7 @@ BEGIN
                 VALUES (v_rider_wallet_id, v_rider_fee, 'settlement', 'Delivery payout for Order #' || NEW.id);
                 
                 INSERT INTO public.notifications (user_id, type, message)
-                VALUES (v_shipment.rider_id, 'payment', 'Delivery fee of ₦' || v_rider_fee || ' released for order #' || LEFT(NEW.id::TEXT, 8));
+                VALUES (v_shipment.rider_id, 'payment', 'Delivery fee of â‚¦' || v_rider_fee || ' released for order #' || LEFT(NEW.id::TEXT, 8));
             END IF;
         END LOOP;
     END IF;
@@ -1629,7 +1629,7 @@ BEGIN
             WHERE order_id = NEW.order_id AND wallet_id = v_seller_wallet_id AND status = 'held';
             
             INSERT INTO public.notifications (user_id, type, message)
-            VALUES (v_order.seller_id, 'payment', 'Payment of ₦' || v_seller_earnings || ' released from escrow for order #' || LEFT(NEW.order_id::TEXT, 8));
+            VALUES (v_order.seller_id, 'payment', 'Payment of â‚¦' || v_seller_earnings || ' released from escrow for order #' || LEFT(NEW.order_id::TEXT, 8));
         END IF;
 
         -- Rider Payout
@@ -1658,7 +1658,7 @@ BEGIN
                     WHERE order_id = NEW.order_id AND wallet_id = v_rider_wallet_id AND status = 'held';
                     
                     INSERT INTO public.notifications (user_id, type, message)
-                    VALUES (v_shipment.rider_id, 'payment', 'Delivery fee of ₦' || v_rider_fee || ' added to wallet for order #' || LEFT(NEW.order_id::TEXT, 8));
+                    VALUES (v_shipment.rider_id, 'payment', 'Delivery fee of â‚¦' || v_rider_fee || ' added to wallet for order #' || LEFT(NEW.order_id::TEXT, 8));
                 END IF;
             END IF;
         END LOOP;
@@ -2326,3 +2326,218 @@ USING (EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND ro
 CREATE POLICY "Admins can update commissions" 
 ON public.commissions FOR UPDATE 
 USING (EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin'));
+-- Add Admin RLS Policies for Orders and related tables
+-- Run this in your Supabase SQL Editor
+
+-- Orders
+DROP POLICY IF EXISTS "Admins can view all orders" ON public.orders;
+CREATE POLICY "Admins can view all orders" ON public.orders FOR SELECT USING (
+    EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin')
+);
+
+DROP POLICY IF EXISTS "Admins can update all orders" ON public.orders;
+CREATE POLICY "Admins can update all orders" ON public.orders FOR UPDATE USING (
+    EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin')
+);
+
+-- Order Items
+DROP POLICY IF EXISTS "Admins can view all order_items" ON public.order_items;
+CREATE POLICY "Admins can view all order_items" ON public.order_items FOR SELECT USING (
+    EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin')
+);
+
+-- Order Recipients
+DROP POLICY IF EXISTS "Admins can view all order_recipients" ON public.order_recipient;
+CREATE POLICY "Admins can view all order_recipients" ON public.order_recipient FOR SELECT USING (
+    EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin')
+);
+
+-- Shipments
+DROP POLICY IF EXISTS "Admins can view all shipments" ON public.shipments;
+CREATE POLICY "Admins can view all shipments" ON public.shipments FOR SELECT USING (
+    EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin')
+);
+
+DROP POLICY IF EXISTS "Admins can update all shipments" ON public.shipments;
+CREATE POLICY "Admins can update all shipments" ON public.shipments FOR UPDATE USING (
+    EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin')
+);
+DROP POLICY IF EXISTS "Users view own promoter code" ON public.promoter_codes;
+CREATE POLICY "Anyone can view promoter codes" ON public.promoter_codes FOR SELECT USING (true);
+-- Admin Policies for Order Settlements
+DO $admin_pol_os$ BEGIN
+    -- Order Settlements
+    DROP POLICY IF EXISTS "Admins can view all order_settlements" ON public.order_settlements;
+    CREATE POLICY "Admins can view all order_settlements" ON public.order_settlements FOR SELECT USING (EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin'));
+
+    DROP POLICY IF EXISTS "Admins can update all order_settlements" ON public.order_settlements;
+    CREATE POLICY "Admins can update all order_settlements" ON public.order_settlements FOR UPDATE USING (EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin'));
+END $admin_pol_os$;
+-- Allow promoters to view their own order settlements
+DROP POLICY IF EXISTS "Users view own order settlements" ON public.order_settlements;
+
+CREATE POLICY "Users view own order settlements" ON public.order_settlements 
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM public.orders 
+            WHERE id = order_settlements.order_id 
+            AND (buyer_id = auth.uid() OR seller_id = auth.uid() OR promoter_id = auth.uid())
+        )
+    );
+-- 1. Promoter Escrow Funding
+CREATE OR REPLACE FUNCTION public.handle_promoter_escrow_funding()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_promoter_wallet_id UUID;
+    v_promoter_earnings NUMERIC;
+BEGIN
+    IF NEW.payment_status::TEXT = 'paid' AND (TG_OP = 'INSERT' OR OLD.payment_status::TEXT != 'paid') THEN
+        
+        -- Pull earnings from settlement if it exists
+        SELECT promoter_amount INTO v_promoter_earnings FROM public.order_settlements WHERE order_id = NEW.id LIMIT 1;
+        
+        IF v_promoter_earnings IS NULL THEN
+            v_promoter_earnings := COALESCE(NEW.promoter_fee, 0);
+        END IF;
+        
+        IF NEW.promoter_id IS NOT NULL AND v_promoter_earnings > 0 THEN
+            SELECT id INTO v_promoter_wallet_id FROM public.wallets 
+            WHERE user_id = NEW.promoter_id LIMIT 1;
+            
+            -- Create wallet if it doesn't exist
+            IF v_promoter_wallet_id IS NULL THEN
+                INSERT INTO public.wallets (user_id, balance, escrow_balance) 
+                VALUES (NEW.promoter_id, 0, 0) RETURNING id INTO v_promoter_wallet_id;
+            END IF;
+
+            IF v_promoter_wallet_id IS NOT NULL THEN
+                UPDATE public.wallets 
+                SET escrow_balance = escrow_balance + v_promoter_earnings,
+                    version = version + 1,
+                    updated_at = NOW()
+                WHERE id = v_promoter_wallet_id;
+
+                INSERT INTO public.escrow_transactions (order_id, wallet_id, amount, status)
+                VALUES (NEW.id, v_promoter_wallet_id, v_promoter_earnings, 'held');
+            END IF;
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trigger_promoter_escrow_funding ON public.orders;
+CREATE TRIGGER trigger_promoter_escrow_funding
+    AFTER INSERT OR UPDATE OF payment_status ON public.orders
+    FOR EACH ROW EXECUTE FUNCTION public.handle_promoter_escrow_funding();
+
+
+-- 2. Update Settlement Release to include Promoter
+CREATE OR REPLACE FUNCTION public.handle_settlement_release()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_seller_wallet_id UUID;
+    v_seller_earnings NUMERIC;
+    v_shipment RECORD;
+    v_rider_wallet_id UUID;
+    v_rider_fee NUMERIC;
+    v_order RECORD;
+    v_promoter_wallet_id UUID;
+BEGIN
+    IF NEW.status::TEXT = 'settled' AND OLD.status::TEXT != 'settled' THEN
+        
+        SELECT * INTO v_order FROM public.orders WHERE id = NEW.order_id LIMIT 1;
+        
+        -- Seller Payout
+        v_seller_earnings := NEW.seller_amount;
+        
+        SELECT id INTO v_seller_wallet_id FROM public.wallets 
+        WHERE user_id = v_order.seller_id OR seller_id = v_order.seller_id LIMIT 1;
+
+        IF v_seller_wallet_id IS NOT NULL AND v_seller_earnings > 0 THEN
+            UPDATE public.wallets 
+            SET balance = balance + v_seller_earnings,
+                escrow_balance = GREATEST(0, escrow_balance - v_seller_earnings),
+                version = version + 1,
+                updated_at = NOW()
+            WHERE id = v_seller_wallet_id;
+
+            INSERT INTO public.wallet_transactions (wallet_id, order_id, amount, type, reference, idempotency_key)
+            VALUES (v_seller_wallet_id, NEW.order_id, v_seller_earnings, 'settlement', 'Escrow release for Order #' || NEW.order_id, 'seller_settlement_' || NEW.order_id)
+            ON CONFLICT (idempotency_key) DO NOTHING;
+
+            UPDATE public.escrow_transactions 
+            SET status = 'released', released_at = NOW(), updated_at = NOW()
+            WHERE order_id = NEW.order_id AND wallet_id = v_seller_wallet_id AND status = 'held';
+            
+            INSERT INTO public.notifications (user_id, type, message)
+            VALUES (v_order.seller_id, 'payment', 'Payment of â‚¦' || v_seller_earnings || ' released from escrow for order #' || LEFT(NEW.order_id::TEXT, 8));
+        END IF;
+
+        -- Rider Payout
+        FOR v_shipment IN SELECT rider_id, delivery_fee, rider_fee_breakdown FROM public.shipments WHERE order_id = NEW.order_id AND rider_id IS NOT NULL
+        LOOP
+            SELECT id INTO v_rider_wallet_id FROM public.wallets 
+            WHERE user_id = v_shipment.rider_id OR seller_id = v_shipment.rider_id LIMIT 1;
+
+            IF v_rider_wallet_id IS NOT NULL THEN
+                v_rider_fee := NEW.rider_amount;
+
+                IF v_rider_fee > 0 THEN
+                    UPDATE public.wallets 
+                    SET balance = balance + v_rider_fee,
+                        escrow_balance = GREATEST(0, escrow_balance - v_rider_fee),
+                        version = version + 1,
+                        updated_at = NOW()
+                    WHERE id = v_rider_wallet_id;
+
+                    INSERT INTO public.wallet_transactions (wallet_id, order_id, amount, type, reference, idempotency_key)
+                    VALUES (v_rider_wallet_id, NEW.order_id, v_rider_fee, 'settlement', 'Delivery earnings for Order #' || NEW.order_id, 'rider_settlement_' || NEW.order_id)
+                    ON CONFLICT (idempotency_key) DO NOTHING;
+
+                    UPDATE public.escrow_transactions 
+                    SET status = 'released', released_at = NOW(), updated_at = NOW()
+                    WHERE order_id = NEW.order_id AND wallet_id = v_rider_wallet_id AND status = 'held';
+                    
+                    INSERT INTO public.notifications (user_id, type, message)
+                    VALUES (v_shipment.rider_id, 'payment', 'Delivery fee of â‚¦' || v_rider_fee || ' added to wallet for order #' || LEFT(NEW.order_id::TEXT, 8));
+                END IF;
+            END IF;
+        END LOOP;
+
+        -- Promoter Payout
+        IF v_order.promoter_id IS NOT NULL AND NEW.promoter_amount > 0 THEN
+            SELECT id INTO v_promoter_wallet_id FROM public.wallets 
+            WHERE user_id = v_order.promoter_id LIMIT 1;
+
+            -- Create wallet if it doesn't exist (fallback)
+            IF v_promoter_wallet_id IS NULL THEN
+                INSERT INTO public.wallets (user_id, balance, escrow_balance) 
+                VALUES (v_order.promoter_id, 0, 0) RETURNING id INTO v_promoter_wallet_id;
+            END IF;
+
+            UPDATE public.wallets 
+            SET balance = balance + NEW.promoter_amount,
+                escrow_balance = GREATEST(0, escrow_balance - NEW.promoter_amount),
+                version = version + 1,
+                updated_at = NOW()
+            WHERE id = v_promoter_wallet_id;
+
+            INSERT INTO public.wallet_transactions (wallet_id, order_id, amount, type, reference, idempotency_key)
+            VALUES (v_promoter_wallet_id, NEW.order_id, NEW.promoter_amount, 'settlement', 'Commission for Order #' || NEW.order_id, 'promoter_settlement_' || NEW.order_id)
+            ON CONFLICT (idempotency_key) DO NOTHING;
+
+            UPDATE public.escrow_transactions 
+            SET status = 'released', released_at = NOW(), updated_at = NOW()
+            WHERE order_id = NEW.order_id AND wallet_id = v_promoter_wallet_id AND status = 'held';
+            
+            INSERT INTO public.notifications (user_id, type, message)
+            VALUES (v_order.promoter_id, 'payment', 'Commission of â‚¦' || NEW.promoter_amount || ' added to wallet for order #' || LEFT(NEW.order_id::TEXT, 8));
+        END IF;
+
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+

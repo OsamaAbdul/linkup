@@ -174,6 +174,7 @@ export default function Index() {
           delivery_zones:zone_id(name)
         `)
         .gt("inventory", 0)
+        .eq("is_active", true)
         .range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1);
 
       // Sorting

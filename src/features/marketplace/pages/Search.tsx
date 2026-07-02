@@ -72,6 +72,7 @@ export default function SearchPage() {
         .from("products")
         .select("id, title, price, images, category, latitude, longitude, inventory, likes_count, seller_id, avg_rating, reviews_count")
         .gt("inventory", 0)
+        .eq("is_active", true)
         .range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1);
 
       if (query) q = q.ilike("title", `%${query}%`);

@@ -51,6 +51,7 @@ export default function Dashboard() {
     broadcastOrderMutation,
     updateProfileMutation,
     deleteProductMutation,
+    toggleProductStatus,
     PAGE_SIZE,
   } = data;
 
@@ -84,6 +85,7 @@ export default function Dashboard() {
               setProductsPage={setProductsPage}
               setEditingProduct={setEditingProduct}
               deleteProductMutation={deleteProductMutation}
+              toggleProductStatus={toggleProductStatus}
               pageSize={PAGE_SIZE}
               onListProduct={() => setTab("list-product")}
             />

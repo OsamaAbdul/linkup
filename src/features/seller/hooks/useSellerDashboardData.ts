@@ -20,7 +20,7 @@ export function useSellerDashboardData() {
       if (!user) return { data: [], count: 0 };
       const { data, count } = await supabase
         .from("products")
-        .select("id, title, price, inventory, images, description", { count: "exact" })
+        .select("id, title, price, inventory, images, description, is_active", { count: "exact" })
         .eq("seller_id", user.id)
         .order("created_at", { ascending: false })
         .range(productsPage * PAGE_SIZE, (productsPage + 1) * PAGE_SIZE - 1);
@@ -311,6 +311,18 @@ export function useSellerDashboardData() {
     onError: (err: any) => toast.error("Failed to delete asset: " + err.message),
   });
 
+  const toggleProductStatus = useMutation({
+    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+      const { error } = await supabase.from("products").update({ is_active }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["seller-products"] });
+      toast.success("Product availability updated");
+    },
+    onError: (err: any) => toast.error("Failed to update status: " + err.message),
+  });
+
 
 
   const { data: totals } = useQuery({
@@ -456,6 +468,7 @@ export function useSellerDashboardData() {
     broadcastOrderMutation,
     updateProfileMutation,
     deleteProductMutation,
+    toggleProductStatus,
     PAGE_SIZE,
   };
 }

@@ -6,6 +6,9 @@ import { Package, Plus, ShieldCheck, Activity, Smartphone, Edit, Trash, X, Arrow
 import { MetricCard } from "./MetricCards";
 import { cn } from "@/lib/utils";
 
+import { Switch } from "@/shared/components/ui/switch";
+import { Label } from "@/shared/components/ui/label";
+
 interface InventoryTabProps {
     products: any[];
     totalProducts: number;
@@ -13,6 +16,7 @@ interface InventoryTabProps {
     setProductsPage: (page: number | ((p: number) => number)) => void;
     setEditingProduct: (product: any) => void;
     deleteProductMutation: any;
+    toggleProductStatus: any;
     pageSize: number;
     onListProduct?: () => void;
 }
@@ -24,6 +28,7 @@ export function InventoryTab({
     setProductsPage,
     setEditingProduct,
     deleteProductMutation,
+    toggleProductStatus,
     pageSize,
     onListProduct
 }: InventoryTabProps) {
@@ -69,12 +74,25 @@ export function InventoryTab({
                                 {p.inventory} UNIT{p.inventory !== 1 ? 'S' : ''}
                             </Badge>
                         </div>
-                        <CardContent className="p-4">
-                            <h3 className="text-base font-black text-foreground tracking-tight truncate group-hover:text-primary transition-colors" title={p.title}>{p.title}</h3>
-                            <p className="text-xl font-black text-primary mt-1 flex items-center gap-1 tracking-tighter">
-                                <span className="text-sm opacity-60">₦</span>
-                                {p.price.toLocaleString()}
-                            </p>
+                        <CardContent className="p-4 space-y-3">
+                            <div>
+                                <h3 className="text-base font-black text-foreground tracking-tight truncate group-hover:text-primary transition-colors" title={p.title}>{p.title}</h3>
+                                <p className="text-xl font-black text-primary flex items-center gap-1 tracking-tighter">
+                                    <span className="text-sm opacity-60">₦</span>
+                                    {p.price.toLocaleString()}
+                                </p>
+                            </div>
+                            <div className="flex items-center justify-between border-t border-border/40 pt-3">
+                                <Label htmlFor={`active-${p.id}`} className="text-xs font-bold text-muted-foreground cursor-pointer">
+                                    {p.is_active !== false ? 'Available' : 'Unavailable'}
+                                </Label>
+                                <Switch
+                                    id={`active-${p.id}`}
+                                    checked={p.is_active !== false}
+                                    onCheckedChange={(checked) => toggleProductStatus.mutate({ id: p.id, is_active: checked })}
+                                    disabled={toggleProductStatus.isPending}
+                                />
+                            </div>
                         </CardContent>
                         <CardFooter className="p-4 pt-0 flex gap-2">
                             <Button

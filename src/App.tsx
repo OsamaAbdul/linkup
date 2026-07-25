@@ -63,6 +63,7 @@ persistQueryClient({
 });
 
 import { GlobalPermissions } from "@/shared/components/GlobalPermissions";
+import { FloatingSupportButton } from "@/shared/components/FloatingSupportButton";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -73,6 +74,7 @@ const App = () => (
           <TooltipProvider>
             <Toaster />
             <Sonner />
+            <FloatingSupportButton />
             <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
               <Suspense fallback={<GlobalLoader />}>
                 <Routes>

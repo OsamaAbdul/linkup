@@ -106,7 +106,7 @@ export function ListProductTab() {
         const uploadPromises = imageFiles.map(async (file) => {
           const ext = file.name.split(".").pop();
           const path = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
-          
+
           let fileToUpload = file;
           try {
             fileToUpload = await imageCompression(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1920, useWebWorker: true });
@@ -239,9 +239,8 @@ export function ListProductTab() {
                 <Badge
                   key={size}
                   variant={form.sizes.includes(size) ? "default" : "outline"}
-                  className={`cursor-pointer h-10 px-4 rounded-lg text-xs font-bold transition-all ${
-                    form.sizes.includes(size) ? "scale-105 shadow-md" : "hover:bg-muted opacity-60"
-                  }`}
+                  className={`cursor-pointer h-10 px-4 rounded-lg text-xs font-bold transition-all ${form.sizes.includes(size) ? "scale-105 shadow-md" : "hover:bg-muted opacity-60"
+                    }`}
                   onClick={() => toggleSize(size)}
                 >
                   {size}
@@ -259,8 +258,8 @@ export function ListProductTab() {
             {form.price && !isNaN(parseFloat(form.price)) && (
               <div className="text-xs text-muted-foreground space-y-1 p-3 bg-muted/50 rounded-xl">
                 <div className="flex justify-between"><span>You receive:</span><span>₦{parseFloat(form.price).toLocaleString()}</span></div>
-                <div className="flex justify-between text-muted-foreground/80"><span>Service fee (10%):</span><span>₦{(parseFloat(form.price) * 0.1).toLocaleString()}</span></div>
-                <div className="flex justify-between font-bold text-primary border-t pt-1 mt-1"><span>Total price for buyer:</span><span>₦{(parseFloat(form.price) * 1.1).toLocaleString()}</span></div>
+                {/* <div className="flex justify-between text-muted-foreground/80"><span>Service fee (10%):</span><span>₦{(parseFloat(form.price) * 0.1).toLocaleString()}</span></div><div className="flex justify-between text-muted-foreground/80"><span>Service fee (10%):</span><span>₦{(parseFloat(form.price) * 0.1).toLocaleString()}</span></div> */}
+                {/* <div className="flex justify-between font-bold text-primary border-t pt-1 mt-1"><span>Total price for buyer:</span><span>₦{(parseFloat(form.price) * 1.1).toLocaleString()}</span></div> */}
               </div>
             )}
           </div>

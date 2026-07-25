@@ -58,10 +58,7 @@ export default function Checkout() {
   const [isPaystackProcessing, setIsPaystackProcessing] = useState(false);
   const [showCrossZoneWarning, setShowCrossZoneWarning] = useState(false);
 
-  const productTotal = cartItems.reduce(
-    (sum, item: any) => sum + (item.products?.price ?? 0) * item.quantity,
-    0
-  );
+
 
   // Fetch available cities
   const { data: cities = [], isPending: isCitiesPending } = useCities();
@@ -81,6 +78,18 @@ export default function Checkout() {
       return (data as any[]) || [];
     },
   });
+
+  const productFeeConfig = feeConfigs.find((f: any) => f.fee_type === "platform_product");
+  const platformProductRate = productFeeConfig?.rate ?? 0.10;
+  const markupMultiplier = 1 + platformProductRate;
+
+  const productTotal = cartItems.reduce(
+    (sum, item: any) => {
+      const basePrice = item.products?.price ?? 0;
+      return sum + (basePrice * markupMultiplier) * item.quantity;
+    },
+    0
+  );
 
   // Auto-select from localStorage, profile, or default to Abuja
   useEffect(() => {
@@ -156,8 +165,11 @@ export default function Checkout() {
   const baseDeliveryFee = (zFee === 0 || zFee === 1500 || zFee === null || zFee === undefined)
     ? (shipping.zone_id ? dynamicDefaultFee : 0)
     : zFee;
+    
   const deliveryFee = baseDeliveryFee * sellerCount;
-  const grandTotal = productTotal + deliveryFee + crossZoneFee;
+  const finalCrossZoneFee = crossZoneFee;
+  
+  const grandTotal = productTotal + deliveryFee + finalCrossZoneFee;
 
   const placeOrder = useMutation({
     mutationFn: async (paymentInfo?: PaymentInfo) => {
@@ -177,7 +189,7 @@ export default function Checkout() {
           product_id: item.product_id,
           quantity: item.quantity,
           size: item.size,
-          price: item.products?.price,
+          price: (item.products?.price ?? 0) * markupMultiplier,
           seller_id: item.products?.seller_id,
           title: item.products?.title,
           image: item.products?.images?.[0] || ""
@@ -185,7 +197,7 @@ export default function Checkout() {
         shipping_address: shipping,
         total: grandTotal,
         delivery_fee: deliveryFee,
-        cross_zone_fee: crossZoneFee,
+        cross_zone_fee: finalCrossZoneFee,
         payment_method: paymentInfo?.payment_method ?? "direct",
         payment_ref: paymentInfo?.payment_ref ?? null,
         payment_status: paymentInfo?.payment_status ?? null,

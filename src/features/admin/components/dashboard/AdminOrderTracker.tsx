@@ -253,7 +253,18 @@ export default function AdminOrderTracker() {
                             <tbody className="divide-y divide-gray-50">
                                 {items.map((item: any, i: number) => (
                                     <tr key={i}>
-                                        <td className="px-4 py-3 font-bold">{item.title || item.name || "Unknown Product"}</td>
+                                        <td className="px-4 py-3 font-bold flex items-center gap-3">
+                                            {item.image ? (
+                                                <div className="h-10 w-10 shrink-0 rounded-lg overflow-hidden border border-gray-100 bg-gray-50">
+                                                    <img src={item.image} alt={item.title || "Product"} className="h-full w-full object-cover" />
+                                                </div>
+                                            ) : (
+                                                <div className="h-10 w-10 shrink-0 rounded-lg border border-dashed border-gray-200 bg-gray-50 flex items-center justify-center">
+                                                    <Package size={16} className="text-gray-400" />
+                                                </div>
+                                            )}
+                                            <span className="line-clamp-2">{item.title || item.name || "Unknown Product"}</span>
+                                        </td>
                                         <td className="px-4 py-3 text-center font-medium">{item.quantity}</td>
                                         <td className="px-4 py-3 text-right font-black">₦ {(item.price || 0).toLocaleString()}</td>
                                     </tr>

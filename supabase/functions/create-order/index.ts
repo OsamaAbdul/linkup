@@ -107,14 +107,16 @@ serve(async (req: Request) => {
       .in("fee_type", ["platform", "platform_rider_cut", "promoter"]);
 
     let platformProductRate = 0.05; // default 5%
-    let platformRiderRate = 0.10; // default 10%
+    let platformRiderFlat = 300; // default flat fee 300
     let globalPromoterRate = 0.05; // default 5%
     if (feeConfigs) {
       const pFee = feeConfigs.find((f: any) => f.fee_type === "platform");
       if (pFee?.rate !== undefined) platformProductRate = Number(pFee.rate);
 
       const prFee = feeConfigs.find((f: any) => f.fee_type === "platform_rider_cut");
-      if (prFee?.rate !== undefined) platformRiderRate = Number(prFee.rate);
+      if (prFee?.flat_fee !== undefined && prFee?.flat_fee !== null) {
+        platformRiderFlat = Number(prFee.flat_fee);
+      }
 
       const promoFee = feeConfigs.find((f: any) => f.fee_type === "promoter");
       if (promoFee?.rate !== undefined) globalPromoterRate = Number(promoFee.rate);
@@ -203,6 +205,7 @@ serve(async (req: Request) => {
       // --- Enrich Items & Decrement inventory for this seller's products ---
       const enrichedSellerItems = [];
       let calculatedSubTotal = 0;
+      const markupMultiplier = 1 + platformProductRate;
 
       for (const item of sellerItems) {
         // SECURE: Enforce positive quantity to prevent "negative order" theft
@@ -220,7 +223,8 @@ serve(async (req: Request) => {
             .single();
 
           if (prod) {
-            const itemPrice = Number(prod.price) || 0;
+            const baseItemPrice = Number(prod.price) || 0;
+            const itemPrice = baseItemPrice * markupMultiplier;
             const requestedQty = item.quantity || 1;
 
             // --- STRICT STOCK GUARD (Phase 14) ---
@@ -246,12 +250,14 @@ serve(async (req: Request) => {
               .eq("id", item.product_id);
           } else {
             // Fallback for missing product
-            enrichedSellerItems.push(item);
-            calculatedSubTotal += (Number(item.price) || 0) * (item.quantity || 1);
+            const fallbackPrice = (Number(item.price) || 0) * markupMultiplier;
+            enrichedSellerItems.push({...item, price: fallbackPrice});
+            calculatedSubTotal += fallbackPrice * (item.quantity || 1);
           }
         } else {
-          enrichedSellerItems.push(item);
-          calculatedSubTotal += (Number(item.price) || 0) * (item.quantity || 1);
+          const fallbackPrice = (Number(item.price) || 0) * markupMultiplier;
+          enrichedSellerItems.push({...item, price: fallbackPrice});
+          calculatedSubTotal += fallbackPrice * (item.quantity || 1);
         }
       }
 
@@ -320,11 +326,16 @@ serve(async (req: Request) => {
       const current_rider_fee = (delivery_fee ? (delivery_fee / sellerIds.length) : 0) + (cross_zone_fee ? (cross_zone_fee / sellerIds.length) : 0);
       
       const product_total = calculatedSubTotal;
-      let calculated_platform_fee = product_total * platformProductRate; // Dynamic Platform Product Cut
       
-      // Platform Rider Cut: Deduct percentage from the rider's fee and give it to the platform
-      const rider_platform_cut = current_rider_fee * platformRiderRate;
-      const final_rider_fee = Math.max(0, current_rider_fee - rider_platform_cut);
+      // Reverse Markup Calculation for Product
+      const calculated_seller_earnings = product_total / markupMultiplier;
+      let calculated_platform_fee = product_total - calculated_seller_earnings;
+      
+      // Deduction Calculation for Rider Fee (Flat Fee)
+      // The platform deducts the flat fee from whatever shipping fee was collected
+      const rider_platform_cut = current_rider_fee > 0 ? (platformRiderFlat / sellerIds.length) : 0;
+      const final_rider_fee = current_rider_fee - rider_platform_cut;
+      
       calculated_platform_fee += rider_platform_cut;
       
       let calculated_promoter_fee = 0;
@@ -372,8 +383,7 @@ serve(async (req: Request) => {
         }
       }
 
-      // Seller gets exactly what is left of the product total after the product platform cut
-      const calculated_seller_earnings = product_total - (product_total * platformProductRate);
+      // Seller earnings are already calculated above using the reverse markup logic
       
       const total_order_charge = product_total + current_rider_fee;
 
@@ -395,6 +405,7 @@ serve(async (req: Request) => {
           payment_method: payment_method || null,
           payment_ref: payment_ref || null,
           payment_status: payment_status || null,
+          items: enrichedSellerItems,
         })
         .select("id")
         .single();

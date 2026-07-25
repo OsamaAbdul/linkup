@@ -103,7 +103,7 @@ export function OrdersTab({ orders, updateOrderStatus, sellerZone, sellerZoneId,
                                     </div>
                                 </div>
                                 <div className="text-left sm:text-right">
-                                    <p className="text-[8px] sm:text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Your Earnings</p>
+                                    <p className="text-[8px] sm:text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Buyer Paid</p>
                                     <p className="text-xl sm:text-2xl font-black text-primary tracking-tighter flex items-center sm:justify-end gap-1">
                                         <span className="text-xs sm:text-sm opacity-40">₦</span>
                                         {(((o.order_items as any[])?.length ? (o.order_items as any[]).reduce((sum, item) => sum + (Number(item.price_at_purchase || 0) * (item.quantity || 1)), 0) : Number(o.order_settlements?.[0]?.seller_amount || o.order_settlements?.seller_amount || o.grand_total)) || 0).toLocaleString()}

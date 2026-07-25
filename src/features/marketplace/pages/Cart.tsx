@@ -11,15 +11,38 @@ import {
 } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
-
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 export default function Cart() {
   const { user } = useAuth();
   const { cartItems, isLoading, updateQuantity, removeFromCart, clearCart } = useCart();
   const navigate = useNavigate();
   const [couponCode, setCouponCode] = useState("");
 
+  // Fetch dynamic delivery fee from config
+  const { data: feeConfigs = [] } = useQuery({
+    queryKey: ["fee-config"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fee_config")
+        .select("*")
+        .eq("is_active", true);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const productFeeConfig = feeConfigs.find((f: any) => f.fee_type === "platform_product");
+  const platformProductRate = productFeeConfig?.rate ?? 0.10; // Default 10%
+  const markupMultiplier = 1 + platformProductRate;
+
   // Calculate totals
-  const subtotal = cartItems.reduce((sum, item: any) => sum + (item.products?.price ?? 0) * item.quantity, 0);
+  const subtotal = cartItems.reduce((sum, item: any) => {
+    const basePrice = item.products?.price ?? 0;
+    const markedUpPrice = basePrice * markupMultiplier;
+    return sum + markedUpPrice * item.quantity;
+  }, 0);
+  
   const discount = 0;
   const delivery = 0; // Calculated at checkout based on zone
   const total = subtotal - discount;
@@ -94,7 +117,7 @@ export default function Cart() {
                           <div className="min-w-0 flex-1">
                             <h3 className="font-semibold text-foreground line-clamp-2 sm:line-clamp-1">{item.products?.title}</h3>
                             <div className="flex items-center gap-2 mt-1">
-                              <p className="font-bold text-lg">NGN {item.products?.price?.toLocaleString()}</p>
+                              <p className="font-bold text-lg">NGN {((item.products?.price ?? 0) * markupMultiplier).toLocaleString()}</p>
                               {item.size && (
                                 <span className="bg-muted px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider text-muted-foreground border border-muted-foreground/10">
                                   Size: {item.size}

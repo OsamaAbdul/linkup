@@ -79,11 +79,16 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
     const riderFeeConfig = feeConfigs.find((f: any) => f.fee_type === "rider");
     const dynamicDefaultFee = riderFeeConfig?.flat_fee ?? DELIVERY_FEE;
 
+    const productFeeConfig = feeConfigs.find((f: any) => f.fee_type === "platform_product");
+    const platformProductRate = productFeeConfig?.rate ?? 0.10;
+    const markupMultiplier = 1 + platformProductRate;
+
     const selectedZone = zones.find(z => z.id === zoneId);
     const zFee = (selectedZone as any)?.delivery_fee;
     const baseFee = (zFee === 0 || zFee === 1500 || zFee === null || zFee === undefined) ? dynamicDefaultFee : zFee;
+    
     const deliveryFee = deliveryMethod === "standard" ? baseFee : 0;
-    const productPrice = product.price;
+    const productPrice = (product.price ?? 0) * markupMultiplier;
     const grandTotal = productPrice + deliveryFee;
 
     const checkoutMutation = useMutation({
@@ -91,7 +96,7 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
             if (!user) throw new Error("Must be logged in");
 
             const summary = {
-                items: [{ title: product.title, quantity: 1, price: product.price }],
+                items: [{ title: product.title, quantity: 1, price: productPrice }],
                 total: grandTotal,
                 deliveryFee,
                 paymentMethod,
@@ -119,7 +124,7 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
                 items: [{ 
                     product_id: product.id, 
                     quantity: 1, 
-                    price: product.price, 
+                    price: productPrice, 
                     seller_id: product.seller_id,
                     title: product.title,
                     image: product.images?.[0] || ""

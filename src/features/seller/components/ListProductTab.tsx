@@ -126,7 +126,7 @@ export function ListProductTab() {
         seller_id: user.id,
         title: form.title,
         description: form.description,
-        price: parseFloat(form.price) * 1.1,
+        price: parseFloat(form.price),
         category: form.category,
         inventory: parseInt(form.inventory),
         images: imageUrls,

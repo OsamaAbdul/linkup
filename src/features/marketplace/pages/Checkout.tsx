@@ -83,13 +83,13 @@ export default function Checkout() {
   const platformProductRate = productFeeConfig?.rate ?? 0.10;
   const markupMultiplier = 1 + platformProductRate;
 
-  const productTotal = cartItems.reduce(
-    (sum, item: any) => {
-      const basePrice = item.products?.price ?? 0;
-      return sum + (basePrice * markupMultiplier) * item.quantity;
-    },
+  const baseProductTotal = cartItems.reduce(
+    (sum, item: any) => sum + (item.products?.price ?? 0) * item.quantity,
     0
   );
+
+  const platformFee = baseProductTotal * platformProductRate;
+  const productTotal = baseProductTotal + platformFee;
 
   // Auto-select from localStorage, profile, or default to Abuja
   useEffect(() => {
@@ -383,7 +383,8 @@ export default function Checkout() {
                   size: i.size,
                   image: i.products?.images?.[0]
                 }))}
-                productTotal={productTotal}
+                  baseProductTotal={baseProductTotal}
+                  platformFee={platformFee}
                 deliveryFee={deliveryFee}
                 crossZoneFee={crossZoneFee}
                 grandTotal={grandTotal}

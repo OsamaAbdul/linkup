@@ -56,22 +56,35 @@ serve(async (req: Request) => {
       const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-      // 1. Check if order already exists with this reference
-      const { data: existingOrder } = await supabase
+      // 1. Check if orders already exist with this reference
+      const { data: existingOrders } = await supabase
         .from("orders")
-        .select("id, payment_status")
-        .eq("payment_ref", reference)
-        .maybeSingle();
+        .select("id, payment_status, grand_total")
+        .eq("payment_ref", reference);
 
-      if (existingOrder) {
-        if (existingOrder.payment_status !== "paid") {
-          console.log(`Updating existing order ${existingOrder.id} to paid`);
+      if (existingOrders && existingOrders.length > 0) {
+        const totalExpectedNGN = existingOrders.reduce((sum: number, o: any) => sum + Number(o.grand_total || 0), 0);
+        const expectedAmountKobo = Math.round(totalExpectedNGN * 100);
+        const paidAmountKobo = Number(amount);
+
+        if (paidAmountKobo !== expectedAmountKobo) {
+          console.error(`Webhook Security Alert: Paid amount (${paidAmountKobo}) does not match expected amount (${expectedAmountKobo}) for ref ${reference}`);
+          await supabase
+            .from("orders")
+            .update({ payment_status: "failed" })
+            .eq("payment_ref", reference);
+          return new Response(JSON.stringify({ error: "Amount mismatch" }), { status: 400 });
+        }
+
+        const unpaidOrders = existingOrders.filter((o: any) => o.payment_status !== "paid");
+        if (unpaidOrders.length > 0) {
+          console.log(`Updating ${unpaidOrders.length} existing orders to paid for ref ${reference}`);
           await supabase
             .from("orders")
             .update({ payment_status: "paid" })
-            .eq("id", existingOrder.id);
+            .eq("payment_ref", reference);
         } else {
-          console.log(`Order ${existingOrder.id} already marked as paid`);
+          console.log(`Orders for ref ${reference} already marked as paid`);
         }
       } else {
         // 2. Logic to create order if it doesn't exist (e.g. if client crashed)

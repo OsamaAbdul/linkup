@@ -103,7 +103,7 @@ serve(async (req: Request) => {
     // --- Fetch Global Fee Config ---
     const { data: feeConfigs } = await adminClient
       .from("fee_config")
-      .select("fee_type, rate")
+      .select("fee_type, rate, flat_fee")
       .in("fee_type", ["platform", "platform_rider_cut", "promoter"]);
 
     let platformProductRate = 0.05; // default 5%
@@ -162,6 +162,58 @@ serve(async (req: Request) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           }
         );
+      }
+
+      // --- STRICT PAYSTACK VERIFICATION GUARD (Phase 14 Security Upgrade) ---
+      if (payment_method === "direct" || payment_method === "paystack") {
+        const paystackSecret = Deno.env.get("PAYSTACK_SECRET_KEY");
+        if (!paystackSecret) throw new Error("Server misconfiguration: Missing Paystack key");
+
+        console.log(`[Security] Verifying Paystack reference: ${payment_ref}`);
+        const pRes = await fetch(`https://api.paystack.co/transaction/verify/${payment_ref}`, {
+          headers: { Authorization: `Bearer ${paystackSecret}` }
+        });
+        
+        if (!pRes.ok) {
+          throw new Error("Payment verification failed with provider");
+        }
+
+        const pData = await pRes.json();
+        if (!pData.status || pData.data.status !== "success") {
+          throw new Error(`Payment not successful: ${pData.data?.status || 'unknown'}`);
+        }
+
+        // Calculate expected total upfront
+        const markupMultiplier = 1 + platformProductRate;
+        let expectedTotal = Number(delivery_fee || 0) + Number(cross_zone_fee || 0);
+        
+        const productIds = items.map((i: any) => i.product_id).filter(Boolean);
+        const { data: allProducts } = await adminClient
+          .from("products")
+          .select("id, price")
+          .in("id", productIds);
+          
+        const productMap = new Map((allProducts || []).map(p => [p.id, Number(p.price || 0)]));
+
+        for (const item of items) {
+          const qty = Number(item.quantity || 1);
+          if (qty <= 0) continue;
+          
+          const basePrice = item.product_id && productMap.has(item.product_id) 
+            ? productMap.get(item.product_id)! 
+            : Number(item.price || 0);
+            
+          expectedTotal += (basePrice * markupMultiplier * qty);
+        }
+
+        const paidAmountKobo = Number(pData.data.amount);
+        const expectedAmountKobo = Math.round(expectedTotal * 100);
+
+        if (paidAmountKobo !== expectedAmountKobo) {
+          console.error(`[Security] AMOUNT MISMATCH: Paid ${paidAmountKobo} kobo, Expected ${expectedAmountKobo} kobo`);
+          throw new Error(`Payment amount mismatch. Please contact support. (Ref: ${payment_ref})`);
+        }
+        console.log(`[Security] Payment successfully verified for ${expectedTotal} NGN.`);
       }
     }
 

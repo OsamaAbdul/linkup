@@ -152,16 +152,9 @@ export function PaymentStep({
           <div className="space-y-2 pt-2">
             <div className="flex justify-between items-center text-xs font-semibold">
               <span className="text-muted-foreground">Order Subtotal</span>
-              <span className="text-foreground">₦{baseProductTotal.toLocaleString()}</span>
+              <span className="text-foreground">₦{(baseProductTotal + platformFee).toLocaleString()}</span>
             </div>
-            {platformFee > 0 && (
-              <div className="flex justify-between items-center text-xs font-semibold">
-                <span className="text-muted-foreground flex items-center gap-1.5">
-                  <ShieldCheck size={12} className="text-primary" /> Service Fee
-                </span>
-                <span className="text-foreground">₦{platformFee.toLocaleString()}</span>
-              </div>
-            )}
+
             <div className="flex justify-between items-center text-xs font-semibold">
               <span className="text-muted-foreground flex items-center gap-1.5">
                 <Truck size={12} className="text-blue-500" /> Delivery {sellerCount > 1 ? `(${sellerCount} Packages)` : ''}

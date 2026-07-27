@@ -47,7 +47,7 @@ export function DeliveryStep({
     if (!shipping.city_id) newErrors.city = "City selection is required";
     if (!shipping.zone_id) newErrors.zone = "Zone selection is required";
     if (!shipping.address || shipping.address.length < 5) newErrors.address = "Detailed address is required";
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -101,6 +101,7 @@ export function DeliveryStep({
                   <Input
                     id="v2-phone"
                     placeholder="+234 ..."
+                    maxLength={11}
                     className="pl-11 h-12 rounded-xl border-muted bg-muted/20 focus:bg-white transition-all shadow-inner focus:shadow-none"
                     value={shipping.phone}
                     onChange={(e) => setShipping({ ...shipping, phone: e.target.value })}
@@ -113,12 +114,12 @@ export function DeliveryStep({
             {/* Location Detections */}
             <div className="space-y-4 pt-2">
               <div className="flex items-center justify-between ml-1">
-                 <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
                   Location
                 </Label>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="h-8 text-[10px] font-black uppercase tracking-tighter text-primary hover:bg-primary/5 rounded-full px-3"
                   onClick={onDetectLocation}
                   disabled={isDetecting}

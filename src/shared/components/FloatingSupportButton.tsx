@@ -11,7 +11,7 @@ const playSound = () => {
     oscillator.type = 'sine';
     oscillator.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
     oscillator.frequency.setValueAtTime(880, audioCtx.currentTime + 0.1); // A5
-    
+
     gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
     gainNode.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.05);
     gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
@@ -50,8 +50,8 @@ export const FloatingSupportButton = () => {
     setShowTooltip(false);
   };
 
-  const whatsappNumber = "+1234567890"; // Replace with actual WhatsApp number
-  const phoneNumber = "+1234567890";     // Replace with actual phone number
+  const whatsappNumber = "+234 814 444 5693";
+  const phoneNumber = "+234 814 444 5693";
 
   return (
     <div className="fixed bottom-24 md:bottom-6 right-6 z-[100] flex flex-col items-end">
@@ -98,7 +98,7 @@ export const FloatingSupportButton = () => {
             className="absolute bottom-16 right-0 mb-4 w-[240px] rounded-2xl bg-white p-4 shadow-2xl dark:bg-slate-800 border border-slate-100 dark:border-slate-700"
           >
             <div className="flex flex-col items-center gap-2 text-center">
-              <m.span 
+              <m.span
                 animate={{ rotate: [0, 20, -20, 20, -20, 0] }}
                 transition={{ repeat: Infinity, duration: 2, repeatDelay: 1 }}
                 className="text-4xl inline-block origin-bottom"

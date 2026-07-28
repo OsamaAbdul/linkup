@@ -8,6 +8,8 @@ import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { haversineDistance, formatDistance } from "@/lib/haversine";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProductCardProps {
   id: string;
@@ -37,6 +39,24 @@ interface ProductCardProps {
 export function ProductCard({
   id, title, price, oldPrice, image, sellerName, likeCount, isLiked, cityName, zoneName, stockQuantity, avgRating = 0, reviewsCount = 0, onLike, onBuyNow, onAddToCart, index = 0, isPromoter, promoterCode, latitude, longitude, userLocation
 }: ProductCardProps) {
+  // Fetch dynamic delivery fee from config
+  const { data: feeConfigs = [] } = useQuery({
+    queryKey: ["fee-config"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fee_config")
+        .select("*")
+        .eq("is_active", true);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const productFeeConfig = feeConfigs.find((f: any) => f.fee_type === "platform_product");
+  const platformProductRate = productFeeConfig?.rate ?? 0.10; // Default 10%
+  const markupMultiplier = 1 + platformProductRate;
+  const finalPrice = price * markupMultiplier;
+
   const isOutOfStock = stockQuantity !== undefined && stockQuantity <= 0;
   const isLowStock = !isOutOfStock && stockQuantity !== undefined && stockQuantity <= 5;
   const handleBuyNow = (e: React.MouseEvent) => {
@@ -174,8 +194,9 @@ export function ProductCard({
 
           <div className="pt-1.5 border-t border-border/30 flex items-center justify-between">
             <div className="flex flex-col">
-              <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-widest">Price</span>
-              <div className="font-heading font-bold text-lg text-primary leading-tight">₦{price.toLocaleString()}</div>
+              <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-widest">Price (+{platformProductRate * 100}% Fee)</span>
+              <div className="font-heading font-bold text-lg text-primary leading-tight">₦{finalPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+              <span className="text-[10px] text-muted-foreground mt-0.5">Base: ₦{price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
             </div>
             {oldPrice && (
               <div className="flex flex-col items-end">

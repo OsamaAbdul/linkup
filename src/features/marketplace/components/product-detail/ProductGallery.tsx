@@ -2,6 +2,8 @@ import { m, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Share2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProductGalleryProps {
   images: string[];
@@ -18,6 +20,19 @@ export function ProductGallery({
   productTitle, 
   productPrice 
 }: ProductGalleryProps) {
+  const { data: feeConfigs = [] } = useQuery({
+    queryKey: ["fee-config"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("fee_config").select("*").eq("is_active", true);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+  const productFeeConfig = feeConfigs.find((f: any) => f.fee_type === "platform_product");
+  const platformProductRate = productFeeConfig?.rate ?? 0.10;
+  const markupMultiplier = 1 + platformProductRate;
+  const finalPrice = productPrice * markupMultiplier;
+
   const handleDragEnd = (event: any, info: any) => {
     const swipeThreshold = 50;
     if (info.offset.x < -swipeThreshold && currentImageIndex < images.length - 1) {
@@ -106,8 +121,9 @@ export function ProductGallery({
 
         {/* Price Floating Badge for Mobile */}
         <div className="absolute bottom-6 right-6 lg:hidden">
-          <div className="bg-primary/90 backdrop-blur-xl px-4 py-1.5 rounded-xl border border-white/20 shadow-2xl">
-            <p className="text-white font-black text-lg">₦{productPrice.toLocaleString()}</p>
+          <div className="bg-primary/90 backdrop-blur-xl px-4 py-2 rounded-xl border border-white/20 shadow-2xl flex flex-col items-end">
+            <p className="text-white font-black text-lg leading-none">₦{finalPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+            <span className="text-[9px] text-white/80 font-medium uppercase tracking-widest mt-1">Inc. {platformProductRate * 100}% Fee</span>
           </div>
         </div>
       </div>

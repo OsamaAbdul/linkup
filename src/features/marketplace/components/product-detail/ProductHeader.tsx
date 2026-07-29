@@ -77,9 +77,8 @@ export function ProductHeader({
       </div>
 
       <div className="hidden lg:block">
-        <span className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Price (+{platformProductRate * 100}% Fee)</span>
         <p className="text-4xl font-black text-primary leading-tight">₦{finalPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
-        <p className="text-sm text-muted-foreground mt-1">Base: ₦{product.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+
         {product.category && (
           <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground/70 block mt-2">{product.category}</span>
         )}

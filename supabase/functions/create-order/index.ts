@@ -166,6 +166,7 @@ serve(async (req: Request) => {
 
       // --- STRICT PAYSTACK VERIFICATION GUARD (Phase 14 Security Upgrade) ---
       if (payment_method === "direct" || payment_method === "paystack") {
+        // @ts-ignore
         const paystackSecret = Deno.env.get("PAYSTACK_SECRET_KEY");
         if (!paystackSecret) throw new Error("Server misconfiguration: Missing Paystack key");
 
@@ -185,7 +186,7 @@ serve(async (req: Request) => {
 
         // Calculate expected total upfront
         const markupMultiplier = 1 + platformProductRate;
-        let expectedTotal = Number(delivery_fee || 0) + Number(cross_zone_fee || 0);
+        let expectedTotal: number = Number(delivery_fee || 0) + Number(cross_zone_fee || 0);
         
         const productIds = items.map((i: any) => i.product_id).filter(Boolean);
         const { data: allProducts } = await adminClient
@@ -193,17 +194,17 @@ serve(async (req: Request) => {
           .select("id, price")
           .in("id", productIds);
           
-        const productMap = new Map((allProducts || []).map(p => [p.id, Number(p.price || 0)]));
+        const productMap = new Map((allProducts || []).map((p: any) => [p.id, Number(p.price || 0)]));
 
         for (const item of items) {
           const qty = Number(item.quantity || 1);
           if (qty <= 0) continue;
           
-          const basePrice = item.product_id && productMap.has(item.product_id) 
-            ? productMap.get(item.product_id)! 
+          const basePrice: number = item.product_id && productMap.has(item.product_id) 
+            ? Number(productMap.get(item.product_id)) 
             : Number(item.price || 0);
             
-          expectedTotal += (basePrice * markupMultiplier * qty);
+          expectedTotal += (basePrice * Number(markupMultiplier) * Number(qty));
         }
 
         const paidAmountKobo = Number(pData.data.amount);

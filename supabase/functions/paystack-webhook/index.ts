@@ -1,5 +1,8 @@
+// @ts-ignore
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+// @ts-ignore
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+// @ts-ignore
 import * as crypto from "https://deno.land/std@0.177.0/node/crypto.ts";
 
 const corsHeaders = {
@@ -22,6 +25,7 @@ serve(async (req: Request) => {
     }
 
     const bodyText = await req.text();
+    // @ts-ignore
     const secretKey = Deno.env.get("PAYSTACK_SECRET_KEY") ?? "";
 
     // Verify Signature
@@ -52,7 +56,9 @@ serve(async (req: Request) => {
       const { reference, metadata, amount, customer } = event.data;
       console.log(`Payment successful for reference: ${reference}`);
 
+      // @ts-ignore
       const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+      // @ts-ignore
       const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
 

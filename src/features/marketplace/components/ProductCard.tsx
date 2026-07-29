@@ -53,7 +53,7 @@ export function ProductCard({
   });
 
   const productFeeConfig = feeConfigs.find((f: any) => f.fee_type === "platform_product");
-  const platformProductRate = productFeeConfig?.rate ?? 0.10; // Default 10%
+  const platformProductRate = productFeeConfig?.rate ?? 0.10; // the platform fee
   const markupMultiplier = 1 + platformProductRate;
   const finalPrice = price * markupMultiplier;
 
@@ -175,11 +175,11 @@ export function ProductCard({
               <div className="flex items-center gap-1.5 px-2 py-0.5 bg-muted/30 rounded-full">
                 <div className="flex text-yellow-500">
                   {[...Array(5)].map((_, i) => (
-                    <Star 
-                      key={i} 
-                      size={11} 
-                      fill={i < Math.floor(avgRating) ? "currentColor" : "none"} 
-                      className={cn("transition-colors", i < Math.floor(avgRating) ? "drop-shadow-[0_0_2px_rgba(251,191,36,0.5)]" : "text-muted-foreground/30")} 
+                    <Star
+                      key={i}
+                      size={11}
+                      fill={i < Math.floor(avgRating) ? "currentColor" : "none"}
+                      className={cn("transition-colors", i < Math.floor(avgRating) ? "drop-shadow-[0_0_2px_rgba(251,191,36,0.5)]" : "text-muted-foreground/30")}
                     />
                   ))}
                 </div>
@@ -189,14 +189,14 @@ export function ProductCard({
                 </span>
               </div>
 
-              </div>
             </div>
+          </div>
 
           <div className="pt-1.5 border-t border-border/30 flex items-center justify-between">
             <div className="flex flex-col">
-              <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-widest">Price (+{platformProductRate * 100}% Fee)</span>
+
               <div className="font-heading font-bold text-lg text-primary leading-tight">₦{finalPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-              <span className="text-[10px] text-muted-foreground mt-0.5">Base: ₦{price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+
             </div>
             {oldPrice && (
               <div className="flex flex-col items-end">

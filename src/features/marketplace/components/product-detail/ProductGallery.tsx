@@ -13,12 +13,12 @@ interface ProductGalleryProps {
   productPrice: number;
 }
 
-export function ProductGallery({ 
-  images, 
-  currentImageIndex, 
-  setCurrentImageIndex, 
-  productTitle, 
-  productPrice 
+export function ProductGallery({
+  images,
+  currentImageIndex,
+  setCurrentImageIndex,
+  productTitle,
+  productPrice
 }: ProductGalleryProps) {
   const { data: feeConfigs = [] } = useQuery({
     queryKey: ["fee-config"],
@@ -123,7 +123,7 @@ export function ProductGallery({
         <div className="absolute bottom-6 right-6 lg:hidden">
           <div className="bg-primary/90 backdrop-blur-xl px-4 py-2 rounded-xl border border-white/20 shadow-2xl flex flex-col items-end">
             <p className="text-white font-black text-lg leading-none">₦{finalPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
-            <span className="text-[9px] text-white/80 font-medium uppercase tracking-widest mt-1">Inc. {platformProductRate * 100}% Fee</span>
+
           </div>
         </div>
       </div>

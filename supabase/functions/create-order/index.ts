@@ -134,6 +134,12 @@ serve(async (req: Request) => {
     const sellerIds = Object.keys(itemsBySeller);
     if (sellerIds.length === 0) throw new Error("No valid products or sellers found in order items");
 
+    // Pre-fetch admins for notifications
+    const { data: adminRoles } = await adminClient
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "admin");
+
     const createdOrderIds: string[] = [];
     let finalPromoterId = null;
     let matchedReferralId = null;
@@ -543,30 +549,11 @@ serve(async (req: Request) => {
         }
       });
 
-      // Find all logistics riders in the same zone
-      const { data: zoneProfiles } = await adminClient
-        .from("profiles")
-        .select("id")
-        .eq("zone_id", zone_id || "");
-
-      const { data: logisticsRoles } = await adminClient
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "logistics");
-      
-      const zoneRiderIds = (zoneProfiles || [])
-         .filter((p: any) => (logisticsRoles || []).some((r: any) => r.user_id === p.id))
-         .map((p: any) => p.id);
-
-      const riderPushPromises = zoneRiderIds.map((rId: string) => 
-        adminClient.functions.invoke("send-push", {
-          body: {
-            target_user_id: rId,
-            title: "New Mission Available! 🏍️",
-            message: `A new delivery mission is available in your zone. Claim it now!`,
-            url: "/logistics",
-          },
-          headers: { Authorization: authHeader || "" }
+      const adminNotificationPromises = (adminRoles || []).map((admin: any) =>
+        adminClient.from("notifications").insert({
+          user_id: admin.user_id,
+          type: "order",
+          message: `A new order #${order.id.slice(0, 8)} has been placed on the platform.`,
         })
       );
 
@@ -580,8 +567,8 @@ serve(async (req: Request) => {
         status: "pending",
       });
 
-      const [recipientRes, itemsRes, shipmentRes, notifRes, pushRes, settlementRes, ...riderPushResults] = await Promise.all([
-        recipientPromise, itemsPromise, shipmentPromise, notificationPromise, pushPromise, settlementPromise, ...riderPushPromises
+      const [recipientRes, itemsRes, shipmentRes, notifRes, pushRes, settlementRes, ...otherResults] = await Promise.all([
+        recipientPromise, itemsPromise, shipmentPromise, notificationPromise, pushPromise, settlementPromise, ...adminNotificationPromises
       ]);
 
       if (recipientRes.error) console.error("RECIPIENT_INSERT_FAIL:", recipientRes.error);

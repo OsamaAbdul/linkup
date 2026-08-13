@@ -96,8 +96,11 @@ export default function Support() {
                             <div>
                                 <h3 className="font-semibold text-lg">Email Support</h3>
                                 <p className="text-sm text-muted-foreground">Get a response within 24 hours</p>
+                                <p className="text-sm font-medium text-blue-600 mt-1">support@linkupng.com</p>
                             </div>
-                            <Button variant="outline" className="mt-2 w-full border-blue-200 text-blue-700 hover:bg-blue-100">Contact Us</Button>
+                            <a href="mailto:support@linkupng.com" className="w-full mt-2">
+                                <Button variant="outline" className="w-full border-blue-200 text-blue-700 hover:bg-blue-100">Contact Us</Button>
+                            </a>
                         </div>
 
                         <div className="bg-green-50/50 border border-green-100 rounded-xl p-6 flex flex-col items-center text-center gap-4">

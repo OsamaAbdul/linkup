@@ -210,10 +210,7 @@ export function useSellerDashboardData() {
   });
 
   const broadcastOrderMutation = useMutation({
-    mutationFn: async ({
-      id, zone, zoneId, cityId, pickupAddress, deliveryAddress, pickupTime, lat, lng,
-      deliveryFeeAmount, crossZoneFeeAmount, distanceKm
-    }: {
+    mutationFn: async (payload: {
       id: string;
       zone: string;
       zoneId?: string;
@@ -227,31 +224,16 @@ export function useSellerDashboardData() {
       crossZoneFeeAmount?: number;
       distanceKm?: number;
     }) => {
-      const { error: orderError } = await supabase
-        .from("orders")
-        .update({
-          status: "awaiting_agent",
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", id);
-      if (orderError) throw orderError;
+      const { data, error } = await supabase.functions.invoke("broadcast-order", {
+        body: payload
+      });
 
-      const { error: shipmentError } = await supabase
-        .from("shipments")
-        .update({
-          seller_id: user.id,
-          zone_id: zoneId,
-          status: "broadcast",
-          pickup_address: pickupAddress,
-          delivery_address: deliveryAddress,
-          delivery_fee: deliveryFeeAmount || null,
-          distance_km: distanceKm || null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('order_id', id);
-
-      if (shipmentError) {
-        console.error("Secondary Shipment Update Error (Non-Critical):", shipmentError);
+      if (error) {
+        throw new Error(error.message || "Failed to broadcast order");
+      }
+      
+      if (!data?.success) {
+        throw new Error("Failed to broadcast order via edge function");
       }
     },
     onSuccess: () => {

@@ -201,7 +201,7 @@ export default function Auth() {
                 </span>
               </div>
 
-              <Button
+              {/* <Button
                 type="button"
                 variant="outline"
                 onClick={handleGoogleSignIn}
@@ -227,7 +227,7 @@ export default function Auth() {
                   />
                 </svg>
                 Sign in with Google
-              </Button>
+              </Button> */}
             </div>
           )}
 

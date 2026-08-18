@@ -35,11 +35,11 @@ export function AppLayout({ children, hideBottomNav = false }: { children: React
   const isSellerView = activeRole === "seller";
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-[100dvh] bg-surface">
       <div className="md:flex max-w-[1700px] mx-auto p-0 sm:p-4 gap-0 sm:gap-4">
         {!isSellerView && <Sidebar />}
         <main className={cn(
-          "flex-1 min-w-0 min-h-screen sm:min-h-[calc(100vh-2rem)]",
+          "flex-1 min-w-0 min-h-[100dvh] sm:min-h-[calc(100dvh-2rem)]",
           isSellerView ? "bg-surface border-none shadow-none" : "bg-background sm:rounded-xl border-x sm:border shadow-sm",
           !hideBottomNav ? "pb-24 sm:pb-0" : ""
         )}>

@@ -89,9 +89,9 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
     }, [user, queryClient]);
 
     return (
-        <div className="min-h-screen bg-[#F9FAFB] flex flex-col lg:flex-row font-sans selection:bg-orange-100 selection:text-orange-900">
+        <div className="min-h-[100dvh] bg-[#F9FAFB] flex flex-col lg:flex-row font-sans selection:bg-orange-100 selection:text-orange-900">
             {/* Desktop Sidebar */}
-            <aside className="hidden lg:flex flex-col w-72 bg-white border-r border-black/[0.04] h-screen sticky top-0 p-6 z-50">
+            <aside className="hidden lg:flex flex-col w-72 bg-white border-r border-black/[0.04] h-[100dvh] sticky top-0 p-6 z-50">
                 <div className="flex items-center gap-3 mb-12 px-2">
                     <div className="w-10 h-10 rounded-2xl bg-[#E96F28] flex items-center justify-center text-white shadow-xl shadow-orange-600/20">
                         <span className="font-black text-xl">L</span>
@@ -195,7 +195,7 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
             </AnimatePresence>
 
             {/* Main Content Area */}
-            <main className="flex-1 flex flex-col min-h-screen">
+            <main className="flex-1 flex flex-col min-h-[100dvh]">
                 {/* Desktop Top Bar */}
                 <header className="hidden lg:flex h-20 bg-white/50 backdrop-blur-md border-b border-black/[0.04] items-center justify-between px-10 sticky top-0 z-40">
                     <div className="flex items-center gap-3">

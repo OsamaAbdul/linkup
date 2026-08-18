@@ -130,7 +130,7 @@
 
 @layer components {
   .glass {
-    @apply backdrop-blur-md bg-[var(--glass-background)] border border-[var(--glass-border)] shadow-xl;
+    @apply bg-background/95 md:bg-[var(--glass-background)] md:backdrop-blur-md border border-[var(--glass-border)] shadow-xl;
   }
 
   .premium-shadow {
@@ -138,7 +138,8 @@
   }
 
   .premium-shadow-hover {
-    @apply transition-all duration-300 hover:shadow-2xl hover:-translate-y-1;
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+    @apply hover:shadow-2xl hover:-translate-y-1;
   }
 }
 .no-scrollbar::-webkit-scrollbar {

@@ -111,7 +111,7 @@ export function Header() {
       <div className="flex items-center justify-between h-14 sm:h-16 px-4 sm:px-6 md:px-10 max-w-[1700px] mx-auto">
         <div className="flex items-center gap-3 sm:gap-6 md:gap-10">
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="relative h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 overflow-hidden rounded-xl border border-black/[0.03] shadow-sm transform group-hover:scale-105 transition-all duration-300">
+            <div className="relative h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 overflow-hidden rounded-xl border border-black/[0.03] shadow-sm transform group-hover:scale-105 transition-transform duration-300">
               <img src={Logo} alt="Linkup Logo" className="w-full h-full object-cover" />
             </div>
             <div className="flex flex-col">
@@ -184,7 +184,7 @@ export function Header() {
                 <DropdownMenuTrigger asChild>
                   <div className="flex items-center gap-3 md:pl-6 md:border-l md:border-border/50 cursor-pointer group">
                     <div className="relative">
-                      <Avatar className="h-9 w-9 md:h-10 md:w-10 border-2 border-white/20 transition-all group-hover:border-primary/50 shadow-sm">
+                      <Avatar className="h-9 w-9 md:h-10 md:w-10 border-2 border-white/20 transition-colors group-hover:border-primary/50 shadow-sm">
                         <AvatarImage src={profile?.avatar_url ?? undefined} />
                         <AvatarFallback className="bg-primary/10 text-primary font-bold">
                           {(profile?.display_name ?? "U")[0].toUpperCase()}
@@ -236,7 +236,7 @@ export function Header() {
             </>
           ) : (
             <Link to="/auth" className="md:pl-4 md:border-l md:border-border/50">
-              <Button size="sm" className="rounded-xl px-6 md:px-7 md:h-11 font-bold shadow-lg shadow-primary/20 hover:shadow-xl transition-all">
+              <Button size="sm" className="rounded-xl px-6 md:px-7 md:h-11 font-bold shadow-lg shadow-primary/20 hover:shadow-xl transition-shadow">
                 Sign In
               </Button>
             </Link>

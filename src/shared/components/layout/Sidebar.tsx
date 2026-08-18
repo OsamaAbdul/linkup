@@ -12,10 +12,12 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
 import Logo from "@/assets/logo.png";
+import { InstallAppButton } from "@/shared/components/InstallAppButton";
+import { EnableNotificationsButton } from "@/shared/components/EnableNotificationsButton";
 
 import { useCategories } from "@/shared/hooks/use-marketplace-metadata";
 
-export function SidebarContent() {
+export function SidebarContent({ onNavItemClick }: { onNavItemClick?: () => void }) {
     const location = useLocation();
     const [searchParams, setSearchParams] = useSearchParams();
     const { user, signOut } = useAuth();
@@ -74,16 +76,21 @@ export function SidebarContent() {
                 : "text-muted-foreground hover:bg-muted hover:text-foreground"
         );
 
+        const handleClick = () => {
+            onClick?.();
+            onNavItemClick?.();
+        };
+
         if (item.path) {
             return (
-                <Link to={item.path} className={className}>
+                <Link to={item.path} className={className} onClick={handleClick}>
                     {content}
                 </Link>
             );
         }
 
         return (
-            <button onClick={onClick} className={className}>
+            <button onClick={handleClick} className={className}>
                 {content}
             </button>
         );
@@ -168,18 +175,23 @@ export function SidebarContent() {
                 </div>
             </ScrollArea>
 
-            <div className="p-4 border-t mt-auto">
+            <div className="p-4 border-t mt-auto space-y-3">
+                <EnableNotificationsButton className="w-full" variant="outline" />
+                <InstallAppButton className="w-full" variant="outline" />
                 {user ? (
                     <Button
                         variant="ghost"
                         className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10 gap-3"
-                        onClick={signOut}
+                        onClick={() => {
+                            signOut();
+                            onNavItemClick?.();
+                        }}
                     >
                         <LogOut size={18} />
                         <span className="font-medium">Log Out</span>
                     </Button>
                 ) : (
-                    <Link to="/auth">
+                    <Link to="/auth" onClick={() => onNavItemClick?.()}>
                         <Button className="w-full" size="sm">
                             <LogOut size={18} className="mr-2 rotate-180" />
                             Sign In

@@ -5,8 +5,10 @@ import { Sheet, SheetContent, SheetTrigger } from "@/shared/components/ui/sheet"
 import { SidebarContent } from "./Sidebar";
 import { useCart } from "@/features/marketplace/context/CartContext";
 import { motion as m } from "framer-motion";
+import { useState } from "react";
 
 export function BottomNav() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
   const { totalCount } = useCart();
 
@@ -26,12 +28,12 @@ export function BottomNav() {
               key={path}
               to={path}
               className={cn(
-                "flex flex-col items-center gap-1.5 transition-all duration-300 relative px-3 py-1",
+                "flex flex-col items-center gap-1.5 transition-colors duration-300 relative px-3 py-1",
                 active ? "text-primary" : "text-muted-foreground hover:text-foreground"
               )}
             >
               <div className={cn(
-                "p-1.5 rounded-xl transition-all duration-300",
+                "p-1.5 rounded-xl transition-transform duration-300",
                 active ? "bg-primary/10 scale-110" : ""
               )}>
                 <Icon size={22} strokeWidth={active ? 2.5 : 2} />
@@ -53,21 +55,21 @@ export function BottomNav() {
           );
         })}
 
-        <Sheet>
+        <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
           <SheetTrigger asChild>
             <button
               className={cn(
-                "flex flex-col items-center gap-1.5 transition-all duration-300 px-3 py-1 text-muted-foreground hover:text-foreground"
+                "flex flex-col items-center gap-1.5 transition-colors duration-300 px-3 py-1 text-muted-foreground hover:text-foreground"
               )}
             >
-              <div className="p-1.5 rounded-xl transition-all duration-300">
+              <div className="p-1.5 rounded-xl transition-transform duration-300">
                 <Grid size={22} />
               </div>
               <span className="text-[10px] font-heading font-bold uppercase tracking-tighter">Menu</span>
             </button>
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-80 glass border-black/5 rounded-r-xl">
-            <SidebarContent />
+            <SidebarContent onNavItemClick={() => setIsMenuOpen(false)} />
           </SheetContent>
         </Sheet>
       </div>

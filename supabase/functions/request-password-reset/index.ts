@@ -21,7 +21,7 @@ serve(async (req: Request) => {
   const ip = req.headers.get("x-forwarded-for") || "unknown";
   const now = Date.now();
   const lastRequest = rateLimitMap.get(ip) || 0;
-  
+
   if (now - lastRequest < RATE_LIMIT_MS) {
     return new Response(JSON.stringify({ error: "Too many requests. Please wait a minute before trying again." }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -55,7 +55,12 @@ serve(async (req: Request) => {
     }
 
     // 1. Generate the recovery link using Supabase Admin API
-    const redirectTo = origin ? `${origin}/reset-password` : undefined;
+    // If the request comes from localhost, we let it redirect to localhost for local testing.
+    // Otherwise, we ensure it uses the production URL.
+    const isLocalhost = origin?.includes("localhost") || origin?.includes("127.0.0.1");
+    const baseUrl = isLocalhost ? origin : "https://linkupng.com";
+    const redirectTo = `${baseUrl}/reset-password`;
+
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
       type: "recovery",
       email: email,
@@ -157,7 +162,7 @@ serve(async (req: Request) => {
                             Action Required
                           </p>
                           <p style="margin:0; color:#17202A; font-size:15px; line-height:24px; font-weight:500;">
-                            We received a request to reset your password. Click the button below to choose a new one. If you did not make this request, you can safely ignore this email.
+                            Oops! We are sorry that you forgot your password. Click the button below to choose a new one. If you did not make this request, you can safely ignore this email.
                           </p>
                         </td>
                       </tr>

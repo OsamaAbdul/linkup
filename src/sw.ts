@@ -23,12 +23,13 @@ self.addEventListener('push', (event) => {
   }
 
   const title = data.title || 'LinkUp Marketplace';
-  const options = {
+  const options: any = {
     body: data.body || 'You have a new notification!',
     icon: data.icon || '/logoo.jpeg',
     badge: '/mask-icon.svg',
     data: data.data || { url: '/' },
-    vibrate: [200, 100, 200],
+    vibrate: [200, 100, 200, 100, 200, 100, 200], // More aggressive vibration
+    sound: '/sounds/notification.mp3', // Adding sound attribute (works on some Android implementations)
   };
 
   event.waitUntil(

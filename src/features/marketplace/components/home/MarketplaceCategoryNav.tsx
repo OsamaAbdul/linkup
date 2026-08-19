@@ -17,7 +17,15 @@ interface MarketplaceCategoryNavProps {
 }
 
 export function MarketplaceCategoryNav({ categories, selectedTab, setSelectedTab }: MarketplaceCategoryNavProps) {
-  const CATEGORY_TABS = [{ name: "All Products", icon: "Grid" }, ...categories];
+  // Ensure food category is first
+  const sortedCategories = [...categories];
+  const foodIndex = sortedCategories.findIndex(c => (c.name || '').toLowerCase().includes("restaurant") || (c.name || '').toLowerCase().includes("food"));
+  if (foodIndex > -1) {
+    const foodCat = sortedCategories.splice(foodIndex, 1)[0];
+    sortedCategories.unshift(foodCat);
+  }
+
+  const CATEGORY_TABS = [{ name: "All Products", icon: "Grid" }, ...sortedCategories];
 
   return (
     <div className="relative pt-1">

@@ -159,7 +159,7 @@ export function LogisticsOverview({
                         const playNotificationSound = () => {
                             try {
                                 const audio = new Audio("/sounds/notification.mp3");
-                                audio.volume = 0.5;
+                                audio.volume = 1.0;
                                 audio.play().catch(() => { });
                             } catch { }
                         };

@@ -53,7 +53,7 @@ export const usePushNotifications = () => {
 
       const registration = await navigator.serviceWorker.ready;
       
-      const publicVapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+      const publicVapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY || "BN5R1dEKhws8X8qALinzM9C5WuzhOly2Cz1jHaxKlSgDq2fqRw9GpJD568A2OU9mk1KO6e0qtqst2BAMlczr5Os";
       
       if (!publicVapidKey) {
         console.error("VITE_VAPID_PUBLIC_KEY is not set.");

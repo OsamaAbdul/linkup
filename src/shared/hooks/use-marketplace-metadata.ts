@@ -19,7 +19,17 @@ export const useCategories = () => {
         .order("name");
       
       if (error) throw error;
-      return data || [];
+      
+      let categories = data || [];
+      
+      // Move "Restaurants & fast food" (or any food category) to the front
+      const foodIndex = categories.findIndex(c => c.name.toLowerCase().includes("restaurant") || c.name.toLowerCase().includes("food"));
+      if (foodIndex > -1) {
+        const foodCat = categories.splice(foodIndex, 1)[0];
+        categories.unshift(foodCat);
+      }
+      
+      return categories;
     },
     staleTime: ONE_HOUR,
     gcTime: ONE_DAY,

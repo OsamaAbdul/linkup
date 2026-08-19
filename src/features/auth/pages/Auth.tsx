@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/shared/components/ui/button";
@@ -15,11 +15,41 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkCooldown = () => {
+      const type = isForgotPassword ? "reset" : "auth";
+      const lastAttemptStr = localStorage.getItem(`linkup_last_${type}_attempt`);
+      if (lastAttemptStr) {
+        const lastAttempt = parseInt(lastAttemptStr, 10);
+        const elapsed = Math.floor((Date.now() - lastAttempt) / 1000);
+        const limit = isForgotPassword ? 60 : 5;
+        if (elapsed < limit) {
+          setCooldown(limit - elapsed);
+        } else {
+          setCooldown(0);
+        }
+      } else {
+        setCooldown(0);
+      }
+    };
+    
+    checkCooldown();
+    const interval = setInterval(checkCooldown, 1000);
+    return () => clearInterval(interval);
+  }, [isForgotPassword, isLogin]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (cooldown > 0) return;
+    
     setLoading(true);
+
+    const authType = isForgotPassword ? "reset" : "auth";
+    localStorage.setItem(`linkup_last_${authType}_attempt`, Date.now().toString());
+    setCooldown(isForgotPassword ? 60 : 5);
 
     try {
       if (isForgotPassword) {
@@ -39,8 +69,8 @@ export default function Auth() {
           throw new Error("This email is not registered with us. Please check for typos or sign up instead.");
         }
 
-        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-          redirectTo: `${window.location.origin}/reset-password`,
+        const { error } = await supabase.functions.invoke("request-password-reset", {
+          body: { email: email.trim(), origin: window.location.origin }
         });
         if (error) throw error;
         toast.success("Check your email for the reset link!");
@@ -173,13 +203,15 @@ export default function Auth() {
             <Button
               type="submit"
               className="w-full h-12 rounded-xl font-semibold text-[15px] bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all"
-              disabled={loading}
+              disabled={loading || cooldown > 0}
             >
               {loading ? (
                 <span className="flex items-center gap-2">
                   <span className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                   Processing…
                 </span>
+              ) : cooldown > 0 ? (
+                `Wait ${cooldown}s`
               ) : isForgotPassword ? (
                 "Send Reset Link"
               ) : isLogin ? (
@@ -245,7 +277,7 @@ export default function Auth() {
                 {isLogin ? "Don't have an account?" : "Already have an account?"}
                 <button
                   type="button"
-                  className="ml-1 font-semibold text-primary hover:text-primary/80 transition-colors"
+                  className="ml-2 font-bold text-primary hover:text-primary/80 transition-colors text-base underline underline-offset-4"
                   onClick={() => setIsLogin(!isLogin)}
                 >
                   {isLogin ? "Sign up" : "Sign in"}

@@ -16,6 +16,7 @@ import { useCart } from "@/features/marketplace/context/CartContext";
 import { toast } from "sonner";
 
 import { useCategories } from "@/shared/hooks/use-marketplace-metadata";
+import { SEO } from "@/shared/components/SEO";
 
 export default function SearchPage() {
   const { user } = useAuth();
@@ -101,7 +102,12 @@ export default function SearchPage() {
 
   return (
     <AppLayout>
-      <div className="p-4 space-y-4">
+      <SEO 
+        title={query ? `Search Results for "${query}"` : "Search | Linkup Marketplace"}
+        description="Search for the best local items on Linkup Marketplace."
+        url={`https://linkupng.com/search?q=${encodeURIComponent(query)}`}
+      />
+      <div className="p-4 sm:p-8 lg:p-12 space-y-8 max-w-7xl mx-auto">
         <div className="relative">
           <SearchIcon size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input placeholder="Search products..." className="pl-10" value={queryInput} onChange={(e) => setQueryInput(e.target.value)} aria-label="Search products" />

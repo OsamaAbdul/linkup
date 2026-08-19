@@ -12,3 +12,9 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /auth
+Disallow: /seller-dashboard
+Disallow: /seller-verification
+Disallow: /logistics
+
+Sitemap: https://linkupng.com/sitemap.xml

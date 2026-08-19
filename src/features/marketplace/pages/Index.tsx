@@ -20,6 +20,7 @@ import { MarketplaceSearchBar } from "../components/home/MarketplaceSearchBar";
 import { MarketplaceCategoryNav } from "../components/home/MarketplaceCategoryNav";
 import { MarketplaceZoneNav } from "../components/home/MarketplaceZoneNav";
 import { MarketplaceEmptyState } from "../components/home/MarketplaceEmptyState";
+import { SEO } from "@/shared/components/SEO";
 
 export default function Index() {
   const { user, roles, loading: authLoading } = useAuth();
@@ -246,6 +247,10 @@ export default function Index() {
 
   return (
     <AppLayout>
+      <SEO 
+        title="Linkup Marketplace | Buy and Sell Locally" 
+        description="Join Linkup Marketplace to buy and sell items locally. Fast, secure, and reliable." 
+      />
       <div className="p-4 sm:p-8 lg:p-12 space-y-8 sm:space-y-12 max-w-7xl mx-auto">
         {/* Header Section */}
         {/* <div className="space-y-3">

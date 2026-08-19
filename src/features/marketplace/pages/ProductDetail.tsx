@@ -30,6 +30,7 @@ import { ProductDescription } from "../components/product-detail/ProductDescript
 import { SellerCard } from "../components/product-detail/SellerCard";
 import { ProductReviews } from "../components/product-detail/ProductReviews";
 import { MobileActionFooter } from "../components/product-detail/MobileActionFooter";
+import { SEO } from "@/shared/components/SEO";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
@@ -184,6 +185,13 @@ export default function ProductDetail() {
 
   return (
     <AppLayout hideBottomNav>
+      <SEO 
+        title={product?.title || "Product"} 
+        description={product?.description || "Check out this product on Linkup Marketplace"} 
+        image={product?.images?.[0] || "https://linkupng.com/og-image.jpg"}
+        url={`https://linkupng.com/product/${id}`}
+      />
+      
       <div className="pb-32 bg-background lg:grid lg:grid-cols-2 lg:gap-12 lg:max-w-7xl lg:mx-auto lg:p-12">
         <ProductGallery
           images={images}

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { toast } from "sonner";
+import { playNotificationSound } from "@/shared/hooks/useSoundSettings";
 
 import { useCategories } from "@/shared/hooks/use-marketplace-metadata";
 
@@ -358,6 +359,24 @@ export function useSellerDashboardData() {
           queryClient.invalidateQueries({ queryKey: ["pending-orders-count"] });
           queryClient.invalidateQueries({ queryKey: ["seller-analytics"] });
           queryClient.invalidateQueries({ queryKey: ["seller-totals"] });
+
+          if (payload.eventType === 'INSERT') {
+            playNotificationSound();
+            toast.success("New Order Received!", {
+              description: "You have a new incoming order to process.",
+              duration: 10000,
+            });
+          } else if (payload.eventType === 'UPDATE') {
+             const oldRecord = payload.old as any;
+             const newRecord = payload.new as any;
+             if (oldRecord && newRecord && oldRecord.status !== newRecord.status && newRecord.status === 'pending') {
+               playNotificationSound();
+               toast.success("New Order Received!", {
+                 description: "An order has been confirmed and is ready to process.",
+                 duration: 10000,
+               });
+             }
+          }
         }
       )
       .subscribe((status) => {
@@ -384,9 +403,17 @@ export function useSellerDashboardData() {
         console.log(`Seller Dashboard: Shipment Channel Status: ${status}`);
       });
 
+    // Listen for issues changes for this seller
+    const issuesChannel = supabase
+      .channel(`seller-issues-${user.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'issues', filter: `seller_id=eq.${user.id}` },
+        () => { queryClient.invalidateQueries({ queryKey: ["open-issues-count"] }); })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(orderChannel);
       supabase.removeChannel(shipmentChannel);
+      supabase.removeChannel(issuesChannel);
     };
   }, [user, queryClient]);
 

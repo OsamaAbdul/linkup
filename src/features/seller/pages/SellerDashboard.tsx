@@ -17,7 +17,6 @@ import { ProfileTab } from "@/features/seller/components/ProfileTab";
 
 // Hooks
 import { useSellerDashboardData } from "../hooks/useSellerDashboardData";
-import { useSellerRealtime } from "../hooks/useSellerRealtime";
 import { ProfileCompletionBanner } from "@/shared/components/ProfileCompletionBanner";
 
 export default function Dashboard() {
@@ -26,7 +25,6 @@ export default function Dashboard() {
   const [tab, setTab] = useState<Tab>("products");
 
   const data = useSellerDashboardData();
-  useSellerRealtime(user);
 
   const {
     products,

@@ -3,6 +3,35 @@ import { toast } from "sonner";
 
 const STORAGE_KEY = "linkup_sound_enabled";
 
+let audioCtx: AudioContext | null = null;
+let gainNode: GainNode | null = null;
+let audioElement: HTMLAudioElement | null = null;
+
+const initAudio = () => {
+  if (audioCtx || audioElement) return;
+  
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (AudioContextClass) {
+      audioCtx = new AudioContextClass();
+      audioElement = new Audio("/sounds/notification.mp3");
+      audioElement.crossOrigin = "anonymous";
+      
+      const track = audioCtx.createMediaElementSource(audioElement);
+      gainNode = audioCtx.createGain();
+      gainNode.gain.value = 2.0; // 200% volume
+      
+      track.connect(gainNode).connect(audioCtx.destination);
+    } else {
+      // Fallback for older browsers
+      audioElement = new Audio("/sounds/notification.mp3");
+      audioElement.volume = 1.0;
+    }
+  } catch (error) {
+    console.warn("Failed to initialize audio:", error);
+  }
+};
+
 export function useSoundSettings() {
   const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
     return localStorage.getItem(STORAGE_KEY) === "true";
@@ -17,21 +46,20 @@ export function useSoundSettings() {
       const newState = !prev;
       
       if (newState) {
-        // Play a silent or very brief sound immediately to unlock AudioContext
-        try {
-          const audio = new Audio("/notification.mp3");
-          audio.volume = 0.01; // extremely low volume just to unlock
-          const playPromise = audio.play();
-          
-          if (playPromise !== undefined) {
-            playPromise.catch(error => {
-              console.warn("Failed to unlock audio context:", error);
-            });
-          }
-          toast.success("Notification sounds enabled!");
-        } catch (e) {
-          console.error("Audio unlock error", e);
+        initAudio();
+        
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume().catch(e => console.warn("Failed to resume audio context:", e));
         }
+
+        if (audioElement) {
+          audioElement.currentTime = 0;
+          audioElement.play().catch(error => {
+            console.warn("Failed to play audio:", error);
+          });
+        }
+        
+        toast.success("Notification sounds enabled!");
       } else {
         toast.info("Notification sounds muted");
       }
@@ -44,25 +72,18 @@ export function useSoundSettings() {
 }
 
 export const playNotificationSound = () => {
-    try {
-        if (localStorage.getItem("linkup_sound_enabled") === "true") {
-            const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-            if (AudioContextClass) {
-                const audioCtx = new AudioContextClass();
-                const audioElement = new Audio("/sounds/notification.mp3");
-                const track = audioCtx.createMediaElementSource(audioElement);
-                
-                const gainNode = audioCtx.createGain();
-                gainNode.gain.value = 2.0; // 200% volume
-                
-                track.connect(gainNode).connect(audioCtx.destination);
-                audioElement.play().catch(() => {});
-            } else {
-                // Fallback for older browsers
-                const audio = new Audio("/sounds/notification.mp3");
-                audio.volume = 1.0;
-                audio.play().catch(() => {});
-            }
-        }
-    } catch { }
+  try {
+    if (localStorage.getItem(STORAGE_KEY) === "true") {
+      initAudio();
+      
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(() => {});
+      }
+      
+      if (audioElement) {
+        audioElement.currentTime = 0;
+        audioElement.play().catch(() => {});
+      }
+    }
+  } catch { }
 };

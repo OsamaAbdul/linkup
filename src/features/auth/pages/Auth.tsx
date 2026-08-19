@@ -35,7 +35,7 @@ export default function Auth() {
         setCooldown(0);
       }
     };
-    
+
     checkCooldown();
     const interval = setInterval(checkCooldown, 1000);
     return () => clearInterval(interval);
@@ -44,7 +44,7 @@ export default function Auth() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (cooldown > 0) return;
-    
+
     setLoading(true);
 
     const authType = isForgotPassword ? "reset" : "auth";
@@ -228,9 +228,7 @@ export default function Auth() {
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-border/60"></div>
                 </div>
-                <span className="relative bg-background px-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 leading-none">
-                  Or continue with
-                </span>
+
               </div>
 
               {/* <Button

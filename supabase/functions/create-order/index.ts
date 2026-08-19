@@ -44,15 +44,18 @@ serve(async (req: Request) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Verify User Identity
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No Authorization header provided");
 
-    const token = authHeader.replace(/^[Bb]earer\s+/, "").trim();
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
     const {
       data: { user },
       error: authError,
-    } = await adminClient.auth.getUser(token);
+    } = await authClient.auth.getUser();
 
     if (authError || !user) {
       console.error("Manual Auth Fail:", authError?.message);

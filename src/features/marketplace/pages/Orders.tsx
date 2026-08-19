@@ -7,6 +7,7 @@ import { useSearchParams } from "react-router-dom";
 import { toast } from "@/shared/hooks/use-toast";
 import { OrdersHeader } from "@/features/marketplace/components/OrdersHeader";
 import { OrdersTabs } from "@/features/marketplace/components/OrdersTabs";
+import { playNotificationSound } from "@/shared/hooks/useSoundSettings";
 
 export default function Orders() {
     const { user } = useAuth();
@@ -113,16 +114,6 @@ export default function Orders() {
             });
         }
     }, [rawOrders]);
-
-    const playNotificationSound = () => {
-        try {
-            if (localStorage.getItem("linkup_sound_enabled") === "true") {
-                const audio = new Audio("/sounds/notification.mp3");
-                audio.volume = 1.0;
-                audio.play().catch(() => { });
-            }
-        } catch { }
-    };
 
     const orderIdsRef = useRef<Set<string>>(new Set());
 

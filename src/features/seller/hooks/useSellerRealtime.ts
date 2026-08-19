@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { playNotificationSound } from "@/shared/hooks/useSoundSettings";
 
 export function useSellerRealtime(user: any) {
   const queryClient = useQueryClient();
@@ -18,16 +19,6 @@ export function useSellerRealtime(user: any) {
           queryClient.invalidateQueries({ queryKey: ["seller-analytics"] });
 
           if (payload.eventType === 'INSERT') {
-            const playNotificationSound = () => {
-              try {
-                if (localStorage.getItem("linkup_sound_enabled") === "true") {
-                  const audio = new Audio("/sounds/notification.mp3");
-                  audio.volume = 1.0;
-                  audio.play().catch(() => { });
-                }
-              } catch { }
-            };
-
             playNotificationSound();
             toast.success("New Order Received!", {
               description: "You have a new incoming order to process.",

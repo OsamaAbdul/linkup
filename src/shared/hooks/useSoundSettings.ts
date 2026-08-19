@@ -42,3 +42,27 @@ export function useSoundSettings() {
 
   return { soundEnabled, toggleSound };
 }
+
+export const playNotificationSound = () => {
+    try {
+        if (localStorage.getItem("linkup_sound_enabled") === "true") {
+            const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+            if (AudioContextClass) {
+                const audioCtx = new AudioContextClass();
+                const audioElement = new Audio("/sounds/notification.mp3");
+                const track = audioCtx.createMediaElementSource(audioElement);
+                
+                const gainNode = audioCtx.createGain();
+                gainNode.gain.value = 2.0; // 200% volume
+                
+                track.connect(gainNode).connect(audioCtx.destination);
+                audioElement.play().catch(() => {});
+            } else {
+                // Fallback for older browsers
+                const audio = new Audio("/sounds/notification.mp3");
+                audio.volume = 1.0;
+                audio.play().catch(() => {});
+            }
+        }
+    } catch { }
+};

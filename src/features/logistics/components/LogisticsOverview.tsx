@@ -8,6 +8,7 @@ import { LogisticsStats } from "./dashboard/LogisticsStats";
 import { BroadcastMissions } from "./dashboard/BroadcastMissions";
 import { ActiveTransits } from "./dashboard/ActiveTransits";
 import { generateMapsUrl } from "../utils/logistics-utils";
+import { playNotificationSound } from "@/shared/hooks/useSoundSettings";
 
 interface LogisticsOverviewProps {
     showAllOrders?: boolean;
@@ -156,16 +157,6 @@ export function LogisticsOverview({
                     queryClient.invalidateQueries({ queryKey: ["broadcast-missions", user.id] });
                     
                     if (payload.eventType === "INSERT" && (payload.new as any).status === "broadcast") {
-                        const playNotificationSound = () => {
-                            try {
-                                if (localStorage.getItem("linkup_sound_enabled") === "true") {
-                                    const audio = new Audio("/sounds/notification.mp3");
-                                    audio.volume = 1.0;
-                                    audio.play().catch(() => { });
-                                }
-                            } catch { }
-                        };
-
                         playNotificationSound();
                         toast("📡 New Mission Available!", {
                             description: "A new mission has entered the pool.",

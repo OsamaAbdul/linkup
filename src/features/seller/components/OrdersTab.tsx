@@ -2,13 +2,17 @@ import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
-import { ShoppingBag, ChevronRight, Smartphone, MapPin, Truck, Check, ShieldCheck, Activity, MessageSquare } from "lucide-react";
+import { ShoppingBag, ChevronRight, Smartphone, MapPin, Truck, Check, ShieldCheck, Activity, MessageSquare, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ZoneBroadcastSelector } from "./ZoneBroadcastSelector";
 import { useState } from "react";
 
 interface OrdersTabProps {
     orders: any[];
+    totalOrders: number;
+    ordersPage: number;
+    setOrdersPage: (page: number | ((p: number) => number)) => void;
+    pageSize: number;
     updateOrderStatus: any;
     sellerZone?: string;
     sellerZoneId?: string;
@@ -17,7 +21,7 @@ interface OrdersTabProps {
     broadcastOrder?: (orderId: string, zone: string, zoneId: string, pickupAddress: string, pickupTime: string, lat?: number, lng?: number) => void;
 }
 
-export function OrdersTab({ orders, updateOrderStatus, sellerZone, sellerZoneId, sellerCityId, sellerAddress, broadcastOrder }: OrdersTabProps) {
+export function OrdersTab({ orders, totalOrders, ordersPage, setOrdersPage, pageSize, updateOrderStatus, sellerZone, sellerZoneId, sellerCityId, sellerAddress, broadcastOrder }: OrdersTabProps) {
     const [selectorOpen, setSelectorOpen] = useState(false);
     const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
 
@@ -266,6 +270,28 @@ export function OrdersTab({ orders, updateOrderStatus, sellerZone, sellerZoneId,
                 defaultZone={sellerZone}
                 defaultPickupAddress={sellerAddress}
             />
+
+            {totalOrders > pageSize && (
+                <div className="flex items-center justify-center gap-4 pt-10">
+                    <Button
+                        variant="outline"
+                        className="rounded-full w-12 h-12 p-0 border-black/5 shadow-sm"
+                        onClick={() => setOrdersPage(p => Math.max(0, p - 1))}
+                        disabled={ordersPage === 0}
+                    >
+                        <ArrowLeft size={18} />
+                    </Button>
+                    <span className="text-[11px] font-black uppercase tracking-widest text-muted-foreground bg-white px-6 py-2 rounded-full border border-black/5 shadow-sm">PAGE {ordersPage + 1}</span>
+                    <Button
+                        variant="outline"
+                        className="rounded-full w-12 h-12 p-0 border-black/5 shadow-sm"
+                        onClick={() => setOrdersPage(p => p + 1)}
+                        disabled={(ordersPage + 1) * pageSize >= totalOrders}
+                    >
+                        <ChevronRight size={18} />
+                    </Button>
+                </div>
+            )}
         </div>
     );
 }

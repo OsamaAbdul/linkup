@@ -32,6 +32,7 @@ export default function Dashboard() {
     products,
     totalProducts,
     orders,
+    totalOrdersCount,
     sellerProfile,
     isProfileLoading,
     pendingOrdersCount,
@@ -96,6 +97,10 @@ export default function Dashboard() {
           {tab === "orders" && (
             <OrdersTab
               orders={orders}
+              totalOrders={totalOrdersCount}
+              ordersPage={ordersPage}
+              setOrdersPage={setOrdersPage}
+              pageSize={PAGE_SIZE}
               updateOrderStatus={updateOrderStatus}
               sellerZone={(sellerProfile as any)?.zone || undefined}
               sellerZoneId={(sellerProfile as any)?.zone_id}

@@ -431,6 +431,7 @@ export function useSellerDashboardData() {
     products: productsData?.data || [],
     totalProducts: productsData?.count || 0,
     orders: ordersData?.data || [],
+    totalOrdersCount: ordersData?.count || 0,
     sellerProfile,
     isProfileLoading,
     pendingOrdersCount,

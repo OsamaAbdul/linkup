@@ -23,6 +23,7 @@ import { useState, useEffect } from "react";
 
 import { Badge } from "@/shared/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { SoundToggle } from "@/shared/components/SoundToggle";
 
 function NotificationsList({ user }: { user: any }) {
   const { data: notifications = [], isLoading } = useQuery({
@@ -225,6 +226,10 @@ export function Header() {
                       <span className="font-semibold">My Orders</span>
                     </DropdownMenuItem>
                   </Link>
+                  <DropdownMenuSeparator className="bg-white/5 my-2" />
+                  <div className="px-2 py-1">
+                    <SoundToggle showLabel className="w-full justify-start" />
+                  </div>
                   <DropdownMenuSeparator className="bg-white/5 my-2" />
                   <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-white focus:bg-destructive cursor-pointer rounded-xl py-3 px-3">
                     <LogOut className="mr-3 h-4 w-4" />

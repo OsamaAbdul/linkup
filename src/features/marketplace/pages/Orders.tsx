@@ -103,20 +103,24 @@ export default function Orders() {
 
     const prevOrderStatuses = useRef<Record<string, string>>({});
 
-    // Seed initial statuses to avoid toasts on first load
+    // Seed initial statuses to avoid toasts on first load, but also track new orders
     useEffect(() => {
-        if (rawOrders.length > 0 && Object.keys(prevOrderStatuses.current).length === 0) {
+        if (rawOrders.length > 0) {
             rawOrders.forEach((o: any) => {
-                prevOrderStatuses.current[o.id] = o.status;
+                if (!prevOrderStatuses.current[o.id]) {
+                    prevOrderStatuses.current[o.id] = o.status;
+                }
             });
         }
     }, [rawOrders]);
 
     const playNotificationSound = () => {
         try {
-            const audio = new Audio("/sounds/notification.mp3");
-            audio.volume = 1.0;
-            audio.play().catch(() => { });
+            if (localStorage.getItem("linkup_sound_enabled") === "true") {
+                const audio = new Audio("/sounds/notification.mp3");
+                audio.volume = 1.0;
+                audio.play().catch(() => { });
+            }
         } catch { }
     };
 
@@ -145,7 +149,11 @@ export default function Orders() {
                     const orderId = (payload.new as any).id;
                     const prev = prevOrderStatuses.current[orderId];
 
-                    if (prev && prev !== newStatus) {
+                    // Trigger if we had a previous status and it changed, OR if we didn't have one and it's no longer pending
+                    const isStatusUpdate = prev && prev !== newStatus;
+                    const isNewForwardStatus = !prev && newStatus !== 'pending';
+
+                    if (isStatusUpdate || isNewForwardStatus) {
                         playNotificationSound();
                         toast({
                             title: "Order Updated",

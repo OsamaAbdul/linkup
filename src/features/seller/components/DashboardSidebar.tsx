@@ -15,6 +15,7 @@ import {
 } from "@/shared/components/ui/sheet";
 import { Button } from "@/shared/components/ui/button";
 import { Link } from "react-router-dom";
+import { SoundToggle } from "@/shared/components/SoundToggle";
 
 export type Tab = "products" | "list-product" | "orders" | "wallet" | "analytics" | "issues" | "payments" | "profile";
 
@@ -97,6 +98,8 @@ export function DashboardSidebar({ activeTab, setTab, pendingOrdersCount = 0, op
                     ))}
                 </nav>
                 <div className="mt-auto pt-6 space-y-4">
+                    <SoundToggle showLabel className="w-full text-[11px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-300" />
+                    
                     <button
                         onClick={signOut}
                         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 transition-all duration-300"
@@ -104,8 +107,6 @@ export function DashboardSidebar({ activeTab, setTab, pendingOrdersCount = 0, op
                         <LogOut size={18} />
                         Logout
                     </button>
-
-
                 </div>
             </aside>
 
@@ -160,6 +161,7 @@ export function DashboardSidebar({ activeTab, setTab, pendingOrdersCount = 0, op
                             ))}
                         </nav>
                         <div className="mt-auto pt-6 space-y-4">
+                            <SoundToggle showLabel className="w-full text-[11px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-300" />
                             <button
                                 onClick={signOut}
                                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 transition-all duration-300"

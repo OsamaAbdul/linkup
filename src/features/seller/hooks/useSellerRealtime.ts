@@ -20,9 +20,11 @@ export function useSellerRealtime(user: any) {
           if (payload.eventType === 'INSERT') {
             const playNotificationSound = () => {
               try {
-                const audio = new Audio("/sounds/notification.mp3");
-                audio.volume = 1.0;
-                audio.play().catch(() => { });
+                if (localStorage.getItem("linkup_sound_enabled") === "true") {
+                  const audio = new Audio("/sounds/notification.mp3");
+                  audio.volume = 1.0;
+                  audio.play().catch(() => { });
+                }
               } catch { }
             };
 

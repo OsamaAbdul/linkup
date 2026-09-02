@@ -446,10 +446,6 @@ export default function Onboarding() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {roles.map((role, i) => {
                   const isSelected = selectedRoles.includes(role.id);
-                  const isSellerPicked = selectedRoles.includes("seller");
-                  const isPromoterPicked = selectedRoles.includes("promoter");
-                  const isDisabled = (role.id === "seller" && isPromoterPicked) ||
-                    (role.id === "promoter" && isSellerPicked);
 
                   return (
                     <m.div
@@ -457,14 +453,13 @@ export default function Onboarding() {
                       initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.08 }}
-                      onClick={() => !isDisabled && toggleRole(role.id)}
+                      onClick={() => toggleRole(role.id)}
                       className={`
                         relative cursor-pointer rounded-xl border-2 p-5 transition-all duration-200 group
                         ${isSelected
                           ? "border-primary bg-primary/5 shadow-md shadow-primary/10"
                           : "border-border/40 bg-card hover:border-border hover:shadow-sm"
                         }
-                        ${isDisabled ? "opacity-40 cursor-not-allowed grayscale" : ""}
                       `}
                     >
                       <div className={`h-10 w-10 rounded-xl flex items-center justify-center mb-3 transition-colors ${role.iconBg}`}>

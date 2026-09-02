@@ -64,6 +64,7 @@ persistQueryClient({
 
 import { GlobalPermissions } from "@/shared/components/GlobalPermissions";
 import { FloatingSupportButton } from "@/shared/components/FloatingSupportButton";
+import { AnalyticsProvider } from "@/shared/components/AnalyticsProvider";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -76,6 +77,7 @@ const App = () => (
             <Sonner />
             <FloatingSupportButton />
             <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+              <AnalyticsProvider />
               <Suspense fallback={<GlobalLoader />}>
                 <Routes>
                   <Route path="/" element={<Index />} />
@@ -117,6 +119,7 @@ const App = () => (
                             <Route path="logistics" element={<AdminDashboard activeSection="logistics" />} />
                             <Route path="fees" element={<AdminDashboard activeSection="fees" />} />
                             <Route path="categories" element={<AdminDashboard activeSection="categories" />} />
+                            <Route path="analytics" element={<AdminDashboard activeSection="analytics" />} />
                           </Routes>
                         </AdminLayout>
                       </AdminRoute>

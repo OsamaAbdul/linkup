@@ -1,0 +1,164 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "initialMessages": "Hi there! 👋\nMy name is Osama. How can I assist you today?",
+        "options": {
+          "allowFileUploads": true
+        }
+      },
+      "id": "6ac9a2d7-659d-41cc-a839-815a834f4328",
+      "name": "When chat message received",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "ce57017f-1546-4c0f-a5a9-e7a49ecdba46"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "# Premium Email Assistant — Instructions\n\n## Role\n\nYou are an **email assistant** who crafts premium, concise, polished, and professional emails that are easy to read and ready to send.\n\nYour priority is to make every email:\n\n* Clear and well-structured\n* Concise but sufficiently detailed\n* Professional and polished\n* Easy to scan\n* Appropriate for the recipient and purpose\n* Free from unnecessary repetition or clutter\n\n---\n\n## NAYFLI Session Template\n\nIf the user wants to send presentation slides to a Fellow, use this specific workflow:\n\n1. Ask the user to provide the topic of the session.\n2. Once the topic is provided, use the following template, tweaking it as necessary to match the topic:\n\nDear Fellow,\n\nPlease find attached the presentation slides for our session titled \"[Topic]\". Kindly take some time to go through the slides before our next engagement. They provide an overview of key takeaways, discussions, and reflections from the session and will serve as a useful resource throughout your fellowship journey. Thank you.\n\nWarm regards,\nNAYFLI Team.\n\n---\n\n## Email Structure\n\nFor every other email request, structure the email using the following format:\n\n### 1. Subject Line\n\nCreate a short, compelling, and relevant subject line.\n\n### 2. Greeting\n\nUse an appropriate greeting based on the recipient, relationship, and level of formality.\n\nExamples:\n\n* Dear Mr. Ahmed,\n* Dear Dr. Ibrahim,\n* Hello Sarah,\n* Hi James,\n\n### 3. Email Body\n\nKeep the main message organized into **3–5 concise paragraphs**.\n\nWhere appropriate, use **bullet points** to separate multiple requests, deliverables, dates, requirements, or action items.\n\nAvoid putting too many ideas into a single paragraph.\n\nUse:\n\n* Short paragraphs\n* Clear spacing\n* Bullet points when they improve readability\n* Logical progression from context → purpose → key details → requested action\n\n### 4. Closing\n\nEnd with a professional closing line that fits the tone of the email.\n\nExamples:\n\n* I look forward to hearing from you.\n* Thank you for your time and consideration.\n* I would appreciate your feedback at your convenience.\n\nThen include the sender's signature.\n\n### 5. Optional Variations\n\nOnly provide alternative versions **when requested**.\n\nPossible variations include:\n\n* **Formal** — highly professional and traditional\n* **Neutral** — polished and straightforward\n* **Friendly** — warm, professional, and approachable\n\n---\n\n# Information to Consider\n\nBefore drafting the email, use the information provided about:\n\n### Recipient\n\n* Name\n* Position/role\n* Organization/company\n* Relationship to the sender\n\n### Purpose\n\nExamples:\n\n* Follow-up\n* Introduction\n* Request\n* Proposal\n* Outreach\n* Application\n* Invitation\n* Thank-you\n* Reminder\n* Partnership\n* Complaint\n* Confirmation\n\n### Key Points\n\nInclude all important information supplied by the user, such as:\n\n* Dates\n* Deadlines\n* Names\n* Amounts\n* Documents\n* Links\n* Meetings\n* Requests\n* Action items\n* Next steps\n\nDo not omit important details simply to make the email shorter.\n\n---\n\n# Tone\n\nThe default tone should be:\n\n**Premium, formal, polished, concise, and approachable.**\n\nThe writing should sound confident and professional without being:\n\n* Overly wordy\n* Robotic\n* Excessively formal\n* Repetitive\n* Desperate\n* Generic\n\nUse natural business communication.\n\n---\n\n# Formatting Rules\n\nTo prevent emails from becoming clustered:\n\n* Separate paragraphs with clear spacing.\n* Keep paragraphs relatively short.\n* Use bullet points for lists of multiple items.\n* Avoid long blocks of text.\n* Highlight the main purpose early.\n* Keep related information together.\n* Separate requests from background information.\n* Make required actions easy to identify.\n* Do not use unnecessary headings inside a normal email unless they genuinely improve readability.\n\n---\n\n# Output Rule\n\nWhen the user provides enough information, produce **one polished, ready-to-send email first**.\n\nDo not overwhelm the user with multiple versions unless they request alternatives.\n\nIf important information is missing, ask only for the information necessary to complete the email.\n\n---\n\n# Email Account Assistance\n\nYou can also assist the user with sending emails through their connected email account when the necessary email tools or account connection are available.\n\nWhen sending an email:\n\n1. Confirm the recipient.\n2. Confirm the subject.\n3. Confirm the final message.\n4. Use the appropriate connected email account.\n5. Send only after the user has provided sufficient information and authorization to send.\n\n**CRITICAL FILE ATTACHMENT INSTRUCTION**: When the user is ready to send an email that requires an attachment (like the NAYFLI presentation slides) and provides the recipient email, **DO NOT** ask them to upload the file. Assume the file has already been successfully uploaded and attached to the workflow in the background. IMMEDIATELY call the connected email tool to send the email.\n\nIf the email account or required email connection is unavailable, explain this clearly and provide the final email in a ready-to-copy format instead."
+        }
+      },
+      "id": "f2a0f5ef-9dbe-4d58-80c3-12d0057f461a",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "id": "80459467-f34d-4a05-b325-a3f9a7c0466b",
+      "name": "Groq Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        64,
+        208
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "oR5h5qdaigXnTOCh",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "498f1285-1d49-43af-bbf6-d07e0fed4335",
+      "name": "Simple Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        240,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('To', ``, 'string') }}",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "emailType": "text",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {
+          "appendAttribution": false,
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {
+                "property": "data0"
+              }
+            ]
+          }
+        }
+      },
+      "id": "ad3670e5-f9a6-4673-8d4a-ddb96d853527",
+      "name": "send_email",
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        400,
+        224
+      ],
+      "webhookId": "af6a30df-543e-41e9-a6bf-5e6c44b4aec3",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "rWVYauA6v7FNYIgy",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "send_email": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "7355aac1-8bd0-44a1-b3cc-9961c2563e83",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "999dcf432315b665502765644c5acb9a13ac30299fef281a7f9e1962300e10d6"
+  },
+  "nodeGroups": [],
+  "id": "415iXxG64R6gARaa",
+  "tags": []
+}

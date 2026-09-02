@@ -1,0 +1,160 @@
+{
+  "name": "Send Session Slides Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Send Session Slides",
+        "formDescription": "Enter the Topic and upload the PDF.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Topic",
+              "fieldName": "topic",
+              "fieldType": "string",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "File",
+              "fieldName": "file",
+              "fieldType": "file",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "form-trigger-node",
+      "name": "On form submission",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Topic: {{$json.Topic}}\n\nUse the following template, tweak it slightly to perfectly match the topic provided, but stick closely to this format:\n\nDear Fellow,\n\nPlease find attached the presentation slides for our session titled \"[Topic]\". Kindly take some time to go through the slides before our next engagement. They provide an overview of key takeaways, discussions, and reflections from the session and will serve as a useful resource throughout your fellowship journey. Thank you.\n\nWarm regards,\nNAYFLI Team."
+      },
+      "id": "llm-chain-node",
+      "name": "Basic LLM Chain",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        250,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3.8-27b",
+        "options": {}
+      },
+      "id": "groq-model-node",
+      "name": "Groq Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        250,
+        200
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "oR5h5qdaigXnTOCh",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const formNode = $('On form submission').first();\nif (!formNode) throw new Error(\"Could not find form node data\");\n\nconst emailsRaw = `hkcdynamicsystemsltd@gmail.com,\nsaniameenarth@gmail.com,\nyakubuamratkana@gmail.com,\nebema817@gmail.com,\ngadoloisa24@gmail.com,\nglorygidoengodiya@gmail.com,\nteemerhjaybee21@gmail.com,\naminaskwaplong@gmail.com,\nsembikri@gmail.com,\nmuhammadsabomaryam@gmail.com,\nnaimadauda0@gmail.com,\nobadiahgracious@gmail.com,\nodehoneshi33@gmail.com,\nsanirahmatoseze@gmail.com,\nrebeccaabugbe@gmail.com,\nwaziriummiyahuza@gmail.com,\nokubaveronicajames@gmail.com`;\n\nconst emails = emailsRaw.split(/[,\\n]+/).map(e => e.trim()).filter(e => e);\nconst generatedEmailBody = $input.item.json.text;\n\nconst results = [];\nfor (const email of emails) {\n  results.push({\n    json: {\n      email: email,\n      body: generatedEmailBody,\n      topic: formNode.json.Topic\n    },\n    binary: formNode.binary && formNode.binary.File ? { data: formNode.binary.File } : undefined\n  });\n}\nreturn results;"
+      },
+      "id": "code-node",
+      "name": "Split Emails",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $json.email }}",
+        "subject": "=Session Slides: {{ $json.topic }}",
+        "message": "={{ $json.body }}",
+        "options": {
+          "appendAttribution": false,
+          "attachments": "data"
+        }
+      },
+      "id": "gmail-node",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        750,
+        0
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "rWVYauA6v7FNYIgy",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Split Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Emails": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

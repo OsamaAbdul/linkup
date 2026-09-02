@@ -78,6 +78,7 @@ export default function SellerVerification() {
 
     const submitMutation = useMutation({
         mutationFn: async (data: any) => {
+            if (!data.city_id || !data.zone_id) throw new Error("Please select your Business City and Zone");
             if (!nationalIdFile || !storePhotoFile) throw new Error("Please upload all required documents");
 
             // Upload ID

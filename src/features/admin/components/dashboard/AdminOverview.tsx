@@ -15,10 +15,10 @@ export default function AdminOverview() {
         queryFn: async () => {
             const { data, error } = await (supabase as any).rpc("get_admin_revenue");
             if (error) {
-                console.error("REVENUE_ERROR", error);
+                // console.error("REVENUE_ERROR", error);
                 (window as any).LATEST_REVENUE_ERROR = error;
             }
-            console.log("REVENUE_SUCCESS", data);
+            // console.log("REVENUE_SUCCESS", data);
             (window as any).LATEST_REVENUE_DATA = data;
 
             let total = 0;
@@ -34,7 +34,7 @@ export default function AdminOverview() {
         },
     });
 
-    console.log("this is the admin ledger", revenueData);
+    // console.log("this is the admin ledger", revenueData);
 
     const { data: activeOrdersCount, isLoading: isActiveOrdersLoading } = useQuery({
         queryKey: ["admin-active-orders-count"],
@@ -128,7 +128,7 @@ export default function AdminOverview() {
                 toast.error("Settlement failed");
             }
         } catch (error: any) {
-            console.error("Settlement Error:", error);
+            // console.error("Settlement Error:", error);
             toast.error(error.message || "Failed to trigger settlement");
         } finally {
             setIsSettling(false);

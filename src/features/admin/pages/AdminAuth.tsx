@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/shared/components/ui/button";
@@ -9,6 +9,7 @@ import { ShieldCheck, Loader2, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { QRCodeSVG } from "qrcode.react";
+import { OtpInput, type OtpInputHandle, type OtpStatus } from "@/components/ui/otp-input";
 
 type AuthStep = 'PASSWORD' | 'ENROLL_MFA' | 'VERIFY_MFA';
 
@@ -20,6 +21,20 @@ export default function AdminAuth() {
     const [factorId, setFactorId] = useState<string | null>(null);
     const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
     const [isLoggingIn, setIsLoggingIn] = useState(false);
+    
+    const [otpStatus, setOtpStatus] = useState<OtpStatus>("idle");
+    const [otpErrorMessage, setOtpErrorMessage] = useState("");
+    const otpRef = useRef<OtpInputHandle>(null);
+
+    useEffect(() => {
+        if (otpStatus === "idle") return;
+        const back = setTimeout(() => {
+            otpRef.current?.clear();
+            setOtpStatus("idle");
+            setOtpErrorMessage("");
+        }, 400); // 400ms to clear right after the 320ms shake animation
+        return () => clearTimeout(back);
+    }, [otpStatus]);
     
     const navigate = useNavigate();
     const location = useLocation() as any;
@@ -122,7 +137,8 @@ export default function AdminAuth() {
             navigate(from, { replace: true });
             
         } catch (error: any) {
-            toast.error(error.message || "Invalid authentication code.");
+            setOtpErrorMessage(error.message || "Invalid authentication code.");
+            setOtpStatus("error");
         } finally {
             setIsLoggingIn(false);
         }
@@ -197,17 +213,20 @@ export default function AdminAuth() {
                                 </div>
                             )}
 
-                            <div className="space-y-2 w-full">
-                                <Label htmlFor="mfaCode" className="text-slate-300">Enter 6-Digit Authenticator Code</Label>
-                                <Input
-                                    id="mfaCode"
-                                    type="text"
-                                    placeholder="000000"
-                                    value={mfaCode}
-                                    onChange={(e) => setMfaCode(e.target.value.replace(/[^0-9]/g, ''))}
-                                    maxLength={6}
-                                    required
-                                    className="bg-slate-800 border-slate-700 text-white text-center tracking-widest text-lg font-mono focus:ring-primary"
+                            <div className="space-y-2 w-full flex flex-col items-center">
+                                <Label htmlFor="mfaCode" className="text-slate-300 mb-4 block">Enter 6-Digit Authenticator Code</Label>
+                                <OtpInput
+                                    ref={otpRef}
+                                    length={6}
+                                    status={otpStatus}
+                                    errorMessage={otpErrorMessage}
+                                    onChange={(val) => {
+                                        setMfaCode(val);
+                                        if (otpStatus !== 'idle') {
+                                            setOtpStatus('idle');
+                                            setOtpErrorMessage('');
+                                        }
+                                    }}
                                 />
                             </div>
                         </CardContent>

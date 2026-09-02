@@ -30,7 +30,7 @@ export function PromoterOverviewTab({
           <div className="space-y-2 text-center md:text-left">
             <h3 className="text-lg font-bold">Your Promoter Identity</h3>
             <p className="text-sm text-muted-foreground max-w-md">
-              Share this code with your audience. Every purchase made using your code earns you a 5% commission instantly.
+              Share this code with your audience. Every purchase made using your code earns you a commission instantly.
             </p>
           </div>
           <div className="flex items-center gap-2 bg-background/50 p-2 rounded-xl border border-primary/10 shadow-sm">

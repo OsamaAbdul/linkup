@@ -25,6 +25,7 @@ import {
   Phone,
   RefreshCw,
   SlidersHorizontal,
+  Wallet,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -194,6 +195,16 @@ export default function SendOrdersHistoryPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/wallet')}
+              className="h-10 rounded-xl text-xs font-bold gap-1.5 border-emerald-200 bg-emerald-50/50 text-emerald-700 hover:bg-emerald-100/60"
+            >
+              <Wallet className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Wallet & Refunds</span>
+            </Button>
+
             <Button
               variant="outline"
               size="sm"

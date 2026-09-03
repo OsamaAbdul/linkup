@@ -85,3 +85,53 @@ export function useLocationDetector() {
 
   return { detectLocation, isDetecting, error };
 }
+
+export interface GeocodeResult {
+  displayName: string;
+  latitude: number;
+  longitude: number;
+  city?: string;
+  suburb?: string;
+  state?: string;
+}
+
+/**
+ * Searches Nominatim OpenStreetMap for location matches across Nigeria
+ */
+export async function searchNigerianAddresses(query: string): Promise<GeocodeResult[]> {
+  if (!query || query.trim().length < 2) return [];
+
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query.trim())}&countrycodes=ng&addressdetails=1&limit=5`,
+      {
+        headers: {
+          'Accept-Language': 'en',
+        },
+      }
+    );
+
+    if (!res.ok) return [];
+    const data = await res.json();
+
+    return (data || []).map((item: any) => ({
+      displayName: item.display_name,
+      latitude: parseFloat(item.lat),
+      longitude: parseFloat(item.lon),
+      city: item.address?.city || item.address?.town || item.address?.municipality || '',
+      suburb: item.address?.suburb || item.address?.neighbourhood || item.address?.residential || '',
+      state: item.address?.state || '',
+    }));
+  } catch (err) {
+    console.warn('Address search error:', err);
+    return [];
+  }
+}
+
+/**
+ * Forward geocodes a single text address query into latitude & longitude
+ */
+export async function forwardGeocode(query: string): Promise<GeocodeResult | null> {
+  const results = await searchNigerianAddresses(query);
+  return results.length > 0 ? results[0] : null;
+}

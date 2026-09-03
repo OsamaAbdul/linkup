@@ -88,7 +88,7 @@ export default function Support() {
                 {/* Contact Options */}
                 <div className="space-y-6">
                     <h2 className="text-2xl font-bold">Still need help?</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-6 flex flex-col items-center text-center gap-4">
                             <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
                                 <Mail size={24} />
@@ -108,10 +108,27 @@ export default function Support() {
                                 <MessageCircle size={24} />
                             </div>
                             <div>
-                                <h3 className="font-semibold text-lg">Live Chat</h3>
+                                <h3 className="font-semibold text-lg">WhatsApp Chat</h3>
                                 <p className="text-sm text-muted-foreground">Chat with our support team instantly</p>
+                                <p className="text-sm font-medium text-green-600 mt-1">wa.link/cpb3fe</p>
                             </div>
-                            <Button variant="outline" className="mt-2 w-full border-green-200 text-green-700 hover:bg-green-100">Start Chat</Button>
+                            <a href="https://wa.link/cpb3fe" target="_blank" rel="noopener noreferrer" className="w-full mt-2">
+                                <Button variant="outline" className="w-full border-green-200 text-green-700 hover:bg-green-100">Start Chat</Button>
+                            </a>
+                        </div>
+
+                        <div className="bg-amber-50/50 border border-amber-100 rounded-xl p-6 flex flex-col items-center text-center gap-4">
+                            <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+                                <Phone size={24} />
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-lg">Phone Helpline</h3>
+                                <p className="text-sm text-muted-foreground">Mon - Sat, 8:00 AM - 8:00 PM</p>
+                                <p className="text-sm font-medium text-amber-600 mt-1">08144445693</p>
+                            </div>
+                            <a href="tel:+2348144445693" className="w-full mt-2">
+                                <Button variant="outline" className="w-full border-amber-200 text-amber-800 hover:bg-amber-100">Call Now</Button>
+                            </a>
                         </div>
                     </div>
                 </div>

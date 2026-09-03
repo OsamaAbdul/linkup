@@ -31,6 +31,8 @@ import defaultRiderImg from '@/assets/default_rider.jpg';
 import { SendOrder } from '../../types';
 import { TrackingMap } from './TrackingMap';
 import { toast } from 'sonner';
+import { SendSupportModal } from '../support/SendSupportModal';
+import { SendCancelOrderModal } from './SendCancelOrderModal';
 
 interface TrackingViewProps {
   order: SendOrder;
@@ -44,6 +46,8 @@ export function RealtimeTrackingView({
   onRefresh,
 }: TrackingViewProps) {
   const [copied, setCopied] = useState(false);
+  const [supportModalOpen, setSupportModalOpen] = useState(false);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
 
   const handleCopyId = () => {
     navigator.clipboard.writeText(order.id);
@@ -52,6 +56,7 @@ export function RealtimeTrackingView({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const isCancelled = order.status === 'cancelled';
   const isFindingRider = order.status === 'finding_rider' || order.status === 'pending_payment';
   const isRiderAssigned = order.status === 'assigned_rider' || order.status === 'pickup' || order.status === 'on_the_way';
   const isDelivered = order.status === 'delivered';
@@ -155,7 +160,15 @@ export function RealtimeTrackingView({
           </div>
 
           {/* Right Status Card */}
-          {isFindingRider ? (
+          {isCancelled ? (
+            <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-right sm:text-right">
+              <Badge className="bg-red-50 text-red-700 border-red-200 text-[10px] font-bold">
+                Cancelled
+              </Badge>
+              <p className="text-[10px] text-muted-foreground mt-1">Status</p>
+              <p className="text-xs font-bold text-red-700">Order Closed</p>
+            </div>
+          ) : isFindingRider ? (
             <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-right sm:text-right">
               <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">
                 Finding a rider
@@ -232,8 +245,51 @@ export function RealtimeTrackingView({
         </div>
       </Card>
 
-      {/* CONDITIONAL BODY: STATE 1 (Finding Rider) VS STATE 2 (Rider Assigned / En Route) */}
-      {isFindingRider ? (
+      {/* CONDITIONAL BODY: CANCELLED VS FINDING RIDER VS RIDER ASSIGNED */}
+      {isCancelled ? (
+        <Card className="rounded-2xl border-red-200 p-6 bg-red-50/50 shadow-sm space-y-4">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center shrink-0 shadow-sm">
+              <XCircle size={26} />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base font-black text-red-950">Package Delivery Cancelled</h3>
+              <p className="text-xs text-red-800 leading-relaxed">
+                {(order.package_details as any)?.cancellation_reason
+                  ? `Reason: ${(order.package_details as any).cancellation_reason}`
+                  : 'This delivery order was cancelled by the sender.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-white border border-red-200/80 text-xs flex items-center justify-between">
+            <span className="text-muted-foreground font-medium">Refund Status</span>
+            <span className="font-bold text-emerald-700 font-mono">
+              {order.payment_status === 'paid'
+                ? `₦${Number(order.delivery_fee || 0).toLocaleString()} Credited to Wallet`
+                : 'Free Cancellation'}
+            </span>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
+            <Button
+              type="button"
+              onClick={() => window.location.href = '/send'}
+              className="flex-1 h-11 rounded-2xl bg-primary hover:bg-primary/95 text-white font-bold text-xs shadow-md shadow-primary/20"
+            >
+              Send Another Package
+            </Button>
+            <button
+              type="button"
+              onClick={() => setSupportModalOpen(true)}
+              className="h-11 px-4 rounded-2xl bg-[#FFBE1A] hover:bg-[#FFAE00] border border-[#EA580C] text-[#0F172A] font-extrabold text-xs flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95"
+            >
+              <Headphones className="w-4 h-4 text-[#EA580C] stroke-[2.5]" />
+              <span>Contact Support</span>
+            </button>
+          </div>
+        </Card>
+      ) : isFindingRider ? (
         /* ============ FINDING RIDER VIEW (IMAGE 2) ============ */
         <div className="space-y-4">
           {/* Radar Radar Searching Card */}
@@ -361,21 +417,22 @@ export function RealtimeTrackingView({
 
           {/* Buttons: Contact Support & Cancel Order */}
           <div className="grid grid-cols-2 gap-3 pt-1">
-            <Button
+            <button
               type="button"
-              variant="outline"
-              className="h-11 rounded-xl text-xs font-semibold gap-1.5"
+              onClick={() => setSupportModalOpen(true)}
+              className="h-11 px-3 rounded-2xl bg-[#FFBE1A] hover:bg-[#FFAE00] border-2 border-[#EA580C] text-[#0F172A] font-extrabold text-xs flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95"
             >
-              <Headphones className="w-3.5 h-3.5 text-primary" />
+              <Headphones className="w-4 h-4 text-[#EA580C] stroke-[2.5]" />
               <span>Contact Support</span>
-            </Button>
+            </button>
 
             <Button
               type="button"
               variant="outline"
-              className="h-11 rounded-xl text-xs font-semibold gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/10"
+              onClick={() => setCancelModalOpen(true)}
+              className="h-11 rounded-2xl text-xs font-bold gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/10"
             >
-              <XCircle className="w-3.5 h-3.5" />
+              <XCircle className="w-4 h-4" />
               <span>Cancel Order</span>
             </Button>
           </div>
@@ -523,14 +580,26 @@ export function RealtimeTrackingView({
 
           {/* Need Help? Contact support link */}
           <div className="flex items-center justify-between text-xs px-1">
-            <span className="text-muted-foreground">Need help? Contact our support team.</span>
-            <button
-              type="button"
-              className="text-primary font-bold flex items-center gap-1 hover:underline"
-            >
-              <Headphones className="w-3.5 h-3.5" />
-              <span>Contact Support</span>
-            </button>
+            <span className="text-muted-foreground">Need help or want to cancel?</span>
+            <div className="flex items-center gap-3">
+              {order.status === 'assigned_rider' && (
+                <button
+                  type="button"
+                  onClick={() => setCancelModalOpen(true)}
+                  className="text-xs font-bold text-destructive hover:underline"
+                >
+                  Cancel Order
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setSupportModalOpen(true)}
+                className="h-8 px-3 rounded-full bg-[#FFBE1A] hover:bg-[#FFAE00] border border-[#EA580C] text-[#0F172A] font-extrabold text-[11px] flex items-center gap-1.5 shadow-sm transition-all active:scale-95"
+              >
+                <Headphones className="w-3.5 h-3.5 text-[#EA580C] stroke-[2.5]" />
+                <span>Contact Support</span>
+              </button>
+            </div>
           </div>
 
           {/* Insured protection banner */}
@@ -547,6 +616,22 @@ export function RealtimeTrackingView({
           </div>
         </div>
       )}
+
+      {/* Modals */}
+      <SendSupportModal
+        open={supportModalOpen}
+        onOpenChange={setSupportModalOpen}
+        orderId={order.id}
+        orderStatus={order.status}
+      />
+
+      <SendCancelOrderModal
+        open={cancelModalOpen}
+        onOpenChange={setCancelModalOpen}
+        order={order}
+        onSuccess={onRefresh}
+        onOpenSupport={() => setSupportModalOpen(true)}
+      />
     </div>
   );
 }

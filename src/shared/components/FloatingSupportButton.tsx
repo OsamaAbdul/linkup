@@ -50,8 +50,8 @@ export const FloatingSupportButton = () => {
     setShowTooltip(false);
   };
 
-  const whatsappNumber = "+234 814 444 5693";
-  const phoneNumber = "+234 814 444 5693";
+  const whatsappUrl = "https://wa.link/cpb3fe";
+  const phoneNumber = "+2348144445693";
 
   return (
     <div className="fixed bottom-24 md:bottom-6 left-6 z-[100] flex flex-col items-start">
@@ -65,7 +65,7 @@ export const FloatingSupportButton = () => {
             className="mb-4 flex flex-col gap-3 items-start"
           >
             <m.a
-              href={`https://wa.me/${whatsappNumber}`}
+              href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
               whileHover={{ scale: 1.05 }}
@@ -82,7 +82,7 @@ export const FloatingSupportButton = () => {
               className="flex items-center gap-3 rounded-full bg-blue-600 px-5 py-3 text-white shadow-lg transition-colors hover:bg-blue-700"
             >
               <Phone size={22} />
-              <span className="font-semibold text-sm">Direct Call</span>
+              <span className="font-semibold text-sm">Direct Call (08144445693)</span>
             </m.a>
           </m.div>
         )}

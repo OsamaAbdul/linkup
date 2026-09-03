@@ -8,6 +8,7 @@ import { Search, Filter, Loader2, PackageX, TrendingUp } from "lucide-react";
 import { Input } from "@/shared/components/ui/input";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/lib/utils";
+import { calculateRiderEarnings } from "../../logistics/utils/logistics-utils";
 
 export function ShipmentFeedV2({ defaultFilter = "all" }: { defaultFilter?: string }) {
     const { user } = useAuth();
@@ -52,7 +53,35 @@ export function ShipmentFeedV2({ defaultFilter = "all" }: { defaultFilter?: stri
                 }
             }
 
-            const { data: myData } = await myAssignmentsQuery;
+            const { data: myDataRaw } = await myAssignmentsQuery;
+
+            // Fetch SEND fee configuration for rider payouts
+            let riderPayoutRate = 0.80;
+            let riderMinPayout = 1000;
+            try {
+                const { data: feeConfigs } = await (supabase as any)
+                    .from("fee_config")
+                    .select("fee_type, rate, flat_fee")
+                    .in("fee_type", ["send_rider_payout_rate", "send_rider_min_payout"])
+                    .eq("is_active", true);
+
+                if (feeConfigs) {
+                    for (const fc of feeConfigs) {
+                        if (fc.fee_type === "send_rider_payout_rate" && Number(fc.rate) > 0) {
+                            riderPayoutRate = Number(fc.rate);
+                        } else if (fc.fee_type === "send_rider_min_payout" && Number(fc.flat_fee) > 0) {
+                            riderMinPayout = Number(fc.flat_fee);
+                        }
+                    }
+                }
+            } catch (fcErr) {
+                console.warn("Could not query fee_config:", fcErr);
+            }
+
+            const myData = (myDataRaw || []).map((s: any) => ({
+                ...s,
+                rider_earnings: calculateRiderEarnings(s, { payoutRate: riderPayoutRate, minPayout: riderMinPayout }),
+            }));
 
             // 2. Fetch Unassigned Broadcast Missions (Source: Orders Table)
             let broadcastData: any[] = [];
@@ -73,6 +102,7 @@ export function ShipmentFeedV2({ defaultFilter = "all" }: { defaultFilter?: stri
                     // Transform Orders into Mission Feed format
                     broadcastData = orderMissions.map((o: any) => {
                         const shipment = o.shipments?.[0];
+                        const earnings = calculateRiderEarnings(shipment || o, { payoutRate: riderPayoutRate, minPayout: riderMinPayout });
                         return {
                             ...(shipment || {}),
                             // id: prefer real shipment id, fall back to order id so the card renders
@@ -87,6 +117,7 @@ export function ShipmentFeedV2({ defaultFilter = "all" }: { defaultFilter?: stri
                                 shipment?.delivery_address ||
                                 o.order_recipient?.[0]?.address_line ||
                                 o.buyer?.address,
+                            rider_earnings: earnings,
                         };
                     });
                 }
@@ -100,25 +131,32 @@ export function ShipmentFeedV2({ defaultFilter = "all" }: { defaultFilter?: stri
                         .order("created_at", { ascending: false });
 
                     if (sendOrders && sendOrders.length > 0) {
-                        const sendMissions = sendOrders.map((s: any) => ({
-                            id: s.id,
-                            order_id: s.id,
-                            is_send_order: true,
-                            status: "pending",
-                            pickup_address: s.pickup_address,
-                            pickup_directions: s.pickup_directions,
-                            delivery_address: s.dropoff_address,
-                            dropoff_directions: s.dropoff_directions,
-                            delivery_fee: s.delivery_fee,
-                            created_at: s.created_at,
-                            sender_name: s.sender_name,
-                            sender_phone: s.sender_phone,
-                            recipient_name: s.dropoff_recipient_name,
-                            recipient_phone: s.dropoff_recipient_phone,
-                            seller: { name: s.sender_name, phone: s.sender_phone, address: s.pickup_address },
-                            buyer: { name: s.dropoff_recipient_name, phone: s.dropoff_recipient_phone, address: s.dropoff_address },
-                            package_details: s.package_details,
-                        }));
+                        const sendMissions = sendOrders.map((s: any) => {
+                            const earnings = calculateRiderEarnings(
+                                { ...s, is_send_order: true },
+                                { payoutRate: riderPayoutRate, minPayout: riderMinPayout }
+                            );
+                            return {
+                                id: s.id,
+                                order_id: s.id,
+                                is_send_order: true,
+                                status: "pending",
+                                pickup_address: s.pickup_address,
+                                pickup_directions: s.pickup_directions,
+                                delivery_address: s.dropoff_address,
+                                dropoff_directions: s.dropoff_directions,
+                                delivery_fee: s.delivery_fee,
+                                rider_earnings: earnings,
+                                created_at: s.created_at,
+                                sender_name: s.sender_name,
+                                sender_phone: s.sender_phone,
+                                recipient_name: s.dropoff_recipient_name,
+                                recipient_phone: s.dropoff_recipient_phone,
+                                seller: { name: s.sender_name, phone: s.sender_phone, address: s.pickup_address },
+                                buyer: { name: s.dropoff_recipient_name, phone: s.dropoff_recipient_phone, address: s.dropoff_address },
+                                package_details: s.package_details,
+                            };
+                        });
                         broadcastData.push(...sendMissions);
                     }
                 } catch (sendErr) {
@@ -142,26 +180,33 @@ export function ShipmentFeedV2({ defaultFilter = "all" }: { defaultFilter?: stri
 
                 const { data: assignedSend } = await sendQuery;
                 if (assignedSend && assignedSend.length > 0) {
-                    mySendAssignments = assignedSend.map((s: any) => ({
-                        id: s.id,
-                        order_id: s.id,
-                        is_send_order: true,
-                        rider_id: s.rider_id,
-                        status: s.status === "assigned_rider" ? "assigned" : s.status === "pickup" ? "picked_up" : s.status === "on_the_way" ? "in_transit" : s.status,
-                        pickup_address: s.pickup_address,
-                        pickup_directions: s.pickup_directions,
-                        delivery_address: s.dropoff_address,
-                        dropoff_directions: s.dropoff_directions,
-                        delivery_fee: s.delivery_fee,
-                        created_at: s.created_at,
-                        sender_name: s.sender_name,
-                        sender_phone: s.sender_phone,
-                        recipient_name: s.dropoff_recipient_name,
-                        recipient_phone: s.dropoff_recipient_phone,
-                        seller: { name: s.sender_name, phone: s.sender_phone, address: s.pickup_address },
-                        buyer: { name: s.dropoff_recipient_name, phone: s.dropoff_recipient_phone, address: s.dropoff_address },
-                        package_details: s.package_details,
-                    }));
+                    mySendAssignments = assignedSend.map((s: any) => {
+                        const earnings = calculateRiderEarnings(
+                            { ...s, is_send_order: true },
+                            { payoutRate: riderPayoutRate, minPayout: riderMinPayout }
+                        );
+                        return {
+                            id: s.id,
+                            order_id: s.id,
+                            is_send_order: true,
+                            rider_id: s.rider_id,
+                            status: s.status === "assigned_rider" ? "assigned" : s.status === "pickup" ? "picked_up" : s.status === "on_the_way" ? "in_transit" : s.status,
+                            pickup_address: s.pickup_address,
+                            pickup_directions: s.pickup_directions,
+                            delivery_address: s.dropoff_address,
+                            dropoff_directions: s.dropoff_directions,
+                            delivery_fee: s.delivery_fee,
+                            rider_earnings: earnings,
+                            created_at: s.created_at,
+                            sender_name: s.sender_name,
+                            sender_phone: s.sender_phone,
+                            recipient_name: s.dropoff_recipient_name,
+                            recipient_phone: s.dropoff_recipient_phone,
+                            seller: { name: s.sender_name, phone: s.sender_phone, address: s.pickup_address },
+                            buyer: { name: s.dropoff_recipient_name, phone: s.dropoff_recipient_phone, address: s.dropoff_address },
+                            package_details: s.package_details,
+                        };
+                    });
                 }
             } catch (err) {
                 console.warn("Could not query assigned send_orders:", err);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion as m } from 'framer-motion';
 import {
   ShieldCheck,
@@ -12,6 +12,8 @@ import {
   ArrowLeft,
   ChevronDown,
   ChevronUp,
+  Sparkles,
+  AlertCircle,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
@@ -24,6 +26,7 @@ import { useAuth } from '@/features/auth/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { generateSendOrderId } from '../../utils/orderId';
 import { toast } from 'sonner';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface Step5Props {
   formData: SendOrderFormData;
@@ -39,10 +42,27 @@ export function Step5ConfirmAndPay({
   onBack,
 }: Step5Props) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { pay } = usePaystackInline();
   const [agreed, setAgreed] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showBreakdown, setShowBreakdown] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'paystack' | 'wallet'>('paystack');
+
+  // Query live wallet balance
+  const { data: wallet } = useQuery({
+    queryKey: ['user-wallet-send', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase
+        .from('wallets')
+        .select('id, balance, escrow_balance')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user?.id,
+  });
 
   const pricing = useSendPricing({
     pickupLat: formData.pickupLat,
@@ -52,6 +72,16 @@ export function Step5ConfirmAndPay({
     weightKg: formData.weightKg,
     isFragile: formData.isFragile,
   });
+
+  const walletBalance = Number(wallet?.balance || 0);
+  const hasSufficientWallet = walletBalance >= pricing.totalFee;
+
+  // Auto-select wallet if balance covers fee
+  useEffect(() => {
+    if (hasSufficientWallet && walletBalance > 0) {
+      setPaymentMethod('wallet');
+    }
+  }, [hasSufficientWallet, walletBalance]);
 
   const handleConfirmAndPay = async () => {
     if (!agreed) {
@@ -131,6 +161,43 @@ export function Step5ConfirmAndPay({
       }
       localStorage.setItem(`linkup_send_order_${orderId}`, JSON.stringify(orderRecord));
 
+      // 2. WALLET PAYMENT BRANCH (1-Tap Instant Deduction)
+      if (paymentMethod === 'wallet') {
+        if (!user) {
+          toast.error('Please sign in to pay with your LinkUp wallet');
+          setIsProcessing(false);
+          return;
+        }
+
+        const { data: payResult, error: payRpcErr } = await (supabase as any).rpc(
+          'pay_send_order_with_wallet',
+          { p_order_id: orderId }
+        );
+
+        if (payRpcErr) {
+          throw new Error(payRpcErr.message || 'Wallet payment deduction failed');
+        }
+
+        const confirmed = {
+          ...orderRecord,
+          status: 'finding_rider',
+          payment_status: 'paid',
+          payment_ref: `WALLET_${orderId}`,
+          paid_at: new Date().toISOString(),
+        };
+        localStorage.setItem(`linkup_send_order_${orderId}`, JSON.stringify(confirmed));
+
+        queryClient.invalidateQueries({ queryKey: ['user-wallet', user.id] });
+        queryClient.invalidateQueries({ queryKey: ['user-wallet-send', user.id] });
+        queryClient.invalidateQueries({ queryKey: ['wallet', user.id] });
+        queryClient.invalidateQueries({ queryKey: ['my_send_orders'] });
+
+        toast.success(`Paid ₦${verifiedFee.toLocaleString()} from your LinkUp Wallet!`);
+        onPaymentSuccess(orderId);
+        return;
+      }
+
+      // 3. PAYSTACK GATEWAY BRANCH
       let publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
       if (!publicKey) {
         try {
@@ -327,14 +394,18 @@ export function Step5ConfirmAndPay({
         {/* Metric 3: Payment Method */}
         <Card className="rounded-xl border-border/70 p-3 bg-card shadow-sm">
           <div className="flex items-center gap-1.5 text-emerald-600 text-xs font-bold">
-            <CreditCard className="w-3.5 h-3.5" />
+            {paymentMethod === 'wallet' ? <Wallet className="w-3.5 h-3.5" /> : <CreditCard className="w-3.5 h-3.5" />}
             <span>Payment Method</span>
           </div>
           <p className="text-xs font-bold text-foreground mt-1">
-            Paystack
+            {paymentMethod === 'wallet' ? 'LinkUp Wallet' : 'Paystack Gateway'}
           </p>
-          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold mt-0.5 px-1.5 py-0">
-            Cards / Transfer / USSD
+          <Badge className={`text-[9px] font-bold mt-0.5 px-1.5 py-0 ${
+            paymentMethod === 'wallet'
+              ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+              : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+          }`}>
+            {paymentMethod === 'wallet' ? 'Instant · ₦0 Gateway Fee' : 'Cards / Transfer / USSD'}
           </Badge>
         </Card>
       </div>
@@ -373,7 +444,91 @@ export function Step5ConfirmAndPay({
         </Card>
       )}
 
-      {/* 3. SAFE & SECURE BANNER */}
+      {/* 3. PAYMENT METHOD SELECTOR */}
+      <div className="space-y-2 pt-1">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+            <CreditCard className="w-3.5 h-3.5 text-primary" />
+            <span>Select Payment Method</span>
+          </label>
+          {user && (
+            <span className="text-[11px] text-muted-foreground">
+              Wallet Balance: <strong className="text-emerald-700">₦{walletBalance.toLocaleString()}</strong>
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          {/* Option A: LinkUp Wallet Balance */}
+          <button
+            type="button"
+            onClick={() => {
+              if (hasSufficientWallet) setPaymentMethod('wallet');
+              else toast.error(`Insufficient wallet balance. You have ₦${walletBalance.toLocaleString()}, but total fee is ₦${pricing.totalFee.toLocaleString()}.`);
+            }}
+            className={`p-3 rounded-2xl border text-left transition-all relative flex items-start gap-3 ${
+              paymentMethod === 'wallet'
+                ? 'border-emerald-500 bg-emerald-50/60 ring-2 ring-emerald-500/20 shadow-sm'
+                : !hasSufficientWallet
+                ? 'border-border/60 bg-muted/40 opacity-70 cursor-pointer'
+                : 'border-border/80 bg-card hover:bg-muted/40'
+            }`}
+          >
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+              paymentMethod === 'wallet' ? 'bg-emerald-600 text-white' : 'bg-muted text-muted-foreground'
+            }`}>
+              <Wallet size={18} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold text-foreground">LinkUp Wallet</p>
+                {hasSufficientWallet ? (
+                  <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[9px] font-bold">
+                    Fast 1-Tap
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[9px] text-destructive border-destructive/30">
+                    Low Balance
+                  </Badge>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Balance: <strong className={hasSufficientWallet ? 'text-emerald-700' : 'text-foreground'}>₦{walletBalance.toLocaleString()}</strong>
+              </p>
+            </div>
+          </button>
+
+          {/* Option B: Paystack (Card/Transfer) */}
+          <button
+            type="button"
+            onClick={() => setPaymentMethod('paystack')}
+            className={`p-3 rounded-2xl border text-left transition-all relative flex items-start gap-3 ${
+              paymentMethod === 'paystack'
+                ? 'border-primary bg-orange-50/60 ring-2 ring-primary/20 shadow-sm'
+                : 'border-border/80 bg-card hover:bg-muted/40'
+            }`}
+          >
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+              paymentMethod === 'paystack' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'
+            }`}>
+              <CreditCard size={18} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold text-foreground">Card / Transfer</p>
+                <Badge className="bg-orange-100 text-orange-900 border-orange-200 text-[9px] font-bold">
+                  Paystack
+                </Badge>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Debit Card, USSD, Bank App
+              </p>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {/* 4. SAFE & SECURE BANNER */}
       <div className="p-3.5 rounded-2xl bg-blue-500/5 border border-blue-500/20 flex items-start gap-3">
         <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
         <div>
@@ -414,8 +569,12 @@ export function Step5ConfirmAndPay({
             </>
           ) : (
             <>
-              <Lock className="w-4 h-4" />
-              <span>Confirm & Pay ₦{pricing.totalFee.toLocaleString()}</span>
+              {paymentMethod === 'wallet' ? <Wallet className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+              <span>
+                {paymentMethod === 'wallet'
+                  ? `Pay ₦${pricing.totalFee.toLocaleString()} with Wallet`
+                  : `Confirm & Pay ₦${pricing.totalFee.toLocaleString()}`}
+              </span>
             </>
           )}
         </Button>

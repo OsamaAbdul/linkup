@@ -22,6 +22,7 @@ import { SendOrderFormData } from '../../schemas/sendOrderSchema';
 import { useLocationDetector } from '../../hooks/useLocationDetector';
 import { useSavedAddresses } from '../../hooks/useSavedAddresses';
 import { SavedAddress } from '../../types';
+import { AddressAutocompleteInput } from '../AddressAutocompleteInput';
 
 interface Step2Props {
   formData: SendOrderFormData;
@@ -110,41 +111,25 @@ export function Step2PickupLocation({ formData, onChange, onNext, onBack }: Step
             </div>
           )}
 
-          {/* Pickup Address Input & GPS Button */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs font-semibold text-foreground flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5 text-primary" />
-                <span>Pickup Address</span> <span className="text-destructive">*</span>
-              </Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={isDetecting}
-                onClick={handleDetect}
-                className="h-7 text-xs px-2.5 gap-1.5 border-primary/30 text-primary hover:bg-primary/10 transition-colors"
-              >
-                {isDetecting ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Navigation className="w-3 h-3" />
-                )}
-                <span>{isDetecting ? 'Detecting...' : 'Detect Location'}</span>
-              </Button>
-            </div>
-            <Input
-              placeholder="e.g. 12 Unity Estate, Lifecamp, Abuja"
-              value={formData.pickupAddress}
-              onChange={(e) => onChange({ pickupAddress: e.target.value })}
-              className={errors.pickupAddress ? 'border-destructive focus-visible:ring-destructive' : ''}
-            />
-            {errors.pickupAddress && (
-              <p className="text-[11px] text-destructive flex items-center gap-1">
-                <AlertCircle className="w-3 h-3" /> {errors.pickupAddress}
-              </p>
-            )}
-          </div>
+          {/* Pickup Address Input with Autocomplete & Geocoding */}
+          <AddressAutocompleteInput
+            label="Pickup Address"
+            icon={<MapPin className="w-3.5 h-3.5 text-primary" />}
+            placeholder="e.g. Lifecamp, Abuja or search street..."
+            value={formData.pickupAddress}
+            latitude={formData.pickupLat}
+            longitude={formData.pickupLng}
+            error={errors.pickupAddress}
+            isRequired
+            onChangeAddress={(text) => onChange({ pickupAddress: text })}
+            onSelectLocation={({ address, latitude, longitude }) => {
+              onChange({
+                pickupAddress: address,
+                pickupLat: latitude,
+                pickupLng: longitude,
+              });
+            }}
+          />
 
           {/* Sender Name & Phone */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -154,7 +139,7 @@ export function Step2PickupLocation({ formData, onChange, onNext, onBack }: Step
                 <span className="text-destructive">*</span>
               </Label>
               <Input
-                placeholder="e.g. Damian Mark Oboshi"
+                placeholder="e.g. Osama Abdullahi"
                 value={formData.senderName}
                 onChange={(e) => onChange({ senderName: e.target.value })}
                 className={errors.senderName ? 'border-destructive' : ''}
@@ -168,7 +153,7 @@ export function Step2PickupLocation({ formData, onChange, onNext, onBack }: Step
                 <span className="text-destructive">*</span>
               </Label>
               <Input
-                placeholder="e.g. 0802 385 9329"
+                placeholder="e.g. +2348123456789"
                 type="tel"
                 maxLength={15}
                 value={formData.senderPhone}

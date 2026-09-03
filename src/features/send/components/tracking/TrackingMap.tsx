@@ -35,9 +35,16 @@ export function TrackingMap({
       attributionControl: false,
     }).setView(initialCenter as [number, number], 13);
 
-    // High quality modern map tiles (Carto Voyager for crisp, clean contrast)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    const cartoApiKey = import.meta.env.VITE_CARTO_API_KEY;
+    const tileUrl = cartoApiKey
+      ? `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${cartoApiKey}`
+      : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+
+    // High quality modern map tiles (Carto Voyager with API key authentication)
+    L.tileLayer(tileUrl, {
       maxZoom: 19,
+      subdomains: 'abcd',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
     }).addTo(map);
 
     mapInstance.current = map;

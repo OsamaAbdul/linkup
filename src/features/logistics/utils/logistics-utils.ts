@@ -122,3 +122,58 @@ export const generateMapsUrl = (shipment: any, mode: 'pickup' | 'delivery' = 'de
             ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
             : "";
 };
+
+/**
+ * Computes the rider's take-home earnings cut for a mission (SEND packages & marketplace shipments)
+ * strictly hiding the customer's total fee and showing only the rider's payout according to fee configuration.
+ */
+export const calculateRiderEarnings = (
+    shipment: any,
+    feeConfig?: { payoutRate?: number; minPayout?: number }
+): number => {
+    if (!shipment) return 0;
+
+    const payoutRate = feeConfig?.payoutRate ?? 0.80; // default 80%
+    const minPayout = feeConfig?.minPayout ?? 1000;    // default ₦1,000
+
+    const isSendOrder =
+        shipment.is_send_order ||
+        String(shipment.id || '').startsWith('LSEND') ||
+        String(shipment.order_id || '').startsWith('LSEND');
+
+    // 1. If explicit rider_earnings is already stored/provided on shipment
+    if (typeof shipment.rider_earnings === 'number' && shipment.rider_earnings > 0) {
+        return Math.round(shipment.rider_earnings);
+    }
+
+    // 2. If it's a SEND package order, inspect package_details for pre-calculated pricing breakdown
+    if (isSendOrder) {
+        let pkg = shipment.package_details;
+        if (typeof pkg === 'string') {
+            try { pkg = JSON.parse(pkg); } catch { pkg = {}; }
+        }
+        const breakdownEarnings = pkg?.pricing_breakdown?.riderEarnings ?? pkg?.pricing_breakdown?.rider_earnings;
+        if (typeof breakdownEarnings === 'number' && breakdownEarnings > 0) {
+            return Math.round(breakdownEarnings);
+        }
+
+        // Compute cut according to SEND fee configuration
+        const totalFee = Number(shipment.delivery_fee || 1500);
+        return Math.max(minPayout, Math.round(totalFee * payoutRate));
+    }
+
+    // 3. For marketplace shipments: inspect rider_fee_breakdown
+    if (shipment.rider_fee_breakdown) {
+        let breakdown = shipment.rider_fee_breakdown;
+        if (typeof breakdown === 'string') {
+            try { breakdown = JSON.parse(breakdown); } catch { breakdown = {}; }
+        }
+        if (typeof breakdown.total === 'number' && breakdown.total > 0) {
+            return Math.round(breakdown.total);
+        }
+    }
+
+    // Fallback for regular shipment delivery fee
+    const deliveryFee = Number(shipment.delivery_fee || shipment.order?.shipping_fee || 0);
+    return Math.round(deliveryFee);
+};

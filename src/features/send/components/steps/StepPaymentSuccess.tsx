@@ -18,6 +18,7 @@ import { Card, CardContent } from '@/shared/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { SendOrderFormData } from '../../schemas/sendOrderSchema';
 import { toast } from 'sonner';
+import { SendSupportModal } from '../support/SendSupportModal';
 
 interface SuccessProps {
   orderId: string;
@@ -27,6 +28,7 @@ interface SuccessProps {
 export function StepPaymentSuccess({ orderId, formData }: SuccessProps) {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
+  const [supportModalOpen, setSupportModalOpen] = useState(false);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(orderId);
@@ -214,7 +216,7 @@ export function StepPaymentSuccess({ orderId, formData }: SuccessProps) {
         <Button
           type="button"
           variant="outline"
-          onClick={() => navigate('/support')}
+          onClick={() => setSupportModalOpen(true)}
           className="h-11 rounded-xl text-xs font-semibold gap-1.5 hover:border-primary"
         >
           <Headphones className="w-3.5 h-3.5 text-primary" />
@@ -241,6 +243,12 @@ export function StepPaymentSuccess({ orderId, formData }: SuccessProps) {
       >
         Back to Home
       </Button>
+
+      <SendSupportModal
+        open={supportModalOpen}
+        onOpenChange={setSupportModalOpen}
+        orderId={orderId}
+      />
     </m.div>
   );
 }

@@ -25,8 +25,15 @@ export function LiveTrackingMap({ riderCoords, buyerCoords }: LiveTrackingMapPro
       attributionControl: false,
     }).setView(center as [number, number], 15);
 
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+    const cartoApiKey = import.meta.env.VITE_CARTO_API_KEY;
+    const tileUrl = cartoApiKey
+      ? `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=${cartoApiKey}`
+      : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+
+    L.tileLayer(tileUrl, {
       maxZoom: 19,
+      subdomains: 'abcd',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
     }).addTo(map);
 
     mapInstance.current = map;

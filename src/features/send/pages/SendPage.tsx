@@ -13,6 +13,7 @@ import { SendOrderFormData } from '../schemas/sendOrderSchema';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { ArrowLeft, Bell, ShoppingCart } from 'lucide-react';
 import { useCart } from '@/features/marketplace/context/CartContext';
+import { ContactSupportButton, SendSupportModal } from '../components/support/SendSupportModal';
 
 export default function SendPage() {
   const { user, profile } = useAuth();
@@ -21,6 +22,7 @@ export default function SendPage() {
 
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
   const [confirmedOrderId, setConfirmedOrderId] = useState<string>('');
+  const [supportModalOpen, setSupportModalOpen] = useState<boolean>(false);
 
   const [formData, setFormData] = useState<SendOrderFormData>({
     senderName: '',
@@ -100,36 +102,8 @@ export default function SendPage() {
               </div>
             </div>
 
-            {/* Right Icons: Notification Bell, Cart Badge, User Avatar */}
-            {/* <div className="flex items-center gap-2.5">
-              <button
-                type="button"
-                onClick={() => navigate('/notifications')}
-                className="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors relative"
-              >
-                <Bell className="w-5 h-5" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate('/cart')}
-                className="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors relative"
-              >
-                <ShoppingCart className="w-5 h-5" />
-                {totalCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-[9px] font-bold text-white flex items-center justify-center">
-                    {totalCount}
-                  </span>
-                )}
-              </button>
-
-              <div className="relative">
-                <div className="w-7 h-7 rounded-full bg-amber-100 text-amber-900 flex items-center justify-center font-bold text-xs shadow-sm">
-                  {userInitial}
-                </div>
-                <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-background" />
-              </div>
-            </div> */}
+            {/* Contact Support Pill Button */}
+            <ContactSupportButton onClick={() => setSupportModalOpen(true)} />
           </div>
         )}
 
@@ -207,6 +181,12 @@ export default function SendPage() {
             />
           )}
         </AnimatePresence>
+
+        <SendSupportModal
+          open={supportModalOpen}
+          onOpenChange={setSupportModalOpen}
+          orderId={confirmedOrderId}
+        />
       </div>
     </AppLayout>
   );

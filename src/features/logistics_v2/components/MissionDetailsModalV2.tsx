@@ -33,7 +33,8 @@ import {
     getBuyerContact,
     getSellerInfo,
     generateMapsUrl,
-    calculateDistance
+    calculateDistance,
+    calculateRiderEarnings
 } from "../../logistics/utils/logistics-utils";
 
 interface MissionDetailsModalV2Props {
@@ -182,6 +183,7 @@ export function MissionDetailsModalV2({ shipment, open, onOpenChange }: MissionD
             queryClient.invalidateQueries({ queryKey: ["logistics-shipments-v2"] });
             queryClient.invalidateQueries({ queryKey: ["shipment-details-v2", shipment?.id] });
             queryClient.invalidateQueries({ queryKey: ["shipment-details-v2", orderId] });
+            queryClient.invalidateQueries({ queryKey: ["logistics-details"] });
             toast.success("Mission updated successfully");
         },
         onError: (error: any) => {
@@ -194,6 +196,7 @@ export function MissionDetailsModalV2({ shipment, open, onOpenChange }: MissionD
 
     const buyer = getBuyerContact(activeShipment);
     const sellerInfo = getSellerInfo(activeShipment);
+    const riderEarnings = calculateRiderEarnings(activeShipment);
     
     const handleOpenMaps = (mode: 'pickup' | 'delivery' = 'delivery') => {
         const mapsUrl = generateMapsUrl(activeShipment, mode);
@@ -236,18 +239,26 @@ export function MissionDetailsModalV2({ shipment, open, onOpenChange }: MissionD
 
                 <div className="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/30">
                     <div className="p-8 space-y-8 pb-32">
-                        {/* Financial Snapshot */}
-                        <div className="bg-emerald-50/50 p-6 rounded-[32px] border border-emerald-100 flex items-center justify-between">
+                        {/* Financial Snapshot - Rider Take-Home Cut */}
+                        <div className="bg-emerald-50/70 p-6 rounded-[32px] border border-emerald-200/80 flex items-center justify-between shadow-sm">
                             <div className="flex items-center gap-4">
                                 <div className="w-14 h-14 rounded-2xl bg-emerald-600 flex items-center justify-center text-white shadow-xl shadow-emerald-600/20">
                                     <Banknote size={28} strokeWidth={2.5} />
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-2">Delivery Fee</p>
-                                    <p className="text-3xl font-black text-emerald-950 tracking-tighter">₦{(activeShipment?.delivery_fee || activeShipment?.order?.shipping_fee || 0).toLocaleString()}</p>
+                                    <div className="flex items-center gap-2 mb-1.5">
+                                        <p className="text-[10px] font-black text-emerald-800 uppercase tracking-widest leading-none">Your Guaranteed Cut</p>
+                                        <Badge className="bg-emerald-100 text-emerald-800 border-none text-[9px] font-black uppercase px-2 py-0.5">
+                                            Escrow Payout
+                                        </Badge>
+                                    </div>
+                                    <p className="text-3xl font-black text-emerald-950 tracking-tighter">₦{riderEarnings.toLocaleString()}</p>
+                                    <p className="text-[11px] text-emerald-700 font-bold mt-1">
+                                        Credited directly to your Escrow Wallet upon successful delivery
+                                    </p>
                                 </div>
                             </div>
-                            <ShieldCheck size={32} className="text-emerald-200" />
+                            <ShieldCheck size={32} className="text-emerald-500" />
                         </div>
 
                         {/* Package Details (if Send Order) */}
@@ -343,8 +354,10 @@ export function MissionDetailsModalV2({ shipment, open, onOpenChange }: MissionD
                 <div className="p-8 pt-4 bg-muted/20 border-t border-black/[0.03] space-y-3">
                     {/* Integrated Action Logic */}
                     {!activeShipment.rider_id && (
-                        <Button className="w-full h-14 rounded-2xl font-black text-xs uppercase tracking-[0.2em] bg-[#E96F28] hover:bg-orange-700 text-white shadow-xl shadow-orange-600/20" onClick={() => updateStatus.mutate('accepted')}>
-                            Accept Mission
+                        <Button className="w-full h-14 rounded-2xl font-black text-xs uppercase tracking-[0.2em] bg-[#E96F28] hover:bg-orange-700 text-white shadow-xl shadow-orange-600/20 flex items-center justify-center gap-2" onClick={() => updateStatus.mutate('accepted')}>
+                            <span>Accept Mission</span>
+                            <span className="opacity-60">·</span>
+                            <span className="text-white/95 font-black">₦{riderEarnings.toLocaleString()} Payout</span>
                         </Button>
                     )}
                     {activeShipment.status === 'accepted' && (

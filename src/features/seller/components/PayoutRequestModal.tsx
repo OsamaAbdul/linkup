@@ -94,60 +94,45 @@ export function PayoutRequestModal({ isOpen, onClose, wallet, balanceOverride }:
 
     const payoutMutation = useMutation({
         mutationFn: async (payload: any) => {
-            const { error } = await supabase.from("payout_requests").insert(payload);
+            // Authoritative database-verified withdrawal RPC
+            const { data, error } = await (supabase as any).rpc("request_wallet_payout", {
+                p_amount: payload.amount,
+                p_bank_name: payload.bank_name,
+                p_account_number: payload.account_number,
+                p_account_name: payload.account_name,
+            });
             if (error) throw error;
 
-            // Notify the user
-            if (user?.id) {
-                await supabase.from("notifications").insert({
-                    user_id: user.id,
-                    type: "payout_request",
-                    message: `Your payout request for ₦${Number(payload.amount).toLocaleString()} has been submitted and is pending review.`
-                });
-                
-                // Push notify the user
-                supabase.functions.invoke("send-push", {
-                    body: {
-                        target_user_id: user.id,
-                        title: "Payout Requested 💸",
-                        message: `Your withdrawal of ₦${Number(payload.amount).toLocaleString()} is being processed.`,
-                        url: "/wallet"
-                    }
-                }).catch(console.error);
-            }
+            // Push notify admins in background
+            supabase.from("user_roles").select("user_id").eq("role", "admin").then(({ data: admins }) => {
+                if (admins && admins.length > 0) {
+                    Promise.all(admins.map(a => 
+                        supabase.functions.invoke("send-push", {
+                            body: {
+                                target_user_id: a.user_id,
+                                title: "Action Required: New Payout Request 💰",
+                                message: `A new payout request of ₦${Number(payload.amount).toLocaleString()} needs review.`,
+                                url: "/admin/payments"
+                            }
+                        })
+                    )).catch(console.error);
+                }
+            });
 
-            // Notify admins
-            const { data: admins } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-            if (admins && admins.length > 0) {
-                const adminNotifications = admins.map(a => ({
-                    user_id: a.user_id,
-                    type: "admin_payout_alert",
-                    message: `A new payout request of ₦${Number(payload.amount).toLocaleString()} was just placed and needs review.`
-                }));
-                await supabase.from("notifications").insert(adminNotifications);
-                
-                // Push notify admins
-                Promise.all(admins.map(a => 
-                    supabase.functions.invoke("send-push", {
-                        body: {
-                            target_user_id: a.user_id,
-                            title: "Action Required: New Payout Request 💰",
-                            message: `A new payout request of ₦${Number(payload.amount).toLocaleString()} needs review.`,
-                            url: "/admin/payments"
-                        }
-                    })
-                )).catch(console.error);
-            }
+            return data;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["wallet"] });
+            queryClient.invalidateQueries({ queryKey: ["user-wallet"] });
             queryClient.invalidateQueries({ queryKey: ["wallet-transactions"] });
+            queryClient.invalidateQueries({ queryKey: ["user-wallet-transactions"] });
             queryClient.invalidateQueries({ queryKey: ["payout-requests"] });
-            toast.success("Payout request submitted successfully!");
+            queryClient.invalidateQueries({ queryKey: ["user-pending-payouts"] });
+            toast.success("Payout request submitted and verified successfully!");
             onClose();
             setAmount("");
         },
-        onError: (err: any) => toast.error("Request failed: " + err.message)
+        onError: (err: any) => toast.error("Request failed: " + (err.message || "Could not process withdrawal"))
     });
 
     const handleSubmit = (e: React.FormEvent) => {

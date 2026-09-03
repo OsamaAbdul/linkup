@@ -10,6 +10,7 @@ import {
     Phone,
     AlertTriangle,
     User,
+    Banknote,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/shared/components/ui/badge";
@@ -18,7 +19,7 @@ import { useAuth } from "@/features/auth/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { calculateDistance } from "../../logistics/utils/logistics-utils";
+import { calculateDistance, calculateRiderEarnings } from "../../logistics/utils/logistics-utils";
 
 interface ShipmentCardProps {
     shipment: any;
@@ -147,7 +148,12 @@ export function ShipmentCardV2({ shipment, onClick }: ShipmentCardProps) {
             }
             
             queryClient.invalidateQueries({ queryKey: ["logistics-shipments-v2"] });
-            toast.success(`Mission updated to ${newStatus.toUpperCase()}`);
+            queryClient.invalidateQueries({ queryKey: ["logistics-details"] });
+            toast.success(
+                newStatus === 'delivered' 
+                    ? `Mission delivered! ₦${calculateRiderEarnings(shipment).toLocaleString()} credited to your escrow wallet.`
+                    : `Mission updated to ${newStatus.toUpperCase()}`
+            );
         } catch (error: any) {
             console.error("Mission Update Failure:", error);
             toast.error("Status update failed: " + (error.message || "Unknown error"));
@@ -155,6 +161,7 @@ export function ShipmentCardV2({ shipment, onClick }: ShipmentCardProps) {
     };
 
     const isSendOrder = shipment.is_send_order || String(shipment.id || '').startsWith("LSEND") || String(shipment.order_id || '').startsWith("LSEND");
+    const riderEarnings = calculateRiderEarnings(shipment);
 
     const senderName = shipment.sender_name || shipment.seller?.name || shipment.seller?.full_name || (isSendOrder ? "Sender" : "Merchant/Seller");
     const senderPhone = shipment.sender_phone || shipment.seller?.phone || "";
@@ -302,9 +309,10 @@ export function ShipmentCardV2({ shipment, onClick }: ShipmentCardProps) {
                             <Navigation2 size={16} className="text-[#E96F28] fill-[#E96F28]" />
                             <span className="text-sm font-black text-foreground tracking-tight">{shipment.distance_km || "0.0"} <span className="text-[10px] text-muted-foreground uppercase">km</span></span>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                            <Clock size={16} className="text-muted-foreground" />
-                            <span className="text-sm font-black text-foreground tracking-tight">₦ {(shipment.delivery_fee || shipment.order?.shipping_fee || 0).toLocaleString()} <span className="text-[10px] text-muted-foreground uppercase">fee</span></span>
+                        <div className="flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-200/80 shadow-sm">
+                            <Banknote size={15} className="text-emerald-700" />
+                            <span className="text-sm font-black text-emerald-950 tracking-tight">₦{riderEarnings.toLocaleString()}</span>
+                            <span className="text-[9px] text-emerald-800 uppercase font-black tracking-wider">Your Cut</span>
                         </div>
                     </div>
                     
@@ -319,9 +327,11 @@ export function ShipmentCardV2({ shipment, onClick }: ShipmentCardProps) {
                     {isBroadcast && (
                         <Button 
                             onClick={(e) => updateStatus('accepted', e)}
-                            className="w-full h-11 rounded-2xl bg-[#E96F28] hover:bg-orange-700 text-white font-black text-[11px] uppercase tracking-widest shadow-lg shadow-orange-600/20"
+                            className="w-full h-12 rounded-2xl bg-[#E96F28] hover:bg-orange-700 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-orange-600/20 flex items-center justify-center gap-2"
                         >
-                            Accept Mission
+                            <span>Accept Mission</span>
+                            <span className="opacity-60">·</span>
+                            <span className="text-white/95 font-black">₦{riderEarnings.toLocaleString()} Payout</span>
                         </Button>
                     )}
 

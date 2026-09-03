@@ -250,18 +250,18 @@ BEGIN
 
             IF v_rider_wallet_id IS NOT NULL THEN
                 UPDATE public.wallets 
-                SET balance = balance + v_rider_payout,
+                SET escrow_balance = escrow_balance + v_rider_payout,
                     updated_at = NOW()
                 WHERE id = v_rider_wallet_id;
 
                 INSERT INTO public.wallet_transactions (wallet_id, amount, type, reference)
-                VALUES (v_rider_wallet_id, v_rider_payout, 'delivery_payout', 'Delivery earnings for Package ' || NEW.id);
+                VALUES (v_rider_wallet_id, v_rider_payout, 'escrow_credit', 'Delivery earnings credited to escrow for Package ' || NEW.id);
 
                 INSERT INTO public.notifications (user_id, type, message, read, created_at)
                 VALUES (
                     NEW.rider_id,
-                    'payment',
-                    'Delivery payout of ₦' || v_rider_payout || ' credited to your wallet for package ' || NEW.id,
+                    'escrow_credit',
+                    'Delivery cut of ₦' || v_rider_payout || ' has been credited to your escrow wallet for package ' || NEW.id || '.',
                     false,
                     NOW()
                 );
@@ -487,6 +487,404 @@ BEGIN
         'rider_earnings', v_rider_earnings,
         'platform_fee', GREATEST(0, v_total_fee - v_rider_earnings),
         'currency', 'NGN'
+    );
+END;
+$$;
+
+-- 8. Industry-Standard Cancellation & Instant Wallet Refund RPC
+CREATE OR REPLACE FUNCTION public.cancel_send_order(
+    p_order_id VARCHAR,
+    p_reason TEXT DEFAULT 'Cancelled by customer'
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_order RECORD;
+    v_wallet_id UUID;
+    v_refund_amount NUMERIC := 0;
+BEGIN
+    SELECT * INTO v_order FROM public.send_orders WHERE id = p_order_id;
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Order not found');
+    END IF;
+
+    -- Security check: user must be the sender or an admin
+    IF auth.uid() IS NOT NULL AND v_order.user_id IS NOT NULL AND v_order.user_id != auth.uid() THEN
+        IF NOT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin') THEN
+            RETURN jsonb_build_object('success', false, 'error', 'Unauthorized to cancel this order');
+        END IF;
+    END IF;
+
+    -- Check status rules
+    IF v_order.status = 'delivered' THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Delivered packages cannot be cancelled');
+    ELSIF v_order.status = 'cancelled' THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Order is already cancelled');
+    ELSIF v_order.status IN ('pickup', 'on_the_way') THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Package is already in transit with courier. Please contact support or your rider directly to arrange package return.');
+    END IF;
+
+    -- Mark order as cancelled and store reason
+    UPDATE public.send_orders
+    SET status = 'cancelled',
+        package_details = jsonb_set(
+            COALESCE(package_details, '{}'::jsonb), 
+            '{cancellation_reason}', 
+            to_jsonb(p_reason)
+        ),
+        updated_at = NOW()
+    WHERE id = p_order_id;
+
+    -- Record tracking event log
+    INSERT INTO public.send_order_tracking_logs (order_id, status, notes)
+    VALUES (p_order_id, 'cancelled', 'Order cancelled by customer: ' || COALESCE(p_reason, 'No reason provided'));
+
+    -- Process instant wallet refund if customer already paid
+    IF v_order.payment_status = 'paid' AND v_order.delivery_fee > 0 AND v_order.user_id IS NOT NULL THEN
+        v_refund_amount := v_order.delivery_fee;
+
+        -- Find or create customer wallet
+        SELECT id INTO v_wallet_id FROM public.wallets WHERE user_id = v_order.user_id LIMIT 1;
+        IF v_wallet_id IS NULL THEN
+            INSERT INTO public.wallets (user_id, balance, escrow_balance)
+            VALUES (v_order.user_id, 0, 0) RETURNING id INTO v_wallet_id;
+        END IF;
+
+        IF v_wallet_id IS NOT NULL THEN
+            UPDATE public.wallets
+            SET balance = balance + v_refund_amount,
+                updated_at = NOW()
+            WHERE id = v_wallet_id;
+
+            INSERT INTO public.wallet_transactions (wallet_id, amount, type, reference)
+            VALUES (v_wallet_id, v_refund_amount, 'refund', 'Refund for cancelled package delivery ' || p_order_id);
+
+            -- Notify user of wallet credit
+            INSERT INTO public.notifications (user_id, type, message, read, created_at)
+            VALUES (
+                v_order.user_id,
+                'refund',
+                'Your package delivery ' || p_order_id || ' was cancelled. ₦' || v_refund_amount || ' has been refunded to your wallet.',
+                false,
+                NOW()
+            );
+        END IF;
+    END IF;
+
+    -- If rider was assigned, notify rider of cancellation
+    IF v_order.rider_id IS NOT NULL THEN
+        INSERT INTO public.notifications (user_id, type, message, read, created_at)
+        VALUES (
+            v_order.rider_id,
+            'mission_cancelled',
+            'Mission for package ' || p_order_id || ' was cancelled by the sender.',
+            false,
+            NOW()
+        );
+    END IF;
+
+    RETURN jsonb_build_object(
+        'success', true, 
+        'refunded', v_refund_amount > 0, 
+        'refund_amount', v_refund_amount
+    );
+END;
+$$;
+
+-- ============================================================================
+-- 10. ATOMIC WALLET PAYOUT REQUEST (DATABASE-VERIFIED)
+-- ============================================================================
+CREATE OR REPLACE FUNCTION public.request_wallet_payout(
+    p_amount NUMERIC,
+    p_bank_name TEXT,
+    p_account_number TEXT,
+    p_account_name TEXT
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_user_id UUID;
+    v_wallet_id UUID;
+    v_current_balance NUMERIC;
+    v_fee NUMERIC := 0;
+    v_total_deduction NUMERIC;
+    v_payout_id UUID;
+BEGIN
+    v_user_id := auth.uid();
+    IF v_user_id IS NULL THEN
+        RAISE EXCEPTION 'Authentication required to request a payout.';
+    END IF;
+
+    IF p_amount IS NULL OR p_amount <= 0 THEN
+        RAISE EXCEPTION 'Payout amount must be greater than zero.';
+    END IF;
+
+    -- Fetch system withdrawal fee if configured
+    SELECT COALESCE((value->>'amount')::NUMERIC, 0) INTO v_fee
+    FROM public.system_settings
+    WHERE key = 'withdrawal_fee';
+    IF v_fee IS NULL THEN v_fee := 0; END IF;
+
+    v_total_deduction := p_amount + v_fee;
+
+    -- Lock the wallet row for update to prevent concurrent double-withdrawals
+    SELECT id, balance INTO v_wallet_id, v_current_balance
+    FROM public.wallets
+    WHERE user_id = v_user_id
+    FOR UPDATE;
+
+    IF v_wallet_id IS NULL THEN
+        RAISE EXCEPTION 'Wallet not found for this user.';
+    END IF;
+
+    IF v_current_balance < v_total_deduction THEN
+        RAISE EXCEPTION 'Insufficient wallet balance. You have ₦% available, but ₦% is required (including ₦% fee).',
+            v_current_balance, v_total_deduction, v_fee;
+    END IF;
+
+    -- Deduct immediately so the funds cannot be double-spent while request is pending
+    UPDATE public.wallets
+    SET balance = balance - v_total_deduction,
+        updated_at = NOW()
+    WHERE id = v_wallet_id;
+
+    -- Insert payout request
+    INSERT INTO public.payout_requests (
+        user_id,
+        wallet_id,
+        amount,
+        bank_name,
+        account_number,
+        account_name,
+        status,
+        created_at
+    ) VALUES (
+        v_user_id,
+        v_wallet_id,
+        p_amount,
+        p_bank_name,
+        p_account_number,
+        p_account_name,
+        'pending',
+        NOW()
+    ) RETURNING id INTO v_payout_id;
+
+    -- Log transaction in wallet_transactions
+    INSERT INTO public.wallet_transactions (
+        wallet_id,
+        amount,
+        type,
+        reference,
+        created_at
+    ) VALUES (
+        v_wallet_id,
+        v_total_deduction,
+        'payout_pending',
+        'Withdrawal request to ' || p_bank_name || ' (' || p_account_number || ')',
+        NOW()
+    );
+
+    -- Notify user
+    INSERT INTO public.notifications (user_id, type, message, read, created_at)
+    VALUES (
+        v_user_id,
+        'payout_request',
+        'Your withdrawal request of ₦' || p_amount || ' has been submitted for processing.',
+        false,
+        NOW()
+    );
+
+    -- Update user profile saved bank details if provided
+    UPDATE public.profiles
+    SET payout_bank_name = p_bank_name,
+        payout_account_number = p_account_number,
+        payout_account_name = p_account_name
+    WHERE id = v_user_id;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'payout_id', v_payout_id,
+        'amount', p_amount,
+        'fee', v_fee,
+        'remaining_balance', v_current_balance - v_total_deduction
+    );
+END;
+$$;
+
+-- Trigger: If an admin rejects a payout request, automatically refund the funds to the user's wallet
+CREATE OR REPLACE FUNCTION public.handle_payout_request_status_change()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    IF NEW.status = 'rejected' AND (OLD.status IS NULL OR OLD.status != 'rejected') THEN
+        -- Refund amount back to wallet
+        UPDATE public.wallets
+        SET balance = balance + NEW.amount,
+            updated_at = NOW()
+        WHERE id = NEW.wallet_id;
+
+        INSERT INTO public.wallet_transactions (
+            wallet_id,
+            amount,
+            type,
+            reference,
+            created_at
+        ) VALUES (
+            NEW.wallet_id,
+            NEW.amount,
+            'payout_refund',
+            'Refund of rejected payout request #' || NEW.id,
+            NOW()
+        );
+
+        INSERT INTO public.notifications (user_id, type, message, read, created_at)
+        VALUES (
+            NEW.user_id,
+            'payout_rejected',
+            'Your payout request of ₦' || NEW.amount || ' was rejected: ' || COALESCE(NEW.admin_notes, 'Contact support') || '. Funds have been refunded to your wallet balance.',
+            false,
+            NOW()
+        );
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_payout_request_status ON public.payout_requests;
+CREATE TRIGGER trg_payout_request_status
+AFTER UPDATE OF status ON public.payout_requests
+FOR EACH ROW
+EXECUTE FUNCTION public.handle_payout_request_status_change();
+
+-- ============================================================================
+-- 11. PAY FOR SEND PACKAGE WITH WALLET BALANCE (DATABASE-VERIFIED)
+-- ============================================================================
+CREATE OR REPLACE FUNCTION public.pay_send_order_with_wallet(
+    p_order_id TEXT
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_user_id UUID;
+    v_order RECORD;
+    v_wallet_id UUID;
+    v_current_balance NUMERIC;
+    v_required_amount NUMERIC;
+    v_new_balance NUMERIC;
+BEGIN
+    v_user_id := auth.uid();
+    IF v_user_id IS NULL THEN
+        RAISE EXCEPTION 'You must be logged in to pay with wallet balance.';
+    END IF;
+
+    -- Fetch order
+    SELECT * INTO v_order
+    FROM public.send_orders
+    WHERE id = p_order_id;
+
+    IF v_order IS NULL THEN
+        RAISE EXCEPTION 'Package order % not found.', p_order_id;
+    END IF;
+
+    IF v_order.user_id != v_user_id THEN
+        RAISE EXCEPTION 'Unauthorized to pay for this package order.';
+    END IF;
+
+    IF v_order.payment_status = 'paid' THEN
+        RAISE EXCEPTION 'This package order has already been paid for.';
+    END IF;
+
+    v_required_amount := v_order.delivery_fee;
+    IF v_required_amount IS NULL OR v_required_amount <= 0 THEN
+        RAISE EXCEPTION 'Invalid delivery fee for order %.', p_order_id;
+    END IF;
+
+    -- Lock the wallet row for update
+    SELECT id, balance INTO v_wallet_id, v_current_balance
+    FROM public.wallets
+    WHERE user_id = v_user_id
+    FOR UPDATE;
+
+    IF v_wallet_id IS NULL THEN
+        RAISE EXCEPTION 'Wallet not found. Please contact support.';
+    END IF;
+
+    IF v_current_balance < v_required_amount THEN
+        RAISE EXCEPTION 'Insufficient wallet balance. Total fee is ₦%, but your available balance is ₦%.',
+            v_required_amount, v_current_balance;
+    END IF;
+
+    v_new_balance := v_current_balance - v_required_amount;
+
+    -- 1. Deduct fee from wallet balance
+    UPDATE public.wallets
+    SET balance = v_new_balance,
+        updated_at = NOW()
+    WHERE id = v_wallet_id;
+
+    -- 2. Insert wallet transaction record
+    INSERT INTO public.wallet_transactions (
+        wallet_id,
+        amount,
+        type,
+        reference,
+        created_at
+    ) VALUES (
+        v_wallet_id,
+        v_required_amount,
+        'send_payment',
+        'Payment for SEND package ' || p_order_id,
+        NOW()
+    );
+
+    -- 3. Mark package order as paid and searching for riders
+    UPDATE public.send_orders
+    SET status = 'finding_rider',
+        payment_status = 'paid',
+        payment_ref = 'WALLET_' || p_order_id || '_' || EXTRACT(EPOCH FROM NOW())::BIGINT,
+        paid_at = NOW(),
+        updated_at = NOW()
+    WHERE id = p_order_id;
+
+    -- 4. Create tracking log
+    INSERT INTO public.send_order_tracking_logs (
+        order_id,
+        status,
+        note,
+        created_at
+    ) VALUES (
+        p_order_id,
+        'finding_rider',
+        'Delivery fee of ₦' || v_required_amount || ' paid with wallet balance. Dispatch riders notified.',
+        NOW()
+    );
+
+    -- 5. Broadcast in-app notification to active dispatch riders
+    INSERT INTO public.notifications (user_id, type, message, read, created_at)
+    SELECT 
+        id, 
+        'new_send_mission', 
+        'New package delivery mission available: ₦' || v_required_amount || ' · ' || v_order.pickup_address, 
+        false, 
+        NOW()
+    FROM public.profiles
+    WHERE role = 'rider' OR role = 'logistics';
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'order_id', p_order_id,
+        'amount_paid', v_required_amount,
+        'remaining_balance', v_new_balance
     );
 END;
 $$;

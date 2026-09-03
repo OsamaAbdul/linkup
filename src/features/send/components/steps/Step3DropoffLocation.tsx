@@ -21,6 +21,7 @@ import { SendOrderFormData } from '../../schemas/sendOrderSchema';
 import { useLocationDetector } from '../../hooks/useLocationDetector';
 import { useSavedAddresses } from '../../hooks/useSavedAddresses';
 import { SavedAddress } from '../../types';
+import { AddressAutocompleteInput } from '../AddressAutocompleteInput';
 
 interface Step3Props {
   formData: SendOrderFormData;
@@ -109,41 +110,25 @@ export function Step3DropoffLocation({ formData, onChange, onNext, onBack }: Ste
             </div>
           )}
 
-          {/* Drop-off Address Input & GPS Button */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs font-semibold text-foreground flex items-center gap-1">
-                <Navigation className="w-3.5 h-3.5 text-blue-600" />
-                <span>Drop-off Address</span> <span className="text-destructive">*</span>
-              </Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={isDetecting}
-                onClick={handleDetect}
-                className="h-7 text-xs px-2.5 gap-1.5 border-primary/30 text-primary hover:bg-primary/10 transition-colors"
-              >
-                {isDetecting ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Navigation className="w-3 h-3" />
-                )}
-                <span>{isDetecting ? 'Detecting...' : 'Detect Location'}</span>
-              </Button>
-            </div>
-            <Input
-              placeholder="e.g. Suite 8, Nicon Plaza, Wuse 2, Abuja"
-              value={formData.dropoffAddress}
-              onChange={(e) => onChange({ dropoffAddress: e.target.value })}
-              className={errors.dropoffAddress ? 'border-destructive focus-visible:ring-destructive' : ''}
-            />
-            {errors.dropoffAddress && (
-              <p className="text-[11px] text-destructive flex items-center gap-1">
-                <AlertCircle className="w-3 h-3" /> {errors.dropoffAddress}
-              </p>
-            )}
-          </div>
+          {/* Drop-off Address Input with Autocomplete & Geocoding */}
+          <AddressAutocompleteInput
+            label="Drop-off Address"
+            icon={<Navigation className="w-3.5 h-3.5 text-blue-600" />}
+            placeholder="e.g. Suite 8, Nicon Plaza, Wuse 2, Abuja"
+            value={formData.dropoffAddress}
+            latitude={formData.dropoffLat}
+            longitude={formData.dropoffLng}
+            error={errors.dropoffAddress}
+            isRequired
+            onChangeAddress={(text) => onChange({ dropoffAddress: text })}
+            onSelectLocation={({ address, latitude, longitude }) => {
+              onChange({
+                dropoffAddress: address,
+                dropoffLat: latitude,
+                dropoffLng: longitude,
+              });
+            }}
+          />
 
           {/* Recipient Name & Phone */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">

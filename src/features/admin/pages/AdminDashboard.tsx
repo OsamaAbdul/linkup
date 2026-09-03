@@ -16,9 +16,10 @@ const AdminFeeConfig = lazy(() => import("@/features/admin/components/dashboard/
 const AdminDisputeManager = lazy(() => import("@/features/admin/components/dashboard/AdminDisputeManager"));
 const AdminCategoryManager = lazy(() => import("@/features/admin/components/dashboard/AdminCategoryManager"));
 const AdminAnalytics = lazy(() => import("@/features/admin/components/dashboard/AdminAnalytics"));
+const AdminSendPackagesManager = lazy(() => import("@/features/admin/components/dashboard/AdminSendPackagesManager"));
 
 interface AdminDashboardProps {
-    activeSection?: "overview" | "orders" | "users" | "issues" | "disputes" | "history" | "kyc" | "payments" | "logistics" | "fees" | "categories" | "analytics";
+    activeSection?: "overview" | "orders" | "packages" | "send-packages" | "users" | "issues" | "disputes" | "history" | "kyc" | "payments" | "logistics" | "fees" | "categories" | "analytics";
 }
 
 export default function AdminDashboard({ activeSection = "overview" }: AdminDashboardProps) {
@@ -97,6 +98,7 @@ export default function AdminDashboard({ activeSection = "overview" }: AdminDash
             <Suspense fallback={<AdminSectionSkeleton />}>
                 {activeSection === "overview" && <AdminOverview />}
                 {activeSection === "orders" && <AdminOrderTracker />}
+                {(activeSection === "packages" || activeSection === "send-packages") && <AdminSendPackagesManager />}
                 {activeSection === "users" && <AdminUserManagement />}
                 {activeSection === "issues" && <AdminIssueManager />}
                 {activeSection === "history" && <AdminSystemHistory />}

@@ -8,6 +8,7 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 export default function AdminOverview() {
     const { data: revenueData, isLoading: isRevLoading } = useQuery({
@@ -135,12 +136,24 @@ export default function AdminOverview() {
         }
     };
 
-    const stats = [
+    const { data: totalSendPackagesCount, isLoading: isSendPackagesLoading } = useQuery({
+        queryKey: ["admin-total-send-packages-count"],
+        queryFn: async () => {
+            const { count, error } = await (supabase as any)
+                .from("send_orders")
+                .select("*", { count: 'exact', head: true });
+            if (error) return 0;
+            return count || 0;
+        },
+        staleTime: 1000 * 60 * 3,
+    });
 
-        { label: "Ongoing Orders", value: activeOrdersCount, icon: ShoppingBag, loading: isActiveOrdersLoading },
-        { label: "Total Orders", value: totalOrdersCount, icon: Package, loading: isTotalOrdersLoading },
-        { label: "Total Users", value: usersCount, icon: Users, loading: isUsersLoading },
-        { label: "Complaints", value: openIssuesCount, icon: AlertTriangle, loading: isIssuesLoading },
+    const stats = [
+        { label: "Ongoing Orders", value: activeOrdersCount, icon: ShoppingBag, loading: isActiveOrdersLoading, link: "/admin/orders" },
+        { label: "Total Orders", value: totalOrdersCount, icon: Package, loading: isTotalOrdersLoading, link: "/admin/orders" },
+        { label: "Sent Packages", value: totalSendPackagesCount, icon: Package, loading: isSendPackagesLoading, link: "/admin/packages" },
+        { label: "Total Users", value: usersCount, icon: Users, loading: isUsersLoading, link: "/admin/users" },
+        { label: "Complaints", value: openIssuesCount, icon: AlertTriangle, loading: isIssuesLoading, link: "/admin/issues" },
     ];
 
     return (
@@ -175,29 +188,38 @@ export default function AdminOverview() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                {stats.map((stat, i) => (
-                    <Card key={i} className="border-none shadow-sm rounded-xl bg-white group hover:shadow-md transition-all duration-300">
-                        <CardContent className="p-5">
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                                    <stat.icon size={20} strokeWidth={2.5} />
+                {stats.map((stat, i) => {
+                    const cardElement = (
+                        <Card key={i} className="border-none shadow-sm rounded-xl bg-white group hover:shadow-md transition-all duration-300 cursor-pointer h-full">
+                            <CardContent className="p-5">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                                        <stat.icon size={20} strokeWidth={2.5} />
+                                    </div>
+                                    <span className="text-[10px] font-bold text-muted-foreground group-hover:text-primary transition-colors flex items-center gap-0.5">
+                                        View <ArrowUpRight size={12} />
+                                    </span>
                                 </div>
+                                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.15em]">{stat.label}</p>
+                                <div className="text-xl font-black text-foreground mt-1">
+                                    {stat.loading ? (
+                                        <div className="h-7 w-20 bg-gray-100 animate-pulse rounded-lg" />
+                                    ) : (
+                                        (stat.value || 0).toLocaleString()
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    );
 
-                            </div>
-                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.15em]">{stat.label}</p>
-                            <div className="text-xl font-black text-foreground mt-1">
-                                {stat.loading ? (
-                                    <div className="h-7 w-20 bg-gray-100 animate-pulse rounded-lg" />
-                                ) : (
-                                    <>
-
-                                        {(stat.value || 0).toLocaleString()}
-                                    </>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
+                    return stat.link ? (
+                        <Link key={i} to={stat.link} className="block">
+                            {cardElement}
+                        </Link>
+                    ) : (
+                        cardElement
+                    );
+                })}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

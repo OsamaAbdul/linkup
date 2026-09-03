@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import {
     LayoutDashboard, Users, ShoppingBag, AlertTriangle,
-    History, LogOut, ShieldCheck, Bell, Menu, FileCheck, CreditCard, Truck, Wallet, Scale, Grid, LineChart
+    History, LogOut, ShieldCheck, Bell, Menu, FileCheck, CreditCard, Truck, Wallet, Scale, Grid, LineChart, Package
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
@@ -25,6 +25,7 @@ const SidebarContent = ({
     setIsMobileOpen,
     openIssuesCount,
     openDisputesCount,
+    pendingPackagesCount,
     signOut,
     navigate
 }: {
@@ -33,6 +34,7 @@ const SidebarContent = ({
     setIsMobileOpen: (o: boolean) => void,
     openIssuesCount: number,
     openDisputesCount: number,
+    pendingPackagesCount: number,
     signOut: () => Promise<void>,
     navigate: any
 }) => (
@@ -70,6 +72,11 @@ const SidebarContent = ({
                             {item.label === "Support Tickets" && openIssuesCount > 0 && (
                                 <Badge className="ml-auto bg-white/20 text-white border-none text-[10px] rounded-full h-5 min-w-5 flex items-center justify-center font-black">
                                     {openIssuesCount}
+                                </Badge>
+                            )}
+                            {item.label === "Send Packages" && pendingPackagesCount > 0 && (
+                                <Badge className="ml-auto bg-amber-500 text-white border-none text-[10px] rounded-full h-5 min-w-5 flex items-center justify-center font-black">
+                                    {pendingPackagesCount}
                                 </Badge>
                             )}
                             {item.label === "Conflicts" && openDisputesCount > 0 && (
@@ -127,9 +134,24 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             return count || 0;
         }
     });
+
+    const { data: pendingPackagesCount } = useQuery({
+        queryKey: ["admin-sidebar-pending-packages-count"],
+        queryFn: async () => {
+            const { count, error } = await (supabase as any)
+                .from("send_orders")
+                .select("*", { count: 'exact', head: true })
+                .in("status", ["finding_rider", "pending_payment"]);
+            if (error) return 0;
+            return count || 0;
+        },
+        refetchInterval: 20000,
+    });
+
     const navItems = [
         { icon: LayoutDashboard, label: "Overview", path: "/admin" },
         { icon: ShoppingBag, label: "All Orders", path: "/admin/orders" },
+        { icon: Package, label: "Send Packages", path: "/admin/packages" },
         { icon: Users, label: "All Users", path: "/admin/users" },
         { icon: FileCheck, label: "KYC Verifications", path: "/admin/kyc" },
         { icon: AlertTriangle, label: "Complaints", path: "/admin/issues" },
@@ -138,7 +160,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         { icon: Grid, label: "Categories", path: "/admin/categories" },
         { icon: Wallet, label: "Price Configuration", path: "/admin/fees" },
         { icon: LineChart, label: "Analytics & Reports", path: "/admin/analytics" },
-
     ];
 
     const sidebarProps = {
@@ -147,6 +168,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         setIsMobileOpen,
         openIssuesCount: openIssuesCount || 0,
         openDisputesCount: openDisputesCount || 0,
+        pendingPackagesCount: pendingPackagesCount || 0,
         signOut,
         navigate
     };

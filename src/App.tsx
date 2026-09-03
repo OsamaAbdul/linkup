@@ -118,6 +118,8 @@ const App = () => (
                           <Routes>
                             <Route index element={<AdminDashboard />} />
                             <Route path="orders" element={<AdminDashboard activeSection="orders" />} />
+                            <Route path="packages" element={<AdminDashboard activeSection="packages" />} />
+                            <Route path="send-packages" element={<AdminDashboard activeSection="packages" />} />
                             <Route path="users" element={<AdminDashboard activeSection="users" />} />
                             <Route path="issues" element={<AdminDashboard activeSection="issues" />} />
                             <Route path="history" element={<AdminDashboard activeSection="history" />} />

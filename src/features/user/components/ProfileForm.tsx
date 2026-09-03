@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/components/ui/card";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { Button } from "@/shared/components/ui/button";
@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { User, Phone, MapPin, Home, Info, Loader2, Save, Mail, Navigation, AlertCircle, CheckCircle2 } from "lucide-react";
+import { User, Phone, MapPin, Home, Info, Loader2, Save, Mail, Navigation, AlertCircle, CheckCircle2, Camera } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
 import { useCities, useZones } from "@/shared/hooks/use-marketplace-metadata";
 import { useGeolocation } from "@/features/logistics/hooks/useGeolocation";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,68 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
     latitude: null as number | null,
     longitude: null as number | null,
   });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string>(profile?.avatar_url || "");
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (profile?.avatar_url) {
+      setAvatarUrl(profile.avatar_url);
+    }
+  }, [profile?.avatar_url]);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image file must be under 5MB");
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      const fileExt = file.name.split(".").pop() || "jpg";
+      const fileName = `${user.id}/avatar_${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicData } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(fileName);
+
+      const publicUrl = publicData.publicUrl;
+
+      const { error: profileError } = await (supabase as any)
+        .from("profiles")
+        .update({
+          avatar_url: publicUrl,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id);
+
+      if (profileError) throw profileError;
+
+      setAvatarUrl(publicUrl);
+      refreshProfile();
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({ queryKey: ["logistics-details"] });
+      toast.success("Profile picture updated successfully!");
+    } catch (err: any) {
+      console.error("Avatar upload error:", err);
+      toast.error("Failed to upload photo: " + (err.message || "Unknown error"));
+    } finally {
+      setIsUploadingAvatar(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
 
   const { data: cities = [] } = useCities();
   const { data: zones = [] } = useZones(formData.city_id);
@@ -183,7 +246,53 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
             </CardTitle>
             <CardDescription className="text-xs font-semibold uppercase tracking-widest text-muted-foreground opacity-70">Identity & Contact Info</CardDescription>
           </CardHeader>
-          <CardContent className="p-6 space-y-4">
+          <CardContent className="p-6 space-y-5">
+            {/* Profile Picture Upload Section */}
+            <div className="flex flex-col sm:flex-row items-center gap-5 p-4 rounded-2xl bg-muted/30 border border-black/[0.04]">
+              <div className="relative group">
+                <Avatar className="w-20 h-20 border-2 border-primary/25 shadow-md">
+                  <AvatarImage src={avatarUrl || profile?.avatar_url || ""} />
+                  <AvatarFallback className="bg-primary/10 text-primary font-black text-xl">
+                    {(formData.display_name || "U").charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                {isUploadingAvatar && (
+                  <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                    <Loader2 className="w-6 h-6 animate-spin text-white" />
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-1.5 text-center sm:text-left flex-1">
+                <p className="text-xs font-black uppercase tracking-wider text-foreground">
+                  Profile Photo
+                </p>
+                <p className="text-[11px] text-muted-foreground font-medium">
+                  Upload a clean photo for your LinkUp Logistics partner identity.
+                </p>
+                <div className="pt-1 flex items-center justify-center sm:justify-start gap-2">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarUpload}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isUploadingAvatar}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="rounded-xl text-xs font-bold gap-1.5 h-9 bg-white shadow-xs hover:border-primary/50"
+                  >
+                    <Camera size={14} className="text-primary" />
+                    <span>{isUploadingAvatar ? "Uploading..." : "Change Photo"}</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Display Name</Label>

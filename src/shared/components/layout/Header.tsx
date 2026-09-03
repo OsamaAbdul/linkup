@@ -1,4 +1,4 @@
-import { Bell, MapPin, User, LogOut, Package, CreditCard, Search, ShoppingCart, MessageSquare } from "lucide-react";
+import { Bell, MapPin, User, LogOut, Package, CreditCard, Search, ShoppingCart, MessageSquare, Send } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -224,6 +224,12 @@ export function Header() {
                     <DropdownMenuItem className="cursor-pointer rounded-xl py-3 px-3 focus:bg-primary/5 focus:text-primary">
                       <Package className="mr-3 h-4 w-4" />
                       <span className="font-semibold">My Orders</span>
+                    </DropdownMenuItem>
+                  </Link>
+                  <Link to="/send/history">
+                    <DropdownMenuItem className="cursor-pointer rounded-xl py-3 px-3 focus:bg-primary/5 focus:text-primary">
+                      <Send className="mr-3 h-4 w-4 text-primary" />
+                      <span className="font-semibold">My Sent Packages</span>
                     </DropdownMenuItem>
                   </Link>
                   <DropdownMenuSeparator className="bg-white/5 my-2" />

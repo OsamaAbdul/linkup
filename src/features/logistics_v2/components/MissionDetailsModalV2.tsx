@@ -49,6 +49,29 @@ export function MissionDetailsModalV2({ shipment, open, onOpenChange }: MissionD
         queryKey: ["shipment-details-v2", shipment?.id],
         queryFn: async () => {
             if (!shipment?.id) return null;
+
+            // Handle SEND package order
+            if (shipment.is_send_order || String(shipment.id || '').startsWith("LSEND") || String(shipment.order_id || '').startsWith("LSEND")) {
+                const { data: sendData } = await (supabase as any)
+                    .from("send_orders")
+                    .select("*")
+                    .eq("id", shipment.order_id || shipment.id)
+                    .maybeSingle();
+
+                if (sendData) {
+                    return {
+                        ...shipment,
+                        ...sendData,
+                        is_send_order: true,
+                        pickup_address: sendData.pickup_address,
+                        delivery_address: sendData.dropoff_address,
+                        delivery_fee: sendData.delivery_fee,
+                        seller: { name: sendData.sender_name, phone: sendData.sender_phone, address: sendData.pickup_address },
+                        buyer: { name: sendData.dropoff_recipient_name, phone: sendData.dropoff_recipient_phone, address: sendData.dropoff_address },
+                        package_details: sendData.package_details,
+                    };
+                }
+            }
             
             // Fetch as a list with limit(1) to avoid PGRST116 coercion errors entirely
             const { data, error } = await (supabase as any)
@@ -79,6 +102,38 @@ export function MissionDetailsModalV2({ shipment, open, onOpenChange }: MissionD
         mutationFn: async (newStatus: string) => {
             const orderId = activeShipment?.order_id || activeShipment?.id;
             const currentUserId = (await supabase.auth.getUser()).data.user?.id;
+
+            // Handle SEND Package transitions
+            if (activeShipment?.is_send_order || String(activeShipment?.id || '').startsWith("LSEND") || String(orderId || '').startsWith("LSEND")) {
+                if (newStatus === 'accepted') {
+                    const { data: claimData, error: claimError } = await (supabase as any).rpc("claim_send_order_mission", {
+                        p_order_id: orderId,
+                        p_rider_id: currentUserId,
+                    });
+                    if (claimError) throw claimError;
+                    if (!claimData?.success) throw new Error(claimData?.error || "Mission already accepted");
+                } else {
+                    const statusMap: Record<string, string> = {
+                        'started': 'assigned_rider',
+                        'arrived': 'pickup',
+                        'picked_up': 'on_the_way',
+                        'delivered': 'delivered',
+                    };
+                    const updatePayload: any = {
+                        status: mapped,
+                        updated_at: new Date().toISOString(),
+                    };
+                    if (mapped === 'delivered') {
+                        updatePayload.delivered_at = new Date().toISOString();
+                    }
+                    const { error } = await (supabase as any)
+                        .from("send_orders")
+                        .update(updatePayload)
+                        .eq("id", orderId);
+                    if (error) throw error;
+                }
+                return;
+            }
 
             if (newStatus === 'accepted') {
                 const { data: claimData, error: claimError } = await (supabase as any).rpc("claim_order_mission", {
@@ -195,21 +250,54 @@ export function MissionDetailsModalV2({ shipment, open, onOpenChange }: MissionD
                             <ShieldCheck size={32} className="text-emerald-200" />
                         </div>
 
+                        {/* Package Details (if Send Order) */}
+                        {activeShipment?.package_details && (
+                            <div className="bg-orange-500/10 p-5 rounded-[24px] border border-orange-500/20 space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <p className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-2">
+                                        <Package size={14} strokeWidth={2.5} /> Package Specifications
+                                    </p>
+                                    <Badge className="bg-white text-orange-800 border-orange-200 text-[10px] font-extrabold">
+                                        {activeShipment.package_details.weight_kg <= 2 ? 'Small (Under 2kg)' : `${activeShipment.package_details.weight_kg}kg`}
+                                    </Badge>
+                                </div>
+                                <div className="text-xs text-foreground flex items-center gap-2">
+                                    <span className="font-semibold text-muted-foreground">Contents:</span>
+                                    <span className="font-bold">{activeShipment.package_details.contents || 'General Parcel'}</span>
+                                    {activeShipment.package_details.is_fragile && (
+                                        <Badge variant="destructive" className="text-[9px] px-1.5 py-0 ml-1">
+                                            Fragile ⚠️
+                                        </Badge>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Contacts Grid */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="bg-muted/30 p-5 rounded-[24px] border border-black/[0.03] space-y-2">
                                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                                    <Smartphone size={12} strokeWidth={3} /> Seller
+                                    <Smartphone size={12} strokeWidth={3} /> {activeShipment?.is_send_order ? 'Sender' : 'Seller'}
                                 </p>
-                                <p className="font-black text-[15px]">{sellerInfo.name}</p>
-                                <p className="text-sm font-bold text-[#E96F28]">{sellerInfo.phone}</p>
+                                <p className="font-black text-[15px]">{activeShipment?.sender_name || sellerInfo.name}</p>
+                                <a
+                                    href={`tel:${activeShipment?.sender_phone || sellerInfo.phone}`}
+                                    className="text-sm font-bold text-[#E96F28] hover:underline flex items-center gap-1"
+                                >
+                                    <span>{activeShipment?.sender_phone || sellerInfo.phone || 'No phone'}</span>
+                                </a>
                             </div>
                             <div className="bg-muted/30 p-5 rounded-[24px] border border-black/[0.03] space-y-2">
                                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                                    <Smartphone size={12} strokeWidth={3} /> Recipient
+                                    <Smartphone size={12} strokeWidth={3} /> {activeShipment?.is_send_order ? 'Recipient' : 'Buyer'}
                                 </p>
-                                <p className="font-black text-[15px]">{buyer.name}</p>
-                                <p className="text-sm font-bold text-[#E96F28]">{buyer.phone}</p>
+                                <p className="font-black text-[15px]">{activeShipment?.recipient_name || buyer.name}</p>
+                                <a
+                                    href={`tel:${activeShipment?.recipient_phone || buyer.phone}`}
+                                    className="text-sm font-bold text-emerald-600 hover:underline flex items-center gap-1"
+                                >
+                                    <span>{activeShipment?.recipient_phone || buyer.phone || 'No phone'}</span>
+                                </a>
                             </div>
                         </div>
 

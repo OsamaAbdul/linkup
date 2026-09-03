@@ -90,10 +90,85 @@ export function ShipmentFeedV2({ defaultFilter = "all" }: { defaultFilter?: stri
                         };
                     });
                 }
+
+                // 2b. Fetch Unassigned SEND Package Orders
+                try {
+                    const { data: sendOrders } = await (supabase as any)
+                        .from("send_orders")
+                        .select("*")
+                        .eq("status", "finding_rider")
+                        .order("created_at", { ascending: false });
+
+                    if (sendOrders && sendOrders.length > 0) {
+                        const sendMissions = sendOrders.map((s: any) => ({
+                            id: s.id,
+                            order_id: s.id,
+                            is_send_order: true,
+                            status: "pending",
+                            pickup_address: s.pickup_address,
+                            pickup_directions: s.pickup_directions,
+                            delivery_address: s.dropoff_address,
+                            dropoff_directions: s.dropoff_directions,
+                            delivery_fee: s.delivery_fee,
+                            created_at: s.created_at,
+                            sender_name: s.sender_name,
+                            sender_phone: s.sender_phone,
+                            recipient_name: s.dropoff_recipient_name,
+                            recipient_phone: s.dropoff_recipient_phone,
+                            seller: { name: s.sender_name, phone: s.sender_phone, address: s.pickup_address },
+                            buyer: { name: s.dropoff_recipient_name, phone: s.dropoff_recipient_phone, address: s.dropoff_address },
+                            package_details: s.package_details,
+                        }));
+                        broadcastData.push(...sendMissions);
+                    }
+                } catch (sendErr) {
+                    console.warn("Could not query send_orders broadcast:", sendErr);
+                }
+            }
+
+            // Also include My Assigned SEND Packages
+            let mySendAssignments: any[] = [];
+            try {
+                let sendQuery = (supabase as any)
+                    .from("send_orders")
+                    .select("*")
+                    .eq("rider_id", user.id);
+
+                if (filterStatus === "active") {
+                    sendQuery = sendQuery.in("status", ["assigned_rider", "pickup", "on_the_way"]);
+                } else if (filterStatus === "delivered") {
+                    sendQuery = sendQuery.eq("status", "delivered");
+                }
+
+                const { data: assignedSend } = await sendQuery;
+                if (assignedSend && assignedSend.length > 0) {
+                    mySendAssignments = assignedSend.map((s: any) => ({
+                        id: s.id,
+                        order_id: s.id,
+                        is_send_order: true,
+                        rider_id: s.rider_id,
+                        status: s.status === "assigned_rider" ? "assigned" : s.status === "pickup" ? "picked_up" : s.status === "on_the_way" ? "in_transit" : s.status,
+                        pickup_address: s.pickup_address,
+                        pickup_directions: s.pickup_directions,
+                        delivery_address: s.dropoff_address,
+                        dropoff_directions: s.dropoff_directions,
+                        delivery_fee: s.delivery_fee,
+                        created_at: s.created_at,
+                        sender_name: s.sender_name,
+                        sender_phone: s.sender_phone,
+                        recipient_name: s.dropoff_recipient_name,
+                        recipient_phone: s.dropoff_recipient_phone,
+                        seller: { name: s.sender_name, phone: s.sender_phone, address: s.pickup_address },
+                        buyer: { name: s.dropoff_recipient_name, phone: s.dropoff_recipient_phone, address: s.dropoff_address },
+                        package_details: s.package_details,
+                    }));
+                }
+            } catch (err) {
+                console.warn("Could not query assigned send_orders:", err);
             }
 
             // Combine and sort
-            const combined = [...(myData || []), ...broadcastData];
+            const combined = [...(myData || []), ...mySendAssignments, ...broadcastData];
             return combined.sort((a: any, b: any) => 
                 new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
             );

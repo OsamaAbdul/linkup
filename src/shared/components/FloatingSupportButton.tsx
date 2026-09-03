@@ -54,7 +54,7 @@ export const FloatingSupportButton = () => {
   const phoneNumber = "+234 814 444 5693";
 
   return (
-    <div className="fixed bottom-24 md:bottom-6 right-6 z-[100] flex flex-col items-end">
+    <div className="fixed bottom-24 md:bottom-6 left-6 z-[100] flex flex-col items-start">
       <AnimatePresence>
         {isOpen && (
           <m.div
@@ -62,7 +62,7 @@ export const FloatingSupportButton = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.8 }}
             transition={{ type: "spring", stiffness: 260, damping: 20 }}
-            className="mb-4 flex flex-col gap-3"
+            className="mb-4 flex flex-col gap-3 items-start"
           >
             <m.a
               href={`https://wa.me/${whatsappNumber}`}
@@ -91,11 +91,11 @@ export const FloatingSupportButton = () => {
       <AnimatePresence>
         {showTooltip && !isOpen && (
           <m.div
-            initial={{ opacity: 0, x: 20, scale: 0.9 }}
+            initial={{ opacity: 0, x: -20, scale: 0.9 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
-            exit={{ opacity: 0, x: 20, scale: 0.9 }}
+            exit={{ opacity: 0, x: -20, scale: 0.9 }}
             transition={{ type: "spring", stiffness: 200, damping: 15 }}
-            className="absolute bottom-16 right-0 mb-4 w-[240px] rounded-2xl bg-white p-4 shadow-2xl dark:bg-slate-800 border border-slate-100 dark:border-slate-700"
+            className="absolute bottom-16 left-0 mb-4 w-[240px] rounded-2xl bg-white p-4 shadow-2xl dark:bg-slate-800 border border-slate-100 dark:border-slate-700"
           >
             <div className="flex flex-col items-center gap-2 text-center">
               <m.span
@@ -112,7 +112,7 @@ export const FloatingSupportButton = () => {
               </p>
             </div>
             {/* Triangle pointer */}
-            <div className="absolute -bottom-2 right-6 h-4 w-4 rotate-45 border-b border-r border-slate-100 bg-white dark:border-slate-700 dark:bg-slate-800" />
+            <div className="absolute -bottom-2 left-6 h-4 w-4 rotate-45 border-b border-r border-slate-100 bg-white dark:border-slate-700 dark:bg-slate-800" />
           </m.div>
         )}
       </AnimatePresence>

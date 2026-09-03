@@ -33,6 +33,9 @@ const Chat = lazy(() => import("@/features/user/pages/Chat"));
 const PromoterDashboard = lazy(() => import("@/features/promoter/pages/PromoterDashboard"));
 const ResetPassword = lazy(() => import("@/features/auth/pages/ResetPassword"));
 const LogisticsDashboardV2 = lazy(() => import("@/features/logistics_v2/pages/LogisticsDashboardV2"));
+const SendPage = lazy(() => import("@/features/send/pages/SendPage"));
+const SendTrackingPage = lazy(() => import("@/features/send/pages/SendTrackingPage"));
+const SendOrdersHistoryPage = lazy(() => import("@/features/send/pages/SendOrdersHistoryPage"));
 
 import { persistQueryClient } from "@tanstack/react-query-persist-client";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
@@ -100,6 +103,10 @@ const App = () => (
                   <Route path="/logistics" element={<ProtectedRoute><LogisticsDashboardV2 /></ProtectedRoute>} />
                   <Route path="/logistics-dashboard" element={<ProtectedRoute><LogisticsDashboardV2 /></ProtectedRoute>} />
                   <Route path="/logistics-v2" element={<ProtectedRoute><LogisticsDashboardV2 /></ProtectedRoute>} />
+                  <Route path="/send" element={<ProtectedRoute><SendPage /></ProtectedRoute>} />
+                  <Route path="/send/track" element={<ProtectedRoute><SendTrackingPage /></ProtectedRoute>} />
+                  <Route path="/send/track/:orderId" element={<ProtectedRoute><SendTrackingPage /></ProtectedRoute>} />
+                  <Route path="/send/history" element={<ProtectedRoute><SendOrdersHistoryPage /></ProtectedRoute>} />
                   <Route path="/promoter-dashboard" element={<ProtectedRoute><PromoterDashboard /></ProtectedRoute>} />
                   <Route path="/seller-verification" element={<ProtectedRoute><SellerVerification /></ProtectedRoute>} />
                   <Route path="/admin-auth" element={<AdminAuth />} />

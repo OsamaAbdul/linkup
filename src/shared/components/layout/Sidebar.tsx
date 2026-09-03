@@ -7,7 +7,8 @@ import * as lucideIcons from "lucide-react";
 import {
     LayoutDashboard, Store, ShoppingBag, ShoppingCart, Heart, MessageSquare, HelpCircle,
     Grid, Activity, Smartphone, Shirt, Home as HomeIcon, MoreHorizontal,
-    Headphones, Watch, TrendingUp, Footprints, LogOut, CheckCircle2, Truck, ShieldCheck, X
+    Headphones, Watch, TrendingUp, Footprints, LogOut, CheckCircle2, Truck, ShieldCheck, X,
+    PackagePlus, Send
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
@@ -27,6 +28,8 @@ export function SidebarContent({ onNavItemClick }: { onNavItemClick?: () => void
 
     const mainNav = [
         { icon: HomeIcon, label: "Marketplace", path: "/" },
+        { icon: PackagePlus, label: "Send Package", path: "/send" },
+        { icon: Send, label: "Sent Packages", path: "/send/history" },
         { icon: ShoppingBag, label: "My Orders", path: "/orders" },
         { icon: ShoppingCart, label: "Cart", path: "/cart" },
         { icon: Heart, label: "Wishlist", path: "/wishlist" },

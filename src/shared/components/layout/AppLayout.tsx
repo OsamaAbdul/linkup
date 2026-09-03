@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Header } from "./Header";
 import { BottomNav } from "./BottomNav";
 import { Sidebar } from "./Sidebar";
+import { FloatingSendButton } from "@/shared/components/FloatingSendButton";
 import { cn } from "@/lib/utils";
 
 export function AppLayout({ children, hideBottomNav = false }: { children: ReactNode, hideBottomNav?: boolean }) {
@@ -54,6 +55,7 @@ export function AppLayout({ children, hideBottomNav = false }: { children: React
           <BottomNav />
         </div>
       )}
+      {!isSellerView && <FloatingSendButton />}
     </div>
   );
 }

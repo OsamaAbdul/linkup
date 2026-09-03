@@ -9,7 +9,10 @@ import {
     Menu,
     X,
     User,
-    LogOut
+    LogOut,
+    ChevronDown,
+    Lock,
+    Camera
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -20,6 +23,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationDropdown } from "@/features/logistics/components/NotificationDropdown";
 import { Switch } from "@/shared/components/ui/switch";
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+} from "@/shared/components/ui/dropdown-menu";
+import { EditProfileModal } from "@/features/user/components/EditProfileModal";
 import { toast } from "sonner";
 
 interface NavItem {
@@ -48,7 +59,7 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
 }) {
     const { user, profile, signOut } = useAuth();
     const queryClient = useQueryClient();
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
 
     const { data: unreadCount = 0 } = useQuery({
         queryKey: ["unread-notifications", user?.id],
@@ -89,46 +100,7 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
     }, [user, queryClient]);
 
     return (
-        <div className="min-h-[100dvh] bg-[#F9FAFB] flex flex-col lg:flex-row font-sans selection:bg-orange-100 selection:text-orange-900">
-            {/* Desktop Sidebar */}
-            <aside className="hidden lg:flex flex-col w-72 bg-white border-r border-black/[0.04] h-[100dvh] sticky top-0 p-6 z-50">
-                <div className="flex items-center gap-3 mb-12 px-2">
-                    <div className="w-10 h-10 rounded-2xl bg-[#E96F28] flex items-center justify-center text-white shadow-xl shadow-orange-600/20">
-                        <span className="font-black text-xl">L</span>
-                    </div>
-                    <span className="font-black text-xl tracking-tight uppercase">Linkup<span className="text-[#E96F28]"> PARTNER</span></span>
-                </div>
-
-                <nav className="flex-1 space-y-1.5">
-                    {navItems.map((item) => (
-                        <button
-                            key={item.id}
-                            onClick={() => onTabChange(item.id)}
-                            className={cn(
-                                "w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl transition-all duration-300 group",
-                                activeTab === item.id
-                                    ? "bg-[#E96F28] text-white shadow-lg shadow-orange-600/20"
-                                    : "text-muted-foreground hover:bg-gray-50 hover:text-foreground"
-                            )}
-                        >
-                            <item.icon size={20} strokeWidth={activeTab === item.id ? 2.5 : 2} />
-                            <span className="font-bold text-[13px] tracking-tight">{item.label}</span>
-                        </button>
-                    ))}
-                </nav>
-
-                <div className="mt-auto pt-6 border-t border-black/[0.04]">
-                    <Button
-                        variant="ghost"
-                        onClick={signOut}
-                        className="w-full justify-start gap-4 h-12 rounded-2xl text-red-500 hover:bg-red-50 hover:text-red-600 font-bold transition-all"
-                    >
-                        <LogOut size={20} />
-                        <span>Logout</span>
-                    </Button>
-                </div>
-            </aside>
-
+        <div className="min-h-[100dvh] bg-[#F9FAFB] flex flex-col font-sans selection:bg-orange-100 selection:text-orange-900">
             {/* Mobile Header */}
             <header className="lg:hidden h-18 bg-white/80 backdrop-blur-xl border-b border-black/[0.04] sticky top-0 z-[60] px-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -138,30 +110,7 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
                     <span className="font-black text-lg tracking-tight uppercase">Linkup</span>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    {/* Availability toggle (Mobile) */}
-                    <div className={cn(
-                        "flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-500",
-                        isOnline 
-                            ? "bg-emerald-50 border-emerald-100/50 text-emerald-700" 
-                            : "bg-gray-50 border-gray-200 text-gray-500"
-                    )}>
-                        <span className="text-[9px] font-black uppercase tracking-widest">{isOnline ? "Online" : "Offline"}</span>
-                        <Switch 
-                            checked={isOnline} 
-                            onCheckedChange={onOnlineToggle}
-                            className="scale-75 data-[state=checked]:bg-emerald-500"
-                        />
-                    </div>
-
-                    <button 
-                        onClick={signOut}
-                        className="p-2 text-red-500 transition-colors hover:text-red-600 active:scale-95"
-                        title="Logout"
-                    >
-                        <LogOut size={22} strokeWidth={2.2} />
-                    </button>
-
+                <div className="flex items-center gap-2">
                     <NotificationDropdown>
                         <button className="relative p-2 text-muted-foreground transition-colors hover:text-foreground">
                             <Bell size={22} strokeWidth={2.2} />
@@ -172,79 +121,90 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
                             )}
                         </button>
                     </NotificationDropdown>
-                    <Avatar className="h-9 w-9 border border-black/[0.04] shadow-sm ml-1">
-                        <AvatarImage src={profile?.avatar_url || ""} />
-                        <AvatarFallback className="bg-[#FFF7F2] text-[#E96F28] font-black text-xs uppercase">
-                            {profile?.display_name?.charAt(0) || "U"}
-                        </AvatarFallback>
-                    </Avatar>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button className="outline-none focus:outline-none cursor-pointer">
+                                <Avatar className="h-9 w-9 border border-black/[0.04] shadow-sm ml-1">
+                                    <AvatarImage src={profile?.avatar_url || ""} />
+                                    <AvatarFallback className="bg-[#FFF7F2] text-[#E96F28] font-black text-xs uppercase">
+                                        {profile?.display_name?.charAt(0) || "U"}
+                                    </AvatarFallback>
+                                </Avatar>
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-72 p-3 rounded-3xl bg-white border border-black/[0.06] shadow-2xl space-y-2.5 z-50">
+                            <div className="p-2.5 rounded-2xl bg-gray-50/80 border border-black/[0.02] flex items-center gap-3">
+                                <Avatar className="h-10 w-10 border border-black/[0.06] shadow-sm">
+                                    <AvatarImage src={profile?.avatar_url || ""} />
+                                    <AvatarFallback className="bg-[#FFF7F2] text-[#E96F28] font-black text-xs">
+                                        {(profile?.display_name || "U").charAt(0).toUpperCase()}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-black text-foreground truncate uppercase">
+                                        {profile?.display_name || "Oga Rider"}
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground truncate">{user?.email || "Rider Partner"}</p>
+                                </div>
+                            </div>
+                            <div className="p-2.5 rounded-2xl bg-gray-50/80 border border-black/[0.03] flex items-center justify-between">
+                                <div>
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground block">Available Balance</span>
+                                    <span className="text-sm font-black text-foreground">₦ {balance.toLocaleString()}</span>
+                                </div>
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => onTabChange("earnings")}
+                                    className="h-7 px-2 rounded-xl text-[10px] font-bold text-[#E96F28]"
+                                >
+                                    View
+                                </Button>
+                            </div>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => onTabChange("dashboard")} className="rounded-xl font-bold text-xs py-2 gap-2">
+                                <LayoutDashboard size={14} className="text-muted-foreground" />
+                                <span>Home</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onTabChange("orders")} className="rounded-xl font-bold text-xs py-2 gap-2">
+                                <ShoppingBag size={14} className="text-muted-foreground" />
+                                <span>Accept Missions</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onTabChange("earnings")} className="rounded-xl font-bold text-xs py-2 gap-2">
+                                <Wallet size={14} className="text-muted-foreground" />
+                                <span>Earnings</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onTabChange("settings")} className="rounded-xl font-bold text-xs py-2 gap-2">
+                                <Settings size={14} className="text-muted-foreground" />
+                                <span>Settings</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={signOut} className="rounded-xl font-bold text-xs py-2 gap-2 text-red-600">
+                                <LogOut size={14} />
+                                <span>Sign Out</span>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </header>
-
-            {/* Mobile Sidebar Overlay */}
-            <AnimatePresence>
-                {isSidebarOpen && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={() => setIsSidebarOpen(false)}
-                        className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[70] lg:hidden"
-                    />
-                )}
-            </AnimatePresence>
 
             {/* Main Content Area */}
             <main className="flex-1 flex flex-col min-h-[100dvh]">
                 {/* Desktop Top Bar */}
-                <header className="hidden lg:flex h-20 bg-white/50 backdrop-blur-md border-b border-black/[0.04] items-center justify-between px-10 sticky top-0 z-40">
-                    <div className="flex items-center gap-3">
-                        <h1 className="text-xl font-black tracking-tight capitalize">{activeTab}</h1>
+                <header className="hidden lg:flex h-20 bg-white/80 backdrop-blur-md border-b border-black/[0.04] items-center justify-between px-8 sticky top-0 z-40">
+                    <div className="flex items-center gap-4">
+                        {/* Brand Logo */}
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-2xl bg-[#E96F28] flex items-center justify-center text-white shadow-xl shadow-orange-600/20">
+                                <span className="font-black text-xl">L</span>
+                            </div>
+                            <span className="font-black text-xl tracking-tight uppercase">Linkup<span className="text-[#E96F28]"> PARTNER</span></span>
+                        </div>
                     </div>
 
-                    <div className="flex items-center gap-6">
-                        {/* Availability Toggle (Desktop) */}
-                        <div className={cn(
-                            "flex items-center gap-3 px-5 py-2.5 rounded-[20px] border transition-all duration-500 shadow-sm",
-                            isOnline 
-                                ? "bg-emerald-50 border-emerald-100 text-emerald-700" 
-                                : "bg-gray-50/50 border-black/[0.03] text-gray-500"
-                        )}>
-                            <div className="flex flex-col">
-                                <span className="text-[10px] font-black uppercase tracking-widest leading-none">Availability</span>
-                                <span className={cn("text-[8px] font-bold uppercase mt-1", isOnline ? "text-emerald-500" : "text-gray-400")}>
-                                    {isOnline ? "Receiving Missions" : "Off Duty"}
-                                </span>
-                            </div>
-                            <Switch 
-                                checked={isOnline} 
-                                onCheckedChange={onOnlineToggle}
-                                className="data-[state=checked]:bg-emerald-500"
-                            />
-                        </div>
-
-                        <div className="flex items-center gap-2 mr-4 bg-gray-50/50 px-4 py-2 rounded-2xl border border-black/[0.03]">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mr-2">Available</span>
-                            <span className="text-sm font-black text-foreground">₦ {balance.toLocaleString()}</span>
-                        </div>
-
-                        {escrow_balance > 0 && (
-                            <div className="flex items-center gap-2 mr-4 bg-amber-50/50 px-4 py-2 rounded-2xl border border-amber-100/50">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 mr-2">Security Hold</span>
-                                <span className="text-sm font-black text-amber-700">₦ {escrow_balance.toLocaleString()}</span>
-                            </div>
-                        )}
-
-                        <button 
-                            onClick={signOut}
-                            className="p-2.5 bg-white border border-black/[0.05] rounded-xl text-red-500 hover:text-red-600 hover:border-red-100 hover:shadow-sm transition-all"
-                            title="Logout"
-                        >
-                            <LogOut size={18} strokeWidth={2.5} />
-                        </button>
-
+                    <div className="flex items-center gap-3">
                         <NotificationDropdown>
-                            <button className="relative p-2.5 bg-white border border-black/[0.05] rounded-xl text-muted-foreground hover:text-[#E96F28] hover:border-orange-100 hover:shadow-sm transition-all group">
+                            <button className="relative p-2.5 bg-white border border-black/[0.05] rounded-2xl text-muted-foreground hover:text-[#E96F28] hover:border-orange-100 hover:shadow-sm transition-all group">
                                 <Bell size={18} strokeWidth={2.5} />
                                 {unreadCount > 0 && (
                                     <span className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-[#E96F28] text-[8px] font-bold text-white shadow-lg border-2 border-white animate-in zoom-in duration-300">
@@ -254,20 +214,180 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
                             </button>
                         </NotificationDropdown>
 
-                        <div className="flex items-center gap-3 group cursor-pointer pl-6 border-l border-black/[0.04]">
-                            <div className="text-right">
-                                <p className="text-sm font-black leading-tight group-hover:text-[#E96F28] transition-colors uppercase tracking-tight">{profile?.display_name || "Partner"}</p>
-                                {(kycStatus === 'verified' || kycStatus === 'approved') ? (
-                                    <p className="text-[10px] font-bold text-[#E96F28] uppercase tracking-widest leading-none mt-1">Verified Partner</p>
-                                ) : (
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none mt-1">Unverified Partner</p>
-                                )}
-                            </div>
-                            <Avatar className="h-10 w-10 border border-black/[0.04] shadow-md group-hover:scale-105 transition-transform duration-300">
-                                <AvatarImage src={profile?.avatar_url || ""} />
-                                <AvatarFallback className="bg-[#FFF7F2] text-[#E96F28] font-bold">U</AvatarFallback>
-                            </Avatar>
-                        </div>
+                        {/* Combined Logistics Header Dropdown */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button className="flex items-center gap-3 p-1.5 pl-3.5 pr-2.5 rounded-2xl bg-white border border-black/[0.05] hover:border-orange-200/80 shadow-sm transition-all group outline-none cursor-pointer">
+                                    <div className="text-right">
+                                        <div className="flex items-center gap-1.5 justify-end">
+                                            <span className={cn(
+                                                "w-2 h-2 rounded-full",
+                                                isOnline ? "bg-emerald-500 ring-2 ring-emerald-200 animate-pulse" : "bg-gray-300"
+                                            )} />
+                                            <p className="text-xs font-black text-foreground tracking-tight uppercase leading-tight group-hover:text-[#E96F28] transition-colors">
+                                                {profile?.display_name || profile?.name || "Oga Rider"}
+                                            </p>
+                                        </div>
+                                        <p className={cn(
+                                            "text-[9px] font-bold uppercase tracking-widest leading-none mt-1",
+                                            (kycStatus === 'verified' || kycStatus === 'approved')
+                                                ? "text-[#E96F28]"
+                                                : "text-muted-foreground"
+                                        )}>
+                                            {(kycStatus === 'verified' || kycStatus === 'approved') ? "Verified Partner" : "Partner"}
+                                        </p>
+                                    </div>
+
+                                    <Avatar className="h-9 w-9 border border-black/[0.06] shadow-sm group-hover:scale-105 transition-transform">
+                                        <AvatarImage src={profile?.avatar_url || ""} />
+                                        <AvatarFallback className="bg-[#FFF7F2] text-[#E96F28] font-bold text-xs">
+                                            {(profile?.display_name || profile?.name || "U").charAt(0).toUpperCase()}
+                                        </AvatarFallback>
+                                    </Avatar>
+
+                                    <ChevronDown size={15} className="text-muted-foreground group-hover:text-foreground transition-transform" />
+                                </button>
+                            </DropdownMenuTrigger>
+
+                            <DropdownMenuContent align="end" className="w-80 p-3 rounded-3xl bg-white border border-black/[0.06] shadow-2xl space-y-3 z-50">
+                                {/* Rider Card Header */}
+                                <div className="p-3 rounded-2xl bg-gray-50/80 border border-black/[0.02] flex items-center gap-3">
+                                    <div
+                                        className="relative group cursor-pointer"
+                                        onClick={() => setIsEditProfileOpen(true)}
+                                        title="Click to update profile photo"
+                                    >
+                                        <Avatar className="h-12 w-12 border-2 border-primary/20 shadow-sm transition-transform group-hover:scale-105">
+                                            <AvatarImage src={profile?.avatar_url || ""} />
+                                            <AvatarFallback className="bg-[#FFF7F2] text-[#E96F28] font-black text-sm">
+                                                {(profile?.display_name || profile?.name || "U").charAt(0).toUpperCase()}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                            <Camera size={14} className="text-white" />
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-black text-foreground tracking-tight truncate uppercase">
+                                            {profile?.display_name || profile?.name || "Oga Rider"}
+                                        </p>
+                                        <p className="text-[11px] text-muted-foreground truncate">{user?.email || "Rider Partner"}</p>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsEditProfileOpen(true)}
+                                            className="text-[10px] font-bold text-[#E96F28] hover:underline flex items-center gap-1 mt-0.5"
+                                        >
+                                            <Camera size={11} />
+                                            <span>Upload profile photo</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Section 1: Availability Switch */}
+                                <div className={cn(
+                                    "p-3.5 rounded-2xl border transition-all flex items-center justify-between",
+                                    isOnline
+                                        ? "bg-emerald-50/70 border-emerald-200 text-emerald-900"
+                                        : "bg-gray-50 border-gray-200 text-gray-700"
+                                )}>
+                                    <div className="space-y-0.5">
+                                        <span className="text-[10px] font-black uppercase tracking-widest block">Availability</span>
+                                        <span className={cn("text-[9px] font-bold block", isOnline ? "text-emerald-700" : "text-muted-foreground")}>
+                                            {isOnline ? "Receiving Missions (Online)" : "Off Duty (Offline)"}
+                                        </span>
+                                    </div>
+                                    <Switch
+                                        checked={isOnline}
+                                        onCheckedChange={onOnlineToggle}
+                                        className="data-[state=checked]:bg-emerald-500"
+                                    />
+                                </div>
+
+                                {/* Section 2: Wallet Balances */}
+                                <div className="space-y-2">
+                                    <div className="p-3 rounded-2xl bg-gray-50/80 border border-black/[0.03] flex items-center justify-between">
+                                        <div>
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground block">Available Balance</span>
+                                            <span className="text-base font-black text-foreground">₦ {balance.toLocaleString()}</span>
+                                        </div>
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() => onTabChange("earnings")}
+                                            className="h-7 px-2.5 rounded-xl text-[10px] font-bold text-[#E96F28] hover:bg-orange-50"
+                                        >
+                                            View
+                                        </Button>
+                                    </div>
+
+                                    {escrow_balance > 0 && (
+                                        <div className="p-3 rounded-2xl bg-amber-50/60 border border-amber-200/60 flex items-center justify-between">
+                                            <div>
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-amber-700 block">Security Hold</span>
+                                                <span className="text-sm font-black text-amber-900">₦ {escrow_balance.toLocaleString()}</span>
+                                            </div>
+                                            <Lock size={14} className="text-amber-600" />
+                                        </div>
+                                    )}
+                                </div>
+
+                                <DropdownMenuSeparator />
+
+                                {/* Section 3: Navigation Links */}
+                                <div className="space-y-0.5">
+                                    <DropdownMenuItem
+                                        onClick={() => onTabChange("dashboard")}
+                                        className="rounded-xl font-bold text-xs cursor-pointer py-2 gap-2.5"
+                                    >
+                                        <LayoutDashboard size={15} className="text-muted-foreground" />
+                                        <span>My Home</span>
+                                    </DropdownMenuItem>
+
+                                    <DropdownMenuItem
+                                        onClick={() => onTabChange("orders")}
+                                        className="rounded-xl font-bold text-xs cursor-pointer py-2 gap-2.5"
+                                    >
+                                        <ShoppingBag size={15} className="text-muted-foreground" />
+                                        <span>Accept Missions</span>
+                                    </DropdownMenuItem>
+
+                                    <DropdownMenuItem
+                                        onClick={() => onTabChange("earnings")}
+                                        className="rounded-xl font-bold text-xs cursor-pointer py-2 gap-2.5"
+                                    >
+                                        <Wallet size={15} className="text-muted-foreground" />
+                                        <span>Wallet & Earnings</span>
+                                    </DropdownMenuItem>
+
+                                    <DropdownMenuItem
+                                        onClick={() => onTabChange("verification")}
+                                        className="rounded-xl font-bold text-xs cursor-pointer py-2 gap-2.5"
+                                    >
+                                        <ShieldCheck size={15} className="text-muted-foreground" />
+                                        <span>ID Verification</span>
+                                    </DropdownMenuItem>
+
+                                    <DropdownMenuItem
+                                        onClick={() => onTabChange("settings")}
+                                        className="rounded-xl font-bold text-xs cursor-pointer py-2 gap-2.5"
+                                    >
+                                        <Settings size={15} className="text-muted-foreground" />
+                                        <span>My Profile Settings</span>
+                                    </DropdownMenuItem>
+                                </div>
+
+                                <DropdownMenuSeparator />
+
+                                {/* Section 4: Sign Out */}
+                                <DropdownMenuItem
+                                    onClick={signOut}
+                                    className="rounded-xl font-bold text-xs cursor-pointer py-2 gap-2.5 text-red-600 focus:text-red-700 focus:bg-red-50"
+                                >
+                                    <LogOut size={15} />
+                                    <span>Sign Out</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </header>
 
@@ -305,6 +425,9 @@ export function LogisticsLayoutV2({ children, activeTab, onTabChange, balance = 
                     </button>
                 ))}
             </nav>
+
+            {/* Profile & Photo Modal */}
+            <EditProfileModal open={isEditProfileOpen} onOpenChange={setIsEditProfileOpen} />
         </div>
     );
 }

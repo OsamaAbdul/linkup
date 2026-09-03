@@ -205,7 +205,10 @@ export function Step5ConfirmAndPay({
           publicKey = (pkData as any)?.publicKey;
         } catch {}
       }
-      if (!publicKey) publicKey = 'pk_test_a68c07e0c8b21ffbe3c2cfbe9c4ce80c8ba269d0';
+
+      if (!publicKey) {
+        throw new Error('Paystack payment gateway is currently unavailable. Please check your network or try again.');
+      }
 
       const email =
         user?.email || `${formData.senderPhone.replace(/\D/g, '') || 'customer'}@linkup.delivery`;

@@ -99,8 +99,7 @@ export function Step2OrderPreview({ formData, onEdit, onPaymentSuccess }: Step2P
       }
 
       if (!publicKey) {
-        // Fallback demo key for testing if not configured
-        publicKey = 'pk_test_a68c07e0c8b21ffbe3c2cfbe9c4ce80c8ba269d0';
+        throw new Error('Paystack payment gateway is currently unavailable. Please check your network or try again.');
       }
 
       const email =

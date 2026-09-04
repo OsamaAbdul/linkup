@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import {
     LayoutDashboard, Users, ShoppingBag, AlertTriangle,
-    History, LogOut, ShieldCheck, Bell, Menu, FileCheck, CreditCard, Truck, Wallet, Scale, Grid, LineChart, Package
+    History, LogOut, ShieldCheck, Bell, Menu, FileCheck, CreditCard, Truck, Wallet, Scale, Grid, LineChart, Package, Mail
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
@@ -153,6 +153,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         { icon: ShoppingBag, label: "All Orders", path: "/admin/orders" },
         { icon: Package, label: "Send Packages", path: "/admin/packages" },
         { icon: Users, label: "All Users", path: "/admin/users" },
+        { icon: Mail, label: "Newsletter", path: "/admin/newsletter" },
         { icon: FileCheck, label: "KYC Verifications", path: "/admin/kyc" },
         { icon: AlertTriangle, label: "Complaints", path: "/admin/issues" },
         { icon: Truck, label: "Shipping Center", path: "/admin/logistics" },

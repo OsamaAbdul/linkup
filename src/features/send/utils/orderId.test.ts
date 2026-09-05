@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { generateSendOrderId, isValidSendOrderId } from './orderId';
 import { calculateHaversineDistance } from '../hooks/useSendPricing';
-import { sendOrderFormSchema } from '../schemas/sendOrderSchema';
+import { sendOrderFormSchema, strictSendOrderSchema } from '../schemas/sendOrderSchema';
 
 describe('Send Order Utilities & Schemas', () => {
   it('generates an order ID matching LSEND-XXXXXX-XXXX format', () => {
@@ -16,14 +16,14 @@ describe('Send Order Utilities & Schemas', () => {
     expect(isValidSendOrderId('')).toBe(false);
   });
 
-  it('calculates Haversine distance between two coordinates accurately', () => {
+  it('calculates Haversine distance between two coordinates accurately in KM', () => {
     // Abuja Central (9.0765, 7.3986) to Gwarinpa (9.1124, 7.4101) ~ 4.2 km
     const distance = calculateHaversineDistance(9.0765, 7.3986, 9.1124, 7.4101);
     expect(distance).toBeGreaterThan(3.5);
     expect(distance).toBeLessThan(5.5);
   });
 
-  it('validates a complete send order form schema', () => {
+  it('validates a complete send order form schema with coordinates', () => {
     const validData = {
       senderName: 'Musa Bello',
       senderPhone: '+2348012345678',
@@ -50,6 +50,29 @@ describe('Send Order Utilities & Schemas', () => {
 
     const parsed = sendOrderFormSchema.safeParse(validData);
     expect(parsed.success).toBe(true);
+
+    const strictParsed = strictSendOrderSchema.safeParse(validData);
+    expect(strictParsed.success).toBe(true);
+  });
+
+  it('fails strict validation when coordinates are missing', () => {
+    const missingCoordsData = {
+      senderName: 'Musa Bello',
+      senderPhone: '+2348012345678',
+      pickupAddress: 'Plot 120, Wuse 2, Abuja',
+      pickupLat: null,
+      pickupLng: null,
+      dropoffRecipientName: 'Amina Yusuf',
+      dropoffRecipientPhone: '+2348098765432',
+      dropoffAddress: 'House 14, 3rd Avenue, Gwarinpa, Abuja',
+      dropoffLat: null,
+      dropoffLng: null,
+      weightKg: 2.5,
+      packageContents: 'Documents',
+    };
+
+    const strictParsed = strictSendOrderSchema.safeParse(missingCoordsData);
+    expect(strictParsed.success).toBe(false);
   });
 
   it('fails validation when mandatory fields are missing', () => {

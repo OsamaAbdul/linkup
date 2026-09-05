@@ -12,7 +12,7 @@ import { Button } from "@/shared/components/ui/button";
 export default function Notifications() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { isSupported, permission, subscription, subscribe } = usePushNotifications();
+  const { isSupported, isSubscribed, isSubscribing, subscribe } = usePushNotifications();
 
   const { data: notifications = [] } = useQuery({
     queryKey: ["notifications", user?.id],
@@ -64,10 +64,10 @@ export default function Notifications() {
       <div className="p-4">
         <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-bold">Notifications</h1>
-            {isSupported && permission !== 'granted' && !subscription && (
-                <Button size="sm" onClick={subscribe} variant="outline" className="gap-2">
-                    <BellRing size={16} /> Enable Push Alerts
-                </Button>
+            {isSupported && !isSubscribed && (
+              <Button size="sm" onClick={() => subscribe()} disabled={isSubscribing} variant="outline" className="gap-2">
+                <BellRing size={16} /> {isSubscribing ? "Enabling..." : "Enable Push Alerts"}
+              </Button>
             )}
         </div>
         {notifications.length === 0 ? (

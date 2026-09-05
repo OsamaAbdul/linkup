@@ -10,12 +10,15 @@ import {
   ArrowLeft,
   Edit2,
   CheckCircle2,
+  Route,
+  MapPin,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { SendOrderFormData } from '../../schemas/sendOrderSchema';
 import { useSendPricing } from '../../hooks/useSendPricing';
+import { RoutePreviewMap } from '../RoutePreviewMap';
 
 interface Step4Props {
   formData: SendOrderFormData;
@@ -52,9 +55,19 @@ export function Step4ReviewAndPrice({
           Review your order
         </h2>
         <p className="text-xs text-muted-foreground">
-          Please confirm the details before we find a rider
+          Verified GPS coordinates and calculated delivery distance.
         </p>
       </div>
+
+      {/* LIVE ROUTE MAP */}
+      <RoutePreviewMap
+        pickupLat={formData.pickupLat}
+        pickupLng={formData.pickupLng}
+        dropoffLat={formData.dropoffLat}
+        dropoffLng={formData.dropoffLng}
+        distanceKm={pricing.distanceKm}
+        estimatedMinutes={pricing.estimatedMinutesRange}
+      />
 
       {/* 1. TRIP SUMMARY CARD */}
       <Card className="rounded-2xl border-border/70 shadow-sm bg-card overflow-hidden">
@@ -67,15 +80,23 @@ export function Step4ReviewAndPrice({
               Trip Summary
             </CardTitle>
           </div>
+          <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] font-bold">
+            {pricing.distanceKm} KM Route
+          </Badge>
         </CardHeader>
 
         <CardContent className="p-4 space-y-4">
           {/* Pickup */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-start gap-2.5">
-              <span className="w-3 h-3 rounded-full border-2 border-primary bg-background shrink-0 mt-0.5" />
+              <span className="w-3 h-3 rounded-full border-2 border-emerald-500 bg-background shrink-0 mt-0.5" />
               <div className="text-xs">
-                <p className="font-bold text-foreground">Pickup Location</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="font-bold text-foreground">Pickup Location</p>
+                  <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.2 rounded border border-emerald-200">
+                    {formData.pickupLat?.toFixed(4)}, {formData.pickupLng?.toFixed(4)}
+                  </span>
+                </div>
                 <p className="text-muted-foreground mt-0.5">{formData.pickupAddress}</p>
                 {formData.pickupDirections && (
                   <p className="text-[11px] text-muted-foreground italic mt-0.5">
@@ -99,15 +120,25 @@ export function Step4ReviewAndPrice({
             </div>
           </div>
 
-          {/* Connecting line */}
-          <div className="border-l-2 border-dashed border-muted ml-1.5 h-3 -my-2" />
+          {/* Connecting line with distance */}
+          <div className="flex items-center gap-2 ml-1.5 -my-1">
+            <div className="border-l-2 border-dashed border-primary h-5 ml-[2px]" />
+            <span className="text-[10px] font-bold text-primary bg-primary/5 px-2 py-0.5 rounded-full border border-primary/20">
+              {pricing.distanceKm} KM
+            </span>
+          </div>
 
           {/* Drop-off */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-start gap-2.5">
-              <span className="w-3 h-3 rounded-full border-2 border-emerald-500 bg-background shrink-0 mt-0.5" />
+              <span className="w-3 h-3 rounded-full border-2 border-blue-600 bg-background shrink-0 mt-0.5" />
               <div className="text-xs">
-                <p className="font-bold text-foreground">Drop-off Location</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="font-bold text-foreground">Drop-off Location</p>
+                  <span className="text-[10px] font-mono text-blue-700 bg-blue-50 dark:bg-blue-950/40 px-1.5 py-0.2 rounded border border-blue-200">
+                    {formData.dropoffLat?.toFixed(4)}, {formData.dropoffLng?.toFixed(4)}
+                  </span>
+                </div>
                 <p className="text-muted-foreground mt-0.5">{formData.dropoffAddress}</p>
                 {formData.dropoffDirections && (
                   <p className="text-[11px] text-muted-foreground italic mt-0.5">
@@ -139,6 +170,7 @@ export function Step4ReviewAndPrice({
                 <p className="font-bold text-foreground">Package Details</p>
                 <p className="text-muted-foreground mt-0.5">
                   Send a Package • {formData.weightKg <= 2 ? 'Small • Under 2kg' : `${formData.weightKg}kg`}
+                  {formData.isFragile && ' • Fragile'}
                 </p>
                 <p className="text-xs font-semibold text-foreground mt-0.5">{formData.packageContents}</p>
               </div>
@@ -159,9 +191,9 @@ export function Step4ReviewAndPrice({
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-primary" />
               <div className="text-xs">
-                <p className="font-bold text-foreground">Estimated Delivery</p>
+                <p className="font-bold text-foreground">Estimated Delivery Time</p>
                 <p className="text-[11px] text-primary font-extrabold">{pricing.estimatedMinutesRange}</p>
-                <p className="text-[10px] text-muted-foreground">Depending on traffic and rider availability</p>
+                <p className="text-[10px] text-muted-foreground">Calculated for {pricing.distanceKm} km route</p>
               </div>
             </div>
             <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold">
@@ -171,7 +203,7 @@ export function Step4ReviewAndPrice({
         </CardContent>
       </Card>
 
-      {/* 2. DELIVERY FEE BREAKDOWN */}
+      {/* 2. DELIVERY FEE BREAKDOWN (EXPLICIT KM FORMULA) */}
       <Card className="rounded-2xl border-border/70 shadow-sm bg-card overflow-hidden">
         <CardHeader className="pb-3 pt-4 px-4 border-b flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
@@ -182,6 +214,9 @@ export function Step4ReviewAndPrice({
               Delivery Fee Breakdown
             </CardTitle>
           </div>
+          <span className="text-[11px] font-semibold text-muted-foreground">
+            Base + ({pricing.distanceKm} km × ₦{pricing.perKmRate})
+          </span>
         </CardHeader>
         <CardContent className="p-4 space-y-2.5 text-xs">
           <div className="flex items-center justify-between text-muted-foreground">
@@ -189,7 +224,10 @@ export function Step4ReviewAndPrice({
             <span className="font-semibold text-foreground">₦{pricing.baseFee.toLocaleString()}</span>
           </div>
           <div className="flex items-center justify-between text-muted-foreground">
-            <span>Distance Fee ({pricing.distanceKm} km × ₦{pricing.perKmRate}/km)</span>
+            <span className="flex items-center gap-1">
+              <Route className="w-3 h-3 text-primary" />
+              <span>Distance Fee ({pricing.distanceKm} km × ₦{pricing.perKmRate}/km)</span>
+            </span>
             <span className="font-semibold text-foreground">₦{pricing.distanceFee.toLocaleString()}</span>
           </div>
           {pricing.packageSurcharge > 0 && (
@@ -200,16 +238,16 @@ export function Step4ReviewAndPrice({
           )}
           {pricing.fragileSurcharge > 0 && (
             <div className="flex items-center justify-between text-muted-foreground">
-              <span>Fragile Handling</span>
+              <span>Fragile Handling Surcharge</span>
               <span className="font-semibold text-foreground">+₦{pricing.fragileSurcharge.toLocaleString()}</span>
             </div>
           )}
           <div className="flex items-center justify-between text-muted-foreground">
-            <span>Service Fee</span>
+            <span>Platform Service Fee</span>
             <span className="font-semibold text-foreground">₦{pricing.serviceFee.toLocaleString()}</span>
           </div>
           <div className="pt-2 border-t flex items-center justify-between font-bold">
-            <span className="text-foreground">Total</span>
+            <span className="text-foreground">Total Delivery Fee</span>
             <span className="text-base text-primary font-extrabold font-heading">
               ₦{pricing.totalFee.toLocaleString()}
             </span>
@@ -217,50 +255,13 @@ export function Step4ReviewAndPrice({
         </CardContent>
       </Card>
 
-      {/* 3. PAYMENT METHOD (STRICTLY PAYSTACK) */}
-      <Card className="rounded-2xl border-border/70 shadow-sm bg-card overflow-hidden">
-        <CardHeader className="pb-3 pt-4 px-4 border-b">
-          <div className="flex items-center gap-2">
-            <CreditCard className="w-3.5 h-3.5 text-primary" />
-            <CardTitle className="text-xs font-bold font-heading text-foreground">
-              Payment Method
-            </CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="p-4">
-          <div className="w-full p-3.5 rounded-xl border border-primary/40 bg-primary/5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="w-4 h-4 rounded-full border border-primary flex items-center justify-center">
-                <span className="w-2 h-2 rounded-full bg-primary" />
-              </span>
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className="text-xs font-bold text-foreground">Paystack Checkout</p>
-                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] font-bold px-1.5 py-0">
-                    Default
-                  </Badge>
-                </div>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Card, Bank Transfer, USSD, Apple Pay
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-1 text-xs font-bold text-muted-foreground">
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 font-extrabold">VISA</span>
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-100 text-red-800 font-extrabold">MC</span>
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-extrabold">Verve</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 4. SAFE & SECURE BANNER */}
+      {/* 3. SAFE & SECURE BANNER */}
       <div className="p-3 rounded-xl bg-orange-500/5 border border-orange-500/20 flex items-center gap-2.5">
         <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
         <div>
-          <p className="text-xs font-bold text-foreground">Safe & Secure</p>
+          <p className="text-xs font-bold text-foreground">Safe & Insured Delivery</p>
           <p className="text-[11px] text-muted-foreground">
-            Your package is insured and protected every step of the way.
+            Accurate GPS routing ensures smooth rider pickup and doorstep drop-off.
           </p>
         </div>
       </div>

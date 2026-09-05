@@ -56,11 +56,80 @@ function NotificationsList({ user }: { user: any }) {
   );
 }
 
+import { reverseGeocode } from "@/features/send/hooks/useLocationDetector";
+import { usePushNotifications } from "@/shared/hooks/usePushNotifications";
+import { Loader2, Navigation, BellRing } from "lucide-react";
+import { toast } from "sonner";
+
 export function Header() {
-  const { user, profile, signOut } = useAuth();
+  const { isSubscribed, isSubscribing, subscribe } = usePushNotifications();
+
+  const { user, profile, signOut, refreshProfile } = useAuth();
   const { totalCount } = useCart();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
   const queryClient = useQueryClient();
+
+  const handleUpdateLocation = async () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setIsUpdatingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          const geo = await reverseGeocode(lat, lng);
+
+          const locationData = {
+            latitude: lat,
+            longitude: lng,
+            address: geo.address,
+            city: geo.city,
+            state: geo.state,
+            timestamp: Date.now(),
+          };
+
+          localStorage.setItem("linkup_user_location", JSON.stringify(locationData));
+          localStorage.setItem("linkup_location_prompted", "true");
+
+          if (user) {
+            await supabase
+              .from("profiles")
+              .update({
+                latitude: lat,
+                longitude: lng,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("user_id", user.id);
+            refreshProfile();
+          }
+
+          toast.success(`GPS Location Updated: ${geo.city || "Abuja"}!`, {
+            description: geo.address || `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+          });
+        } catch (err) {
+          console.warn("Location update error:", err);
+          toast.error("Failed to save location coordinates.");
+        } finally {
+          setIsUpdatingLocation(false);
+        }
+      },
+      (err) => {
+        setIsUpdatingLocation(false);
+        if (err.code === err.PERMISSION_DENIED) {
+          toast.error("Location permission denied in browser settings. Please allow access.");
+        } else {
+          toast.error("Location detection timed out.");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 }
+    );
+  };
+
 
   const { data: unreadCount = 0 } = useQuery({
     queryKey: ["unread-notifications", user?.id],
@@ -238,6 +307,70 @@ export function Header() {
                       <span className="font-semibold">My Wallet & Refunds</span>
                     </DropdownMenuItem>
                   </Link>
+                  <DropdownMenuItem
+                    onClick={handleUpdateLocation}
+                    disabled={isUpdatingLocation}
+                    className="cursor-pointer rounded-xl py-2.5 px-3 focus:bg-primary/5 focus:text-primary flex items-center justify-between"
+                  >
+                    <div className="flex items-center min-w-0">
+                      {isUpdatingLocation ? (
+                        <Loader2 className="mr-3 h-4 w-4 animate-spin text-primary shrink-0" />
+                      ) : (
+                        <MapPin className="mr-3 h-4 w-4 text-primary shrink-0" />
+                      )}
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-semibold text-xs text-foreground truncate">
+                          {profile?.latitude && profile?.longitude ? "Update GPS Location" : "Allow Location Access"}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground truncate">
+                          {profile?.latitude && profile?.longitude ? `${profile.latitude.toFixed(3)}, ${profile.longitude.toFixed(3)}` : "Set precise delivery coordinates"}
+                        </span>
+                      </div>
+                    </div>
+                    {profile?.latitude && profile?.longitude ? (
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm shrink-0 ml-2" title="Location active" />
+                    ) : (
+                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-primary/40 text-primary shrink-0 ml-2">
+                        Enable
+                      </Badge>
+                    )}
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onClick={async () => {
+                      if (!isSubscribed) {
+                        await subscribe();
+                      } else {
+                        toast.info("Push notifications are active on this device.");
+                      }
+                    }}
+                    disabled={isSubscribing}
+                    className="cursor-pointer rounded-xl py-2.5 px-3 focus:bg-primary/5 focus:text-primary flex items-center justify-between"
+                  >
+                    <div className="flex items-center min-w-0">
+                      {isSubscribing ? (
+                        <Loader2 className="mr-3 h-4 w-4 animate-spin text-primary shrink-0" />
+                      ) : (
+                        <BellRing className="mr-3 h-4 w-4 text-primary shrink-0" />
+                      )}
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-semibold text-xs text-foreground truncate">
+                          {isSubscribed ? "Push Alerts Active" : "Enable Push Notifications"}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground truncate">
+                          {isSubscribed ? "Live dispatch & order alerts" : "Instant order updates"}
+                        </span>
+                      </div>
+                    </div>
+                    {isSubscribed ? (
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm shrink-0 ml-2" title="Notifications active" />
+                    ) : (
+                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-primary/40 text-primary shrink-0 ml-2">
+                        Enable
+                      </Badge>
+                    )}
+                  </DropdownMenuItem>
+
                   <DropdownMenuSeparator className="bg-white/5 my-2" />
                   <div className="px-2 py-1">
                     <SoundToggle showLabel className="w-full justify-start" />

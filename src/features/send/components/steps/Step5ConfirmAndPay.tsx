@@ -14,6 +14,7 @@ import {
   ChevronUp,
   Sparkles,
   AlertCircle,
+  Route,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
@@ -27,6 +28,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { generateSendOrderId } from '../../utils/orderId';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { RoutePreviewMap } from '../RoutePreviewMap';
 
 interface Step5Props {
   formData: SendOrderFormData;
@@ -294,6 +296,16 @@ export function Step5ConfirmAndPay({
         </div>
       </div>
 
+      {/* LIVE ROUTE MAP PREVIEW */}
+      <RoutePreviewMap
+        pickupLat={formData.pickupLat}
+        pickupLng={formData.pickupLng}
+        dropoffLat={formData.dropoffLat}
+        dropoffLng={formData.dropoffLng}
+        distanceKm={pricing.distanceKm}
+        estimatedMinutes={pricing.estimatedMinutesRange}
+      />
+
       {/* 1. ORDER SUMMARY CARD */}
       <Card className="rounded-2xl border-border/70 shadow-sm bg-card overflow-hidden">
         <CardHeader className="pb-3 pt-4 px-4 border-b flex flex-row items-center justify-between">
@@ -305,22 +317,34 @@ export function Step5ConfirmAndPay({
               Order Summary
             </CardTitle>
           </div>
-          <button
-            type="button"
-            onClick={onEdit}
-            className="text-xs font-bold text-primary hover:underline"
-          >
-            Edit
-          </button>
+          <div className="flex items-center gap-2">
+            <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] font-bold">
+              {pricing.distanceKm} KM Route
+            </Badge>
+            <button
+              type="button"
+              onClick={onEdit}
+              className="text-xs font-bold text-primary hover:underline"
+            >
+              Edit
+            </button>
+          </div>
         </CardHeader>
 
         <CardContent className="p-4 space-y-4">
           {/* Pickup */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-start gap-2.5">
-              <span className="w-3 h-3 rounded-full border-2 border-primary bg-background shrink-0 mt-0.5" />
+              <span className="w-3 h-3 rounded-full border-2 border-emerald-500 bg-background shrink-0 mt-0.5" />
               <div className="text-xs">
-                <p className="font-bold text-foreground">Pickup Location</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="font-bold text-foreground">Pickup Location</p>
+                  {formData.pickupLat && (
+                    <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.2 rounded border border-emerald-200">
+                      {formData.pickupLat?.toFixed(4)}, {formData.pickupLng?.toFixed(4)}
+                    </span>
+                  )}
+                </div>
                 <p className="text-muted-foreground mt-0.5">{formData.pickupAddress}</p>
               </div>
             </div>
@@ -330,14 +354,21 @@ export function Step5ConfirmAndPay({
             </div>
           </div>
 
-          <div className="border-l-2 border-dashed border-muted ml-1.5 h-3 -my-2" />
+          <div className="border-l-2 border-dashed border-primary ml-1.5 h-3 -my-2" />
 
           {/* Drop-off */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-start gap-2.5">
-              <span className="w-3 h-3 rounded-full border-2 border-emerald-500 bg-background shrink-0 mt-0.5" />
+              <span className="w-3 h-3 rounded-full border-2 border-blue-600 bg-background shrink-0 mt-0.5" />
               <div className="text-xs">
-                <p className="font-bold text-foreground">Drop-off Location</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="font-bold text-foreground">Drop-off Location</p>
+                  {formData.dropoffLat && (
+                    <span className="text-[10px] font-mono text-blue-700 bg-blue-50 dark:bg-blue-950/40 px-1.5 py-0.2 rounded border border-blue-200">
+                      {formData.dropoffLat?.toFixed(4)}, {formData.dropoffLng?.toFixed(4)}
+                    </span>
+                  )}
+                </div>
                 <p className="text-muted-foreground mt-0.5">{formData.dropoffAddress}</p>
               </div>
             </div>
@@ -354,6 +385,7 @@ export function Step5ConfirmAndPay({
               <p className="font-bold text-foreground">Package Details</p>
               <p className="text-muted-foreground mt-0.5">
                 Send a Package • {formData.weightKg <= 2 ? 'Small • Under 2kg' : `${formData.weightKg}kg`}
+                {formData.isFragile && ' • Fragile'}
               </p>
               <p className="text-xs font-semibold text-foreground mt-0.5">{formData.packageContents}</p>
             </div>
@@ -369,11 +401,12 @@ export function Step5ConfirmAndPay({
             <Clock className="w-3.5 h-3.5" />
             <span>Estimated Delivery</span>
           </div>
-          <p className="text-xs font-extrabold text-emerald-600 mt-1">15 - 45 mins</p>
+          <p className="text-xs font-extrabold text-emerald-600 mt-1">{pricing.estimatedMinutesRange}</p>
           <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">
-            Depending on traffic and rider availability
+            Based on {pricing.distanceKm} km route
           </p>
         </Card>
+
 
         {/* Metric 2: Total Amount */}
         <Card className="rounded-xl border-border/70 p-3 bg-card shadow-sm">

@@ -16,6 +16,11 @@ import {
   useLocationDetector,
   GeocodeResult,
 } from '../hooks/useLocationDetector';
+import {
+  searchGooglePlaces,
+  getGooglePlaceDetails,
+  GooglePlaceSuggestion,
+} from '../utils/googleMapsLoader';
 
 interface AddressAutocompleteInputProps {
   label: string;
@@ -43,7 +48,9 @@ export function AddressAutocompleteInput({
   onSelectLocation,
 }: AddressAutocompleteInputProps) {
   const [query, setQuery] = useState(value || '');
-  const [suggestions, setSuggestions] = useState<GeocodeResult[]>([]);
+  const [suggestions, setSuggestions] = useState<
+    Array<{ displayName: string; primaryTitle: string; subtitle: string; placeId?: string; geocode?: GeocodeResult }>
+  >([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [hasManuallySelected, setHasManuallySelected] = useState(Boolean(latitude && longitude));
@@ -86,25 +93,84 @@ export function AddressAutocompleteInput({
 
     debounceTimer.current = setTimeout(async () => {
       setIsLoading(true);
+
+      // 1. Try Google Places Autocomplete first
+      try {
+        const googleResults = await searchGooglePlaces(text);
+        if (googleResults.length > 0) {
+          setSuggestions(
+            googleResults.map((g) => ({
+              displayName: g.displayName,
+              primaryTitle: g.mainText,
+              subtitle: g.secondaryText,
+              placeId: g.placeId,
+            }))
+          );
+          setIsOpen(true);
+          setIsLoading(false);
+          return;
+        }
+      } catch {}
+
+      // 2. Fallback to OpenStreetMap / Nominatim search
       const results = await searchNigerianAddresses(text);
-      setSuggestions(results);
+      setSuggestions(
+        results.map((item) => {
+          const parts = item.displayName.split(',');
+          return {
+            displayName: item.displayName,
+            primaryTitle: parts.slice(0, 2).join(',').trim(),
+            subtitle: parts.slice(2).join(',').trim(),
+            geocode: item,
+          };
+        })
+      );
       setIsOpen(results.length > 0);
       setIsLoading(false);
-    }, 350);
+    }, 300);
   };
 
-  const handleSelectSuggestion = (item: GeocodeResult) => {
-    const shortAddress = item.displayName.split(',').slice(0, 3).join(',').trim();
-    setQuery(shortAddress);
+  const handleSelectSuggestion = async (item: typeof suggestions[0]) => {
+    setQuery(item.primaryTitle || item.displayName);
     setSuggestions([]);
     setIsOpen(false);
     setHasManuallySelected(true);
-    onSelectLocation({
-      address: shortAddress,
-      latitude: item.latitude,
-      longitude: item.longitude,
-    });
+
+    // If suggestion came from Google Places, resolve exact coordinates via placeId
+    if (item.placeId) {
+      const details = await getGooglePlaceDetails(item.placeId);
+      if (details) {
+        onSelectLocation({
+          address: details.address || item.displayName,
+          latitude: details.latitude,
+          longitude: details.longitude,
+        });
+        return;
+      }
+    }
+
+    // If suggestion came from Nominatim geocode
+    if (item.geocode) {
+      const shortAddress = item.geocode.displayName.split(',').slice(0, 3).join(',').trim();
+      onSelectLocation({
+        address: shortAddress,
+        latitude: item.geocode.latitude,
+        longitude: item.geocode.longitude,
+      });
+      return;
+    }
+
+    // Forward geocode fallback
+    const bestMatch = await forwardGeocode(item.displayName);
+    if (bestMatch) {
+      onSelectLocation({
+        address: item.displayName,
+        latitude: bestMatch.latitude,
+        longitude: bestMatch.longitude,
+      });
+    }
   };
+
 
   const handleBlur = async () => {
     // If user typed an address but didn't click dropdown and no coords set yet, auto-geocode!

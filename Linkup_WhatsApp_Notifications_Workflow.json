@@ -1,0 +1,223 @@
+{
+  "name": "Linkup Marketplace - WhatsApp Notifications",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "linkup-whatsapp-notifications",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "webhook-trigger-node",
+      "name": "Supabase Notifications Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        300
+      ],
+      "webhookId": "linkup-whatsapp-notifications"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract notification and profile data from Supabase webhook payload\nconst payload = $input.item.json;\nconst body = payload.body || payload;\nconst record = body.record || body;\nconst profile = body.profile || {};\n\nconst userId = record.user_id;\nconst notificationType = record.type || 'general';\nconst rawMessage = record.message || 'You have a new notification on Linkup Marketplace.';\nconst rawPhone = profile.phone || record.phone || '';\nconst displayName = profile.display_name || record.display_name || 'Valued Member';\n\n// --- Phone Number Sanitizer (Nigerian standard & international E.164) ---\nlet cleanPhone = String(rawPhone).trim().replace(/[^0-9+]/g, '');\n\nif (cleanPhone.startsWith('+')) {\n  cleanPhone = cleanPhone.substring(1);\n}\n\n// If local Nigerian number (e.g. 080..., 070..., 081..., 090..., 091...)\nif (cleanPhone.startsWith('0') && cleanPhone.length === 11) {\n  cleanPhone = '234' + cleanPhone.substring(1);\n}\n\nconst isValidPhone = cleanPhone.length >= 10 && cleanPhone.length <= 15;\n\n// --- WhatsApp Message Content Formatter with Emojis & Bold text ---\nlet headerEmoji = '🔔';\nlet categoryTitle = 'Notification';\n\nswitch (notificationType.toLowerCase()) {\n  case 'order_update':\n  case 'order':\n  case 'order_placed':\n    headerEmoji = '📦';\n    categoryTitle = 'Order Update';\n    break;\n  case 'new_product':\n    headerEmoji = '✨';\n    categoryTitle = 'New Product Alert';\n    break;\n  case 'payout':\n  case 'payout_released':\n  case 'wallet':\n    headerEmoji = '💰';\n    categoryTitle = 'Payment & Wallet Update';\n    break;\n  case 'assigned':\n  case 'delivery':\n  case 'shipment':\n    headerEmoji = '🛵';\n    categoryTitle = 'Logistics & Delivery';\n    break;\n  case 'kyc':\n    headerEmoji = '🛡️';\n    categoryTitle = 'KYC Verification';\n    break;\n  default:\n    headerEmoji = '🔔';\n    categoryTitle = 'Marketplace Alert';\n}\n\nconst whatsappMessage = `${headerEmoji} *${categoryTitle} — Linkup Marketplace*\\n\\nHello *${displayName}*,\\n\\n${rawMessage}\\n\\n👉 *Visit your dashboard:* https://www.linkupng.com\\n\\n_Warm regards,_\\n*Damian from Linkup Marketplace*`;\n\nreturn [{\n  json: {\n    notification_id: record.id,\n    user_id: userId,\n    type: notificationType,\n    display_name: displayName,\n    raw_phone: rawPhone,\n    phone: cleanPhone,\n    phone_with_plus: '+' + cleanPhone,\n    whatsapp_to: 'whatsapp:+' + cleanPhone,\n    is_valid_phone: isValidPhone,\n    message: whatsappMessage,\n    original_message: rawMessage,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "code-formatter-node",
+      "name": "Format WhatsApp Message & Phone",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.is_valid_phone }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "if-valid-phone-node",
+      "name": "Has Valid Phone Number?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        580,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "YOUR_WHATSAPP_PHONE_NUMBER_ID",
+        "recipientPhoneNumber": "={{ $json.phone }}",
+        "textBody": "={{ $json.message }}"
+      },
+      "id": "whatsapp-cloud-api-node",
+      "name": "WhatsApp Cloud API (Meta)",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        840,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "from": "whatsapp:+14155238886",
+        "to": "={{ $json.whatsapp_to }}",
+        "message": "={{ $json.message }}"
+      },
+      "id": "twilio-whatsapp-node",
+      "name": "Twilio WhatsApp (Alternative)",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        840,
+        360
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.your-whatsapp-gateway.com/message/sendText",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $json.phone }}\",\n  \"text\": \"{{ $json.message }}\"\n}",
+        "options": {}
+      },
+      "id": "generic-gateway-node",
+      "name": "Custom Gateway / Evolution API (Alternative)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        840,
+        500
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "console.log(`Skipped notification ${$input.item.json.notification_id}: User ${$input.item.json.user_id} (${$input.item.json.display_name}) has no valid phone number.`);\nreturn $input.all();"
+      },
+      "id": "skip-log-node",
+      "name": "Log: Missing / Invalid Phone",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        660
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"status\": \"sent\",\n  \"notification_id\": \"{{ $json.notification_id }}\",\n  \"phone\": \"{{ $json.phone }}\"\n}",
+        "options": {}
+      },
+      "id": "respond-webhook-node",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        280
+      ]
+    }
+  ],
+  "connections": {
+    "Supabase Notifications Webhook": {
+      "main": [
+        [
+          {
+            "node": "Format WhatsApp Message & Phone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format WhatsApp Message & Phone": {
+      "main": [
+        [
+          {
+            "node": "Has Valid Phone Number?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Valid Phone Number?": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Cloud API (Meta)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Twilio WhatsApp (Alternative)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Custom Gateway / Evolution API (Alternative)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log: Missing / Invalid Phone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Cloud API (Meta)": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twilio WhatsApp (Alternative)": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Custom Gateway / Evolution API (Alternative)": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

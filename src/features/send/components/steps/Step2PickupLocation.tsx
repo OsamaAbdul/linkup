@@ -11,6 +11,8 @@ import {
   Bookmark,
   Loader2,
   AlertCircle,
+  CheckCircle2,
+  ShieldAlert,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
@@ -23,6 +25,7 @@ import { useLocationDetector } from '../../hooks/useLocationDetector';
 import { useSavedAddresses } from '../../hooks/useSavedAddresses';
 import { SavedAddress } from '../../types';
 import { AddressAutocompleteInput } from '../AddressAutocompleteInput';
+import { LocationPickerMap } from '../LocationPickerMap';
 
 interface Step2Props {
   formData: SendOrderFormData;
@@ -36,6 +39,8 @@ export function Step2PickupLocation({ formData, onChange, onNext, onBack }: Step
   const { addresses } = useSavedAddresses();
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const hasCoords = typeof formData.pickupLat === 'number' && typeof formData.pickupLng === 'number';
+
   const handleDetect = async () => {
     const res = await detectLocation();
     if (res) {
@@ -43,6 +48,12 @@ export function Step2PickupLocation({ formData, onChange, onNext, onBack }: Step
         pickupAddress: res.address,
         pickupLat: res.latitude,
         pickupLng: res.longitude,
+      });
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.pickupLat;
+        delete next.pickupAddress;
+        return next;
       });
     }
   };
@@ -56,6 +67,12 @@ export function Step2PickupLocation({ formData, onChange, onNext, onBack }: Step
       senderName: addr.contact_name || formData.senderName,
       senderPhone: addr.contact_phone || formData.senderPhone,
     });
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next.pickupLat;
+      delete next.pickupAddress;
+      return next;
+    });
   };
 
   const handleNext = () => {
@@ -63,6 +80,11 @@ export function Step2PickupLocation({ formData, onChange, onNext, onBack }: Step
     if (!formData.pickupAddress.trim()) errs.pickupAddress = 'Pickup address is required';
     if (!formData.senderName.trim()) errs.senderName = "Sender's name is required";
     if (!formData.senderPhone.trim()) errs.senderPhone = "Sender's phone is required";
+
+    // Compulsory coordinates validation
+    if (typeof formData.pickupLat !== 'number' || typeof formData.pickupLng !== 'number') {
+      errs.pickupLat = 'Compulsory: Please detect or pinpoint your exact pickup coordinates on the live map';
+    }
 
     setErrors(errs);
     if (Object.keys(errs).length === 0) {
@@ -83,9 +105,52 @@ export function Step2PickupLocation({ formData, onChange, onNext, onBack }: Step
           Pickup Location
         </h2>
         <p className="text-xs text-muted-foreground">
-          Where should the rider meet you to collect the package?
+          Accurate GPS location detection is compulsory so the nearest rider can locate you instantly.
         </p>
       </div>
+
+      {/* Compulsory GPS Detection Prompt Banner */}
+      {!hasCoords ? (
+        <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start justify-between gap-3">
+          <div className="flex items-start gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+              <ShieldAlert className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-foreground">Accurate Coordinates Required</h4>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Click <strong>"Detect My GPS"</strong> or tap on the live map below to lock your precise pickup coordinates.
+              </p>
+            </div>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            disabled={isDetecting}
+            onClick={handleDetect}
+            className="h-8 px-3 rounded-xl text-xs font-bold bg-primary hover:bg-primary/90 text-white shrink-0 gap-1.5 shadow"
+          >
+            {isDetecting ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Navigation className="w-3.5 h-3.5" />
+            )}
+            <span>{isDetecting ? 'Detecting...' : 'Detect GPS'}</span>
+          </Button>
+        </div>
+      ) : (
+        <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="text-xs font-bold text-emerald-950 dark:text-emerald-200">
+              Sender GPS Location Verified
+            </span>
+          </div>
+          <span className="text-[11px] font-mono font-semibold text-emerald-800 dark:text-emerald-300">
+            {formData.pickupLat?.toFixed(4)}, {formData.pickupLng?.toFixed(4)}
+          </span>
+        </div>
+      )}
 
       <Card className="rounded-2xl border-border/70 shadow-sm bg-card overflow-hidden">
         <CardContent className="p-4 sm:p-5 space-y-4">
@@ -113,7 +178,7 @@ export function Step2PickupLocation({ formData, onChange, onNext, onBack }: Step
 
           {/* Pickup Address Input with Autocomplete & Geocoding */}
           <AddressAutocompleteInput
-            label="Pickup Address"
+            label="Pickup Address / Street Landmark"
             icon={<MapPin className="w-3.5 h-3.5 text-primary" />}
             placeholder="e.g. Lifecamp, Abuja or search street..."
             value={formData.pickupAddress}
@@ -128,11 +193,53 @@ export function Step2PickupLocation({ formData, onChange, onNext, onBack }: Step
                 pickupLat: latitude,
                 pickupLng: longitude,
               });
+              setErrors((prev) => {
+                const next = { ...prev };
+                delete next.pickupLat;
+                delete next.pickupAddress;
+                return next;
+              });
             }}
           />
 
+          {/* Live Interactive Location Picker Map */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold text-foreground flex items-center justify-between">
+              <span className="flex items-center gap-1">
+                <Compass className="w-3.5 h-3.5 text-primary" /> Live Pickup Map & Accurate Pinpoint
+                <span className="text-destructive">*</span>
+              </span>
+              <span className="text-[10px] text-muted-foreground">Drag pin or tap map</span>
+            </Label>
+            <LocationPickerMap
+              latitude={formData.pickupLat}
+              longitude={formData.pickupLng}
+              address={formData.pickupAddress}
+              mode="pickup"
+              isCompulsory
+              onLocationSelect={({ latitude, longitude, address }) => {
+                onChange({
+                  pickupLat: latitude,
+                  pickupLng: longitude,
+                  ...(address ? { pickupAddress: address } : {}),
+                });
+                setErrors((prev) => {
+                  const next = { ...prev };
+                  delete next.pickupLat;
+                  delete next.pickupAddress;
+                  return next;
+                });
+              }}
+            />
+            {errors.pickupLat && (
+              <p className="text-[11px] text-destructive flex items-center gap-1 font-semibold pt-1">
+                <AlertCircle className="w-3.5 h-3.5" /> {errors.pickupLat}
+              </p>
+            )}
+          </div>
+
           {/* Sender Name & Phone */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-foreground flex items-center gap-1">
                 <User className="w-3.5 h-3.5 text-muted-foreground" /> Sender's Name{' '}
@@ -141,7 +248,16 @@ export function Step2PickupLocation({ formData, onChange, onNext, onBack }: Step
               <Input
                 placeholder="e.g. Osama Abdullahi"
                 value={formData.senderName}
-                onChange={(e) => onChange({ senderName: e.target.value })}
+                onChange={(e) => {
+                  onChange({ senderName: e.target.value });
+                  if (errors.senderName) {
+                    setErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.senderName;
+                      return next;
+                    });
+                  }
+                }}
                 className={errors.senderName ? 'border-destructive' : ''}
               />
               {errors.senderName && <p className="text-[11px] text-destructive">{errors.senderName}</p>}
@@ -157,7 +273,16 @@ export function Step2PickupLocation({ formData, onChange, onNext, onBack }: Step
                 type="tel"
                 maxLength={15}
                 value={formData.senderPhone}
-                onChange={(e) => onChange({ senderPhone: e.target.value })}
+                onChange={(e) => {
+                  onChange({ senderPhone: e.target.value });
+                  if (errors.senderPhone) {
+                    setErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.senderPhone;
+                      return next;
+                    });
+                  }
+                }}
                 className={errors.senderPhone ? 'border-destructive' : ''}
               />
               {errors.senderPhone && <p className="text-[11px] text-destructive">{errors.senderPhone}</p>}

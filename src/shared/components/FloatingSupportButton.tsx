@@ -33,19 +33,16 @@ export const FloatingSupportButton = () => {
   const [showTooltip, setShowTooltip] = useState(false);
 
   useEffect(() => {
-    // Show tooltip after a few seconds
+    // Show tooltip after a few seconds without unprompted audio autoplay
     const timer = setTimeout(() => {
       setShowTooltip(true);
-      playSound();
       setTimeout(() => setShowTooltip(false), 8000);
-    }, 2000);
+    }, 3000);
     return () => clearTimeout(timer);
   }, []);
 
   const handleToggle = () => {
-    if (!isOpen) {
-      playSound();
-    }
+    playSound();
     setIsOpen(!isOpen);
     setShowTooltip(false);
   };

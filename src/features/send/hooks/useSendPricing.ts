@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useRoadRoute } from './useRoadRoute';
 
 export interface PricingInput {
   pickupLat?: number | null;
@@ -10,6 +11,7 @@ export interface PricingInput {
   weightKg: number;
   isFragile?: boolean;
 }
+
 
 export interface SendFeeBreakdown {
   baseFee: number;
@@ -58,7 +60,10 @@ export function useSendPricing({
   weightKg,
   isFragile = false,
 }: PricingInput): SendFeeBreakdown {
-  // Query backend calculation RPC (never trust frontend-only values)
+  // Query real road network route from OSRM
+  const { data: roadData } = useRoadRoute(pickupLat, pickupLng, dropoffLat, dropoffLng);
+
+  // Query backend calculation RPC
   const { data: rpcData } = useQuery({
     queryKey: [
       'calculate_send_delivery_fee',
@@ -90,63 +95,43 @@ export function useSendPricing({
   });
 
   return useMemo(() => {
-    // If backend returned authoritative result, use it directly
-    if (rpcData && typeof rpcData.total_fee === 'number') {
-      const distanceKm = Number(rpcData.distance_km || 5.0);
-      const minMinutes = Math.round(15 + distanceKm * 2.5);
-      const maxMinutes = minMinutes + 20;
-
-      return {
-        baseFee: Number(rpcData.base_fee || 500),
-        perKmRate: Number(rpcData.per_km_rate || 100),
-        distanceKm,
-        distanceFee: Number(rpcData.distance_fee || 500),
-        packageSurcharge: Number(rpcData.package_surcharge || 0),
-        serviceFee: Number(rpcData.service_fee || 200),
-        fragileSurcharge: Number(rpcData.fragile_surcharge || 0),
-        totalFee: Number(rpcData.total_fee),
-        riderEarnings: typeof rpcData.rider_earnings === 'number' ? Number(rpcData.rider_earnings) : Math.round(Number(rpcData.total_fee) * 0.8),
-        platformFee: typeof rpcData.platform_fee === 'number' ? Number(rpcData.platform_fee) : Math.round(Number(rpcData.total_fee) * 0.2),
-        currency: 'NGN',
-        estimatedMinutesRange: `${minMinutes} - ${maxMinutes} mins`,
-        estimatedPickupWindow: '10 - 20 mins',
-        isBackendVerified: true,
-      };
+    // 1. Determine distance: prioritize road network calculation
+    let distanceKm = roadData?.distanceKm;
+    if (typeof distanceKm !== 'number') {
+      if (rpcData && typeof rpcData.distance_km === 'number') {
+        distanceKm = Number(rpcData.distance_km);
+      } else if (
+        typeof pickupLat === 'number' &&
+        typeof pickupLng === 'number' &&
+        typeof dropoffLat === 'number' &&
+        typeof dropoffLng === 'number'
+      ) {
+        distanceKm = calculateHaversineDistance(pickupLat, pickupLng, dropoffLat, dropoffLng);
+      } else {
+        distanceKm = 5.0;
+      }
     }
 
-    // Default Fallback calculation matching formula:
-    // Delivery fee = Base fee (500) + (Distance x Per-km rate 100) + Package surcharge + Optional service fees (200)
-    let distanceKm = 5.0;
-    if (
-      typeof pickupLat === 'number' &&
-      typeof pickupLng === 'number' &&
-      typeof dropoffLat === 'number' &&
-      typeof dropoffLng === 'number'
-    ) {
-      distanceKm = calculateHaversineDistance(pickupLat, pickupLng, dropoffLat, dropoffLng);
-    }
-
-    const baseFee = 500;
-    const perKmRate = 100;
+    const baseFee = rpcData?.base_fee ? Number(rpcData.base_fee) : 500;
+    const perKmRate = rpcData?.per_km_rate ? Number(rpcData.per_km_rate) : 100;
     const distanceFee = Math.round(distanceKm * perKmRate);
 
     let packageSurcharge = 0;
     if (weightKg <= 2) {
-      packageSurcharge = 0; // Small package: ₦0
+      packageSurcharge = 0;
     } else if (weightKg <= 5) {
-      packageSurcharge = 200; // Medium package: ₦200
+      packageSurcharge = 200;
     } else if (weightKg <= 10) {
-      packageSurcharge = 500; // Large package: ₦500
+      packageSurcharge = 500;
     } else {
-      packageSurcharge = 1000; // Extra large package: ₦1,000
+      packageSurcharge = 1000;
     }
 
-    const serviceFee = 200;
-    const fragileSurcharge = isFragile ? 300 : 0;
+    const serviceFee = rpcData?.service_fee ? Number(rpcData.service_fee) : 200;
+    const fragileSurcharge = isFragile ? (rpcData?.fragile_surcharge ? Number(rpcData.fragile_surcharge) : 300) : 0;
     const totalFee = baseFee + distanceFee + packageSurcharge + serviceFee + fragileSurcharge;
 
-    const minMinutes = Math.round(15 + distanceKm * 2.5);
-    const maxMinutes = minMinutes + 20;
+    const estimatedMinutesRange = roadData?.estimatedMinutesRange || `${Math.round(15 + distanceKm * 2.5)} - ${Math.round(35 + distanceKm * 2.5)} mins`;
 
     return {
       baseFee,
@@ -157,10 +142,13 @@ export function useSendPricing({
       serviceFee,
       fragileSurcharge,
       totalFee,
+      riderEarnings: Math.round(totalFee * 0.8),
+      platformFee: Math.round(totalFee * 0.2),
       currency: 'NGN',
-      estimatedMinutesRange: `${minMinutes} - ${maxMinutes} mins`,
+      estimatedMinutesRange,
       estimatedPickupWindow: '10 - 20 mins',
-      isBackendVerified: false,
+      isBackendVerified: Boolean(rpcData && typeof rpcData.total_fee === 'number'),
     };
-  }, [rpcData, pickupLat, pickupLng, dropoffLat, dropoffLng, weightKg, isFragile]);
+  }, [roadData, rpcData, pickupLat, pickupLng, dropoffLat, dropoffLng, weightKg, isFragile]);
 }
+

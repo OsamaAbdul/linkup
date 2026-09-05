@@ -10,6 +10,9 @@ import {
   Bookmark,
   Loader2,
   AlertCircle,
+  CheckCircle2,
+  MapPin,
+  Route,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
@@ -17,11 +20,14 @@ import { Label } from '@/shared/components/ui/label';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Checkbox } from '@/shared/components/ui/checkbox';
+import { Badge } from '@/shared/components/ui/badge';
 import { SendOrderFormData } from '../../schemas/sendOrderSchema';
-import { useLocationDetector } from '../../hooks/useLocationDetector';
 import { useSavedAddresses } from '../../hooks/useSavedAddresses';
 import { SavedAddress } from '../../types';
 import { AddressAutocompleteInput } from '../AddressAutocompleteInput';
+import { LocationPickerMap } from '../LocationPickerMap';
+import { useRoadRoute } from '../../hooks/useRoadRoute';
+import { calculateHaversineDistance } from '../../hooks/useSendPricing';
 
 interface Step3Props {
   formData: SendOrderFormData;
@@ -31,20 +37,31 @@ interface Step3Props {
 }
 
 export function Step3DropoffLocation({ formData, onChange, onNext, onBack }: Step3Props) {
-  const { detectLocation, isDetecting } = useLocationDetector();
   const { addresses } = useSavedAddresses();
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleDetect = async () => {
-    const res = await detectLocation();
-    if (res) {
-      onChange({
-        dropoffAddress: res.address,
-        dropoffLat: res.latitude,
-        dropoffLng: res.longitude,
-      });
-    }
-  };
+  const hasDropoffCoords =
+    typeof formData.dropoffLat === 'number' && typeof formData.dropoffLng === 'number';
+
+  // Live real road distance calculation from OSRM
+  const { data: roadData } = useRoadRoute(
+    formData.pickupLat,
+    formData.pickupLng,
+    formData.dropoffLat,
+    formData.dropoffLng
+  );
+
+  const distanceKm =
+    roadData?.distanceKm ??
+    (formData.pickupLat && formData.pickupLng && formData.dropoffLat && formData.dropoffLng
+      ? calculateHaversineDistance(
+          formData.pickupLat,
+          formData.pickupLng,
+          formData.dropoffLat,
+          formData.dropoffLng
+        )
+      : null);
+
 
   const handleSelectSaved = (addr: SavedAddress) => {
     onChange({
@@ -55,6 +72,12 @@ export function Step3DropoffLocation({ formData, onChange, onNext, onBack }: Ste
       dropoffRecipientName: addr.contact_name || formData.dropoffRecipientName,
       dropoffRecipientPhone: addr.contact_phone || formData.dropoffRecipientPhone,
     });
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next.dropoffLat;
+      delete next.dropoffAddress;
+      return next;
+    });
   };
 
   const handleNext = () => {
@@ -62,6 +85,11 @@ export function Step3DropoffLocation({ formData, onChange, onNext, onBack }: Ste
     if (!formData.dropoffAddress.trim()) errs.dropoffAddress = 'Drop-off address is required';
     if (!formData.dropoffRecipientName.trim()) errs.dropoffRecipientName = "Recipient's name is required";
     if (!formData.dropoffRecipientPhone.trim()) errs.dropoffRecipientPhone = "Recipient's phone is required";
+
+    // Compulsory coordinates validation for drop-off
+    if (typeof formData.dropoffLat !== 'number' || typeof formData.dropoffLng !== 'number') {
+      errs.dropoffLat = 'Please select or pinpoint the destination location on the live map';
+    }
 
     setErrors(errs);
     if (Object.keys(errs).length === 0) {
@@ -82,9 +110,38 @@ export function Step3DropoffLocation({ formData, onChange, onNext, onBack }: Ste
           Drop-off Location
         </h2>
         <p className="text-xs text-muted-foreground">
-          Who is receiving this package and where should it be delivered?
+          Search the recipient's address or pinpoint the exact drop-off spot on the live map.
         </p>
       </div>
+
+      {/* Live Distance from Pickup Indicator Banner */}
+      {distanceKm !== null ? (
+        <div className="p-3.5 rounded-2xl bg-primary/10 border border-primary/30 flex items-center justify-between gap-3 shadow-sm">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-primary text-white flex items-center justify-center shrink-0 shadow-sm">
+              <Route className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-foreground">
+                Calculated Delivery Distance
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                From Pickup to Destination
+              </p>
+            </div>
+          </div>
+          <Badge className="bg-primary text-white font-extrabold font-heading text-sm px-3 py-1 shadow">
+            {distanceKm} KM
+          </Badge>
+        </div>
+      ) : (
+        <div className="p-3 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center gap-2.5">
+          <Navigation className="w-4 h-4 text-blue-600 shrink-0" />
+          <span className="text-[11px] text-muted-foreground">
+            Search receiver address or tap on the map to match the exact coordinates and calculate distance in KM.
+          </span>
+        </div>
+      )}
 
       <Card className="rounded-2xl border-border/70 shadow-sm bg-card overflow-hidden">
         <CardContent className="p-4 sm:p-5 space-y-4">
@@ -112,7 +169,7 @@ export function Step3DropoffLocation({ formData, onChange, onNext, onBack }: Ste
 
           {/* Drop-off Address Input with Autocomplete & Geocoding */}
           <AddressAutocompleteInput
-            label="Drop-off Address"
+            label="Drop-off Address / Destination"
             icon={<Navigation className="w-3.5 h-3.5 text-blue-600" />}
             placeholder="e.g. Suite 8, Nicon Plaza, Wuse 2, Abuja"
             value={formData.dropoffAddress}
@@ -127,11 +184,53 @@ export function Step3DropoffLocation({ formData, onChange, onNext, onBack }: Ste
                 dropoffLat: latitude,
                 dropoffLng: longitude,
               });
+              setErrors((prev) => {
+                const next = { ...prev };
+                delete next.dropoffLat;
+                delete next.dropoffAddress;
+                return next;
+              });
             }}
           />
 
+          {/* Live Interactive Drop-off Location Picker Map */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold text-foreground flex items-center justify-between">
+              <span className="flex items-center gap-1">
+                <Compass className="w-3.5 h-3.5 text-blue-600" /> Live Destination Map & Best-Match Pinpoint
+                <span className="text-destructive">*</span>
+              </span>
+              <span className="text-[10px] text-muted-foreground">Drag pin or tap map</span>
+            </Label>
+            <LocationPickerMap
+              latitude={formData.dropoffLat}
+              longitude={formData.dropoffLng}
+              address={formData.dropoffAddress}
+              mode="dropoff"
+              isCompulsory
+              onLocationSelect={({ latitude, longitude, address }) => {
+                onChange({
+                  dropoffLat: latitude,
+                  dropoffLng: longitude,
+                  ...(address ? { dropoffAddress: address } : {}),
+                });
+                setErrors((prev) => {
+                  const next = { ...prev };
+                  delete next.dropoffLat;
+                  delete next.dropoffAddress;
+                  return next;
+                });
+              }}
+            />
+            {errors.dropoffLat && (
+              <p className="text-[11px] text-destructive flex items-center gap-1 font-semibold pt-1">
+                <AlertCircle className="w-3.5 h-3.5" /> {errors.dropoffLat}
+              </p>
+            )}
+          </div>
+
           {/* Recipient Name & Phone */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-foreground flex items-center gap-1">
                 <User className="w-3.5 h-3.5 text-muted-foreground" /> Recipient's Name{' '}
@@ -140,7 +239,16 @@ export function Step3DropoffLocation({ formData, onChange, onNext, onBack }: Ste
               <Input
                 placeholder="e.g. John Michael"
                 value={formData.dropoffRecipientName}
-                onChange={(e) => onChange({ dropoffRecipientName: e.target.value })}
+                onChange={(e) => {
+                  onChange({ dropoffRecipientName: e.target.value });
+                  if (errors.dropoffRecipientName) {
+                    setErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.dropoffRecipientName;
+                      return next;
+                    });
+                  }
+                }}
                 className={errors.dropoffRecipientName ? 'border-destructive' : ''}
               />
               {errors.dropoffRecipientName && (
@@ -158,7 +266,16 @@ export function Step3DropoffLocation({ formData, onChange, onNext, onBack }: Ste
                 type="tel"
                 maxLength={15}
                 value={formData.dropoffRecipientPhone}
-                onChange={(e) => onChange({ dropoffRecipientPhone: e.target.value })}
+                onChange={(e) => {
+                  onChange({ dropoffRecipientPhone: e.target.value });
+                  if (errors.dropoffRecipientPhone) {
+                    setErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.dropoffRecipientPhone;
+                      return next;
+                    });
+                  }
+                }}
                 className={errors.dropoffRecipientPhone ? 'border-destructive' : ''}
               />
               {errors.dropoffRecipientPhone && (

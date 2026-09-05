@@ -78,7 +78,7 @@ const App = () => (
         <CartProvider>
           <TooltipProvider>
             <Toaster />
-            <Sonner />
+            <Sonner position="top-right" closeButton richColors />
             <FloatingSupportButton />
             <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
               <AnalyticsProvider />

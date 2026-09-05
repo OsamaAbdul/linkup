@@ -39,4 +39,12 @@ export const sendOrderFormSchema = z.object({
   declaredValue: z.number().nonnegative().optional(),
 });
 
+export const strictSendOrderSchema = sendOrderFormSchema.extend({
+  pickupLat: z.number({ required_error: 'Pickup latitude is compulsory' }),
+  pickupLng: z.number({ required_error: 'Pickup longitude is compulsory' }),
+  dropoffLat: z.number({ required_error: 'Drop-off latitude is compulsory' }),
+  dropoffLng: z.number({ required_error: 'Drop-off longitude is compulsory' }),
+});
+
 export type SendOrderFormData = z.infer<typeof sendOrderFormSchema>;
+export type StrictSendOrderFormData = z.infer<typeof strictSendOrderSchema>;

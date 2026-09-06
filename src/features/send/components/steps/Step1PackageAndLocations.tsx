@@ -208,7 +208,7 @@ export function Step1PackageAndLocations({ formData, onChange, onNext }: Step1Pr
                 <span className="text-destructive">*</span>
               </Label>
               <Input
-                placeholder="e.g. Osama Abdul"
+                placeholder="e.g. Damian Oboshi"
                 value={formData.senderName}
                 onChange={(e) => onChange({ senderName: e.target.value })}
                 className={errors.senderName ? 'border-destructive' : ''}
@@ -356,7 +356,7 @@ export function Step1PackageAndLocations({ formData, onChange, onNext }: Step1Pr
               </Label>
               <Input
                 placeholder="e.g. 
-                Osama Abdul"
+                Damian Oboshi"
                 value={formData.dropoffRecipientName}
                 onChange={(e) => onChange({ dropoffRecipientName: e.target.value })}
                 className={errors.dropoffRecipientName ? 'border-destructive' : ''}

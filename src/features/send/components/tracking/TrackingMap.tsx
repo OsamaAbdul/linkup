@@ -35,16 +35,10 @@ export function TrackingMap({
       attributionControl: false,
     }).setView(initialCenter as [number, number], 13);
 
-    const cartoApiKey = import.meta.env.VITE_CARTO_API_KEY;
-    const tileUrl = cartoApiKey
-      ? `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${cartoApiKey}`
-      : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-
-    // High quality modern map tiles (Carto Voyager with API key authentication)
-    L.tileLayer(tileUrl, {
+    // Standard OpenStreetMap tiles (100% free, zero watermarks, no API key needed)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      subdomains: 'abcd',
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(map);
 
     mapInstance.current = map;

@@ -6,21 +6,26 @@ import {
   CheckCircle2,
   Search,
   Compass,
+  Building,
+  Store,
+  Home,
+  Bookmark,
+  Sparkles,
+  X,
 } from 'lucide-react';
 import { Input } from '@/shared/components/ui/input';
 import { Button } from '@/shared/components/ui/button';
 import { Label } from '@/shared/components/ui/label';
+import { Badge } from '@/shared/components/ui/badge';
+import { useLocationDetector } from '../hooks/useLocationDetector';
+import { useSavedAddresses } from '../hooks/useSavedAddresses';
 import {
-  searchNigerianAddresses,
-  forwardGeocode,
-  useLocationDetector,
-  GeocodeResult,
-} from '../hooks/useLocationDetector';
-import {
-  searchGooglePlaces,
-  getGooglePlaceDetails,
-  GooglePlaceSuggestion,
-} from '../utils/googleMapsLoader';
+  searchAddresses,
+  resolveSuggestionCoordinates,
+  findBestCoordinatesForAddress,
+  getPopularQuickPicks,
+  AddressSuggestion,
+} from '../services/addressSearchService';
 
 interface AddressAutocompleteInputProps {
   label: string;
@@ -31,6 +36,8 @@ interface AddressAutocompleteInputProps {
   longitude?: number | null;
   error?: string;
   isRequired?: boolean;
+  mode?: 'pickup' | 'dropoff';
+  showQuickPills?: boolean;
   onChangeAddress: (address: string) => void;
   onSelectLocation: (data: { address: string; latitude: number; longitude: number }) => void;
 }
@@ -44,30 +51,31 @@ export function AddressAutocompleteInput({
   longitude,
   error,
   isRequired = true,
+  mode = 'dropoff',
+  showQuickPills = true,
   onChangeAddress,
   onSelectLocation,
 }: AddressAutocompleteInputProps) {
   const [query, setQuery] = useState(value || '');
-  const [suggestions, setSuggestions] = useState<
-    Array<{ displayName: string; primaryTitle: string; subtitle: string; placeId?: string; geocode?: GeocodeResult }>
-  >([]);
+  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [hasManuallySelected, setHasManuallySelected] = useState(Boolean(latitude && longitude));
+  const [selectedIndex, setSelectedIndex] = useState<number>(-1);
+  const [resolvedAreaName, setResolvedAreaName] = useState<string>('');
+
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
   const { detectLocation, isDetecting } = useLocationDetector();
+  const { addresses: savedAddresses } = useSavedAddresses();
 
-  // Keep query in sync if parent changes value (e.g. from saved address pill)
+  // Sync internal query when parent changes value
   useEffect(() => {
     setQuery(value || '');
-    if (latitude && longitude) {
-      setHasManuallySelected(true);
-    }
-  }, [value, latitude, longitude]);
+  }, [value]);
 
-  // Click outside listener to close suggestion dropdown
+  // Click outside listener to dismiss dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -78,112 +86,109 @@ export function AddressAutocompleteInput({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const executeSearch = async (text: string) => {
+    setIsLoading(true);
+    try {
+      const results = await searchAddresses(text, savedAddresses);
+      setSuggestions(results);
+      setIsOpen(results.length > 0);
+      setSelectedIndex(-1);
+    } catch {
+      setSuggestions([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleInputChange = (text: string) => {
     setQuery(text);
     onChangeAddress(text);
-    setHasManuallySelected(false);
 
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
 
-    if (text.trim().length < 3) {
-      setSuggestions([]);
-      setIsOpen(false);
+    if (!text.trim()) {
+      // If cleared, show quick picks
+      const picks = getPopularQuickPicks(savedAddresses);
+      setSuggestions(picks);
+      setIsOpen(true);
       return;
     }
 
-    debounceTimer.current = setTimeout(async () => {
-      setIsLoading(true);
-
-      // 1. Try Google Places Autocomplete first
-      try {
-        const googleResults = await searchGooglePlaces(text);
-        if (googleResults.length > 0) {
-          setSuggestions(
-            googleResults.map((g) => ({
-              displayName: g.displayName,
-              primaryTitle: g.mainText,
-              subtitle: g.secondaryText,
-              placeId: g.placeId,
-            }))
-          );
-          setIsOpen(true);
-          setIsLoading(false);
-          return;
-        }
-      } catch {}
-
-      // 2. Fallback to OpenStreetMap / Nominatim search
-      const results = await searchNigerianAddresses(text);
-      setSuggestions(
-        results.map((item) => {
-          const parts = item.displayName.split(',');
-          return {
-            displayName: item.displayName,
-            primaryTitle: parts.slice(0, 2).join(',').trim(),
-            subtitle: parts.slice(2).join(',').trim(),
-            geocode: item,
-          };
-        })
-      );
-      setIsOpen(results.length > 0);
-      setIsLoading(false);
-    }, 300);
+    // Fast search with short debounce for responsive feel
+    debounceTimer.current = setTimeout(() => {
+      executeSearch(text);
+    }, 150);
   };
 
-  const handleSelectSuggestion = async (item: typeof suggestions[0]) => {
-    setQuery(item.primaryTitle || item.displayName);
-    setSuggestions([]);
+  const handleSelectSuggestion = async (item: AddressSuggestion) => {
+    const chosenAddress = item.displayName || item.primaryTitle;
+    setQuery(chosenAddress);
+    onChangeAddress(chosenAddress);
     setIsOpen(false);
-    setHasManuallySelected(true);
 
-    // If suggestion came from Google Places, resolve exact coordinates via placeId
-    if (item.placeId) {
-      const details = await getGooglePlaceDetails(item.placeId);
-      if (details) {
+    // Resolve coordinates guaranteed
+    const resolved = await resolveSuggestionCoordinates(item);
+    if (resolved) {
+      setResolvedAreaName(item.primaryTitle);
+      onSelectLocation({
+        address: chosenAddress,
+        latitude: resolved.latitude,
+        longitude: resolved.longitude,
+      });
+    } else {
+      // Fallback best effort
+      const fallback = findBestCoordinatesForAddress(chosenAddress);
+      if (fallback) {
+        setResolvedAreaName(fallback.matchedArea || item.primaryTitle);
         onSelectLocation({
-          address: details.address || item.displayName,
-          latitude: details.latitude,
-          longitude: details.longitude,
+          address: chosenAddress,
+          latitude: fallback.latitude,
+          longitude: fallback.longitude,
         });
-        return;
       }
-    }
-
-    // If suggestion came from Nominatim geocode
-    if (item.geocode) {
-      const shortAddress = item.geocode.displayName.split(',').slice(0, 3).join(',').trim();
-      onSelectLocation({
-        address: shortAddress,
-        latitude: item.geocode.latitude,
-        longitude: item.geocode.longitude,
-      });
-      return;
-    }
-
-    // Forward geocode fallback
-    const bestMatch = await forwardGeocode(item.displayName);
-    if (bestMatch) {
-      onSelectLocation({
-        address: item.displayName,
-        latitude: bestMatch.latitude,
-        longitude: bestMatch.longitude,
-      });
     }
   };
 
-
-  const handleBlur = async () => {
-    // If user typed an address but didn't click dropdown and no coords set yet, auto-geocode!
-    if (query.trim().length >= 3 && (!latitude || !longitude || !hasManuallySelected)) {
-      const bestMatch = await forwardGeocode(query);
-      if (bestMatch) {
-        setHasManuallySelected(true);
-        onSelectLocation({
-          address: query.trim(),
-          latitude: bestMatch.latitude,
-          longitude: bestMatch.longitude,
-        });
+  const handleBlur = () => {
+    // Slight timeout so click on suggestion dropdown fires first
+    setTimeout(() => {
+      if (query.trim().length >= 3 && (!latitude || !longitude)) {
+        const match = findBestCoordinatesForAddress(query);
+        if (match) {
+          setResolvedAreaName(match.matchedArea || '');
+          onSelectLocation({
+            address: query.trim(),
+            latitude: match.latitude,
+            longitude: match.longitude,
+          });
+        }
       }
+    }, 200);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!isOpen || suggestions.length === 0) {
+      if (e.key === 'ArrowDown') {
+        setIsOpen(true);
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : 0));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : suggestions.length - 1));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
+        handleSelectSuggestion(suggestions[selectedIndex]);
+      } else if (suggestions.length > 0) {
+        handleSelectSuggestion(suggestions[0]);
+      }
+    } else if (e.key === 'Escape') {
+      setIsOpen(false);
     }
   };
 
@@ -191,8 +196,9 @@ export function AddressAutocompleteInput({
     const res = await detectLocation();
     if (res) {
       setQuery(res.address);
-      setHasManuallySelected(true);
+      onChangeAddress(res.address);
       setIsOpen(false);
+      setResolvedAreaName(res.city || 'GPS Location');
       onSelectLocation({
         address: res.address,
         latitude: res.latitude,
@@ -201,47 +207,125 @@ export function AddressAutocompleteInput({
     }
   };
 
-  const hasCoordinates = Boolean(latitude && longitude);
+  const handleQuickPillClick = (item: AddressSuggestion) => {
+    handleSelectSuggestion(item);
+  };
+
+  const hasCoordinates = Boolean(typeof latitude === 'number' && typeof longitude === 'number');
+
+  const getCategoryIcon = (category?: string) => {
+    switch (category) {
+      case 'saved':
+        return <Bookmark className="w-3.5 h-3.5 text-amber-600" />;
+      case 'mall':
+      case 'plaza':
+        return <Store className="w-3.5 h-3.5 text-purple-600" />;
+      case 'estate':
+        return <Home className="w-3.5 h-3.5 text-emerald-600" />;
+      case 'district':
+        return <Building className="w-3.5 h-3.5 text-blue-600" />;
+      default:
+        return <MapPin className="w-3.5 h-3.5 text-primary" />;
+    }
+  };
+
+  const getCategoryBadge = (category?: string) => {
+    switch (category) {
+      case 'saved':
+        return <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-amber-300 text-amber-700 bg-amber-50">Saved</Badge>;
+      case 'mall':
+      case 'plaza':
+        return <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-purple-300 text-purple-700 bg-purple-50">Mall / Plaza</Badge>;
+      case 'estate':
+        return <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-emerald-300 text-emerald-700 bg-emerald-50">Estate</Badge>;
+      case 'district':
+        return <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-blue-300 text-blue-700 bg-blue-50">District</Badge>;
+      default:
+        return null;
+    }
+  };
+
+  // Popular Quick-Pills for 1-tap select
+  const quickPillItems = [
+    { label: 'Wuse 2', query: 'Wuse 2, Abuja', lat: 9.0782, lng: 7.4725 },
+    { label: 'Banex Plaza', query: 'Banex Plaza, Aminu Kano Crescent, Wuse 2, Abuja', lat: 9.0837, lng: 7.4746 },
+    { label: 'Maitama', query: 'Maitama, Abuja', lat: 9.0882, lng: 7.4983 },
+    { label: 'Gwarinpa', query: 'Gwarinpa Estate, Abuja', lat: 9.1124, lng: 7.4101 },
+    { label: 'Jabi Lake Mall', query: 'Jabi Lake Mall, Bala Sokoto Way, Jabi, Abuja', lat: 9.0772, lng: 7.4287 },
+    { label: 'Lekki Phase 1', query: 'Lekki Phase 1, Lekki, Lagos', lat: 6.4474, lng: 3.4735 },
+    { label: 'Ikeja Mall', query: 'Ikeja City Mall (ICM), Alausa, Ikeja, Lagos', lat: 6.6186, lng: 3.3582 },
+  ];
 
   return (
-    <div ref={containerRef} className="space-y-1.5 relative">
+    <div ref={containerRef} className="space-y-2 relative">
+      {/* Top Header / Label Bar */}
       <div className="flex items-center justify-between">
-        <Label className="text-xs font-semibold text-foreground flex items-center gap-1">
+        <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
           {icon || <MapPin className="w-3.5 h-3.5 text-primary" />}
           <span>{label}</span>
           {isRequired && <span className="text-destructive">*</span>}
         </Label>
 
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={isDetecting}
-          onClick={handleDetectGPS}
-          className="h-7 text-xs px-2.5 gap-1.5 border-primary/30 text-primary hover:bg-primary/10 transition-colors"
-        >
-          {isDetecting ? (
-            <Loader2 className="w-3 h-3 animate-spin" />
-          ) : (
-            <Navigation className="w-3 h-3" />
-          )}
-          <span>{isDetecting ? 'Detecting...' : 'Detect Location'}</span>
-        </Button>
+        {mode === 'pickup' ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={isDetecting}
+            onClick={handleDetectGPS}
+            className="h-7 text-xs px-2.5 gap-1.5 border-primary/30 text-primary hover:bg-primary/10 transition-colors"
+          >
+            {isDetecting ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <Navigation className="w-3 h-3" />
+            )}
+            <span>{isDetecting ? 'Detecting...' : 'Detect GPS'}</span>
+          </Button>
+        ) : (
+          <div className="flex items-center gap-1 text-[11px] text-muted-foreground font-medium">
+            <Sparkles className="w-3 h-3 text-primary animate-pulse" />
+            <span>Auto-suggest active</span>
+          </div>
+        )}
       </div>
 
+      {/* Main Input Field */}
       <div className="relative">
         <Input
+          ref={inputRef}
           placeholder={placeholder}
           value={query}
           onChange={(e) => handleInputChange(e.target.value)}
-          onBlur={handleBlur}
           onFocus={() => {
-            if (suggestions.length > 0) setIsOpen(true);
+            if (suggestions.length === 0) {
+              const picks = getPopularQuickPicks(savedAddresses);
+              setSuggestions(picks);
+            }
+            setIsOpen(true);
           }}
-          className={`pr-8 ${error ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+          className={`pr-16 text-xs h-10 ${
+            error ? 'border-destructive focus-visible:ring-destructive' : ''
+          } ${hasCoordinates ? 'border-emerald-500/40 focus-visible:ring-emerald-500/30' : ''}`}
         />
 
-        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none text-muted-foreground">
+        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-muted-foreground">
+          {query.trim().length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery('');
+                onChangeAddress('');
+                inputRef.current?.focus();
+              }}
+              className="p-1 rounded-full hover:bg-muted text-muted-foreground transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+
           {isLoading ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
           ) : hasCoordinates ? (
@@ -252,45 +336,91 @@ export function AddressAutocompleteInput({
         </div>
       </div>
 
-      {/* Verified Coordinates Pill */}
-      {hasCoordinates && (
-        <div className="flex items-center gap-1.5 text-[10px] text-emerald-700 font-medium px-1">
-          <Compass size={11} className="text-emerald-600" />
-          <span>Coordinates verified: {latitude?.toFixed(4)}, {longitude?.toFixed(4)}</span>
+      {/* 1-Tap Quick Suggestions Pills */}
+      {showQuickPills && (
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar pt-0.5">
+          <span className="text-[10px] text-muted-foreground whitespace-nowrap flex items-center gap-1 font-medium pl-0.5">
+            Quick picks:
+          </span>
+          {quickPillItems.map((pill) => (
+            <button
+              key={pill.label}
+              type="button"
+              onClick={() =>
+                handleQuickPillClick({
+                  id: pill.label,
+                  displayName: pill.query,
+                  primaryTitle: pill.label,
+                  subtitle: pill.query,
+                  latitude: pill.lat,
+                  longitude: pill.lng,
+                })
+              }
+              className="text-[10px] px-2 py-0.5 rounded-lg border border-border/80 bg-muted/30 hover:bg-primary/10 hover:border-primary/40 hover:text-primary transition-all whitespace-nowrap font-medium text-foreground"
+            >
+              {pill.label}
+            </button>
+          ))}
         </div>
       )}
 
+      {/* Verified Coordinates & Matched Area Pill */}
+      {hasCoordinates && (
+        <div className="flex items-center justify-between text-[10px] text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-2 py-1">
+          <div className="flex items-center gap-1.5 font-medium">
+            <Compass size={12} className="text-emerald-600" />
+            <span>
+              {resolvedAreaName ? `Matched to ${resolvedAreaName}` : 'GPS Location Locked'}
+            </span>
+          </div>
+          <span className="font-mono text-[9px] opacity-80">
+            {latitude?.toFixed(4)}, {longitude?.toFixed(4)}
+          </span>
+        </div>
+      )}
+
+      {/* Error Message */}
       {error && (
-        <p className="text-[11px] text-destructive flex items-center gap-1">
+        <p className="text-[11px] text-destructive flex items-center gap-1 font-medium">
           {error}
         </p>
       )}
 
-      {/* Suggestions Autocomplete Dropdown */}
+      {/* Floating Suggestions Dropdown */}
       {isOpen && suggestions.length > 0 && (
-        <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-card border border-black/[0.08] dark:border-border rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-black/[0.04] max-h-56 overflow-y-auto">
-          {suggestions.map((item, idx) => {
-            const parts = item.displayName.split(',');
-            const primaryTitle = parts.slice(0, 2).join(',').trim();
-            const subtitle = parts.slice(2).join(',').trim();
+        <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-card border border-border rounded-2xl shadow-2xl z-50 overflow-hidden divide-y divide-border/40 max-h-64 overflow-y-auto">
+          <div className="px-3 py-1.5 bg-muted/40 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
+            <span>Suggested Locations ({suggestions.length})</span>
+            <span className="text-[9px] lowercase font-normal">Click or press enter</span>
+          </div>
 
+          {suggestions.map((item, idx) => {
+            const isSelected = selectedIndex === idx;
             return (
               <button
-                key={idx}
+                key={item.id || idx}
                 type="button"
-                onMouseDown={() => handleSelectSuggestion(item)}
-                className="w-full text-left p-3 hover:bg-orange-50/60 transition-colors flex items-start gap-2.5 group"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  handleSelectSuggestion(item);
+                }}
+                className={`w-full text-left p-3 transition-colors flex items-start gap-2.5 group ${
+                  isSelected ? 'bg-primary/10' : 'hover:bg-primary/5'
+                }`}
               >
-                <div className="w-7 h-7 rounded-lg bg-orange-100/60 text-primary flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-primary group-hover:text-white transition-colors">
-                  <MapPin size={14} />
+                <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-primary group-hover:text-white transition-colors">
+                  {getCategoryIcon(item.category)}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-foreground group-hover:text-primary transition-colors truncate">
-                    {primaryTitle}
-                  </p>
-                  {subtitle && (
-                    <p className="text-[10px] text-muted-foreground truncate mt-0.5">
-                      {subtitle}
+                  <div className="flex items-center justify-between gap-1.5">
+                    <p className="text-xs font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                      {item.primaryTitle}
+                    </p>
+                    {getCategoryBadge(item.category)}
+                  </div>
+                  {item.subtitle && (
+                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                      {item.subtitle}
                     </p>
                   )}
                 </div>

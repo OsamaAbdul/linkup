@@ -29,6 +29,8 @@ import { LocationPickerMap } from '../LocationPickerMap';
 import { useRoadRoute } from '../../hooks/useRoadRoute';
 import { calculateHaversineDistance } from '../../hooks/useSendPricing';
 
+import { findBestCoordinatesForAddress } from '../../services/addressSearchService';
+
 interface Step3Props {
   formData: SendOrderFormData;
   onChange: (data: Partial<SendOrderFormData>) => void;
@@ -86,9 +88,22 @@ export function Step3DropoffLocation({ formData, onChange, onNext, onBack }: Ste
     if (!formData.dropoffRecipientName.trim()) errs.dropoffRecipientName = "Recipient's name is required";
     if (!formData.dropoffRecipientPhone.trim()) errs.dropoffRecipientPhone = "Recipient's phone is required";
 
-    // Compulsory coordinates validation for drop-off
-    if (typeof formData.dropoffLat !== 'number' || typeof formData.dropoffLng !== 'number') {
-      errs.dropoffLat = 'Please select or pinpoint the destination location on the live map';
+    // Compulsory coordinates validation for drop-off with smart fallback
+    let currentLat = formData.dropoffLat;
+    let currentLng = formData.dropoffLng;
+
+    if (typeof currentLat !== 'number' || typeof currentLng !== 'number') {
+      const autoMatch = findBestCoordinatesForAddress(formData.dropoffAddress);
+      if (autoMatch) {
+        currentLat = autoMatch.latitude;
+        currentLng = autoMatch.longitude;
+        onChange({
+          dropoffLat: currentLat,
+          dropoffLng: currentLng,
+        });
+      } else {
+        errs.dropoffLat = 'Please select a suggested location or pinpoint the destination on the live map';
+      }
     }
 
     setErrors(errs);
@@ -177,7 +192,18 @@ export function Step3DropoffLocation({ formData, onChange, onNext, onBack }: Ste
             longitude={formData.dropoffLng}
             error={errors.dropoffAddress}
             isRequired
-            onChangeAddress={(text) => onChange({ dropoffAddress: text })}
+            mode="dropoff"
+            showQuickPills={true}
+            onChangeAddress={(text) => {
+              onChange({ dropoffAddress: text });
+              if (errors.dropoffAddress) {
+                setErrors((prev) => {
+                  const next = { ...prev };
+                  delete next.dropoffAddress;
+                  return next;
+                });
+              }
+            }}
             onSelectLocation={({ address, latitude, longitude }) => {
               onChange({
                 dropoffAddress: address,

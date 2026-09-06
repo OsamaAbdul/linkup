@@ -27,6 +27,8 @@ import { SavedAddress } from '../../types';
 import { AddressAutocompleteInput } from '../AddressAutocompleteInput';
 import { LocationPickerMap } from '../LocationPickerMap';
 
+import { findBestCoordinatesForAddress } from '../../services/addressSearchService';
+
 interface Step2Props {
   formData: SendOrderFormData;
   onChange: (data: Partial<SendOrderFormData>) => void;
@@ -81,9 +83,22 @@ export function Step2PickupLocation({ formData, onChange, onNext, onBack }: Step
     if (!formData.senderName.trim()) errs.senderName = "Sender's name is required";
     if (!formData.senderPhone.trim()) errs.senderPhone = "Sender's phone is required";
 
-    // Compulsory coordinates validation
-    if (typeof formData.pickupLat !== 'number' || typeof formData.pickupLng !== 'number') {
-      errs.pickupLat = 'Compulsory: Please detect or pinpoint your exact pickup coordinates on the live map';
+    // Compulsory coordinates validation with smart auto-match fallback
+    let currentLat = formData.pickupLat;
+    let currentLng = formData.pickupLng;
+
+    if (typeof currentLat !== 'number' || typeof currentLng !== 'number') {
+      const autoMatch = findBestCoordinatesForAddress(formData.pickupAddress);
+      if (autoMatch) {
+        currentLat = autoMatch.latitude;
+        currentLng = autoMatch.longitude;
+        onChange({
+          pickupLat: currentLat,
+          pickupLng: currentLng,
+        });
+      } else {
+        errs.pickupLat = 'Please select a suggested location, detect GPS, or pinpoint on the live map';
+      }
     }
 
     setErrors(errs);
@@ -119,7 +134,7 @@ export function Step2PickupLocation({ formData, onChange, onNext, onBack }: Step
             <div>
               <h4 className="text-xs font-bold text-foreground">Accurate Coordinates Required</h4>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                Click <strong>"Detect My GPS"</strong> or tap on the live map below to lock your precise pickup coordinates.
+                Click <strong>"Detect GPS"</strong>, select from auto-suggest, or tap on the live map below to lock your precise pickup coordinates.
               </p>
             </div>
           </div>
@@ -186,7 +201,18 @@ export function Step2PickupLocation({ formData, onChange, onNext, onBack }: Step
             longitude={formData.pickupLng}
             error={errors.pickupAddress}
             isRequired
-            onChangeAddress={(text) => onChange({ pickupAddress: text })}
+            mode="pickup"
+            showQuickPills={true}
+            onChangeAddress={(text) => {
+              onChange({ pickupAddress: text });
+              if (errors.pickupAddress) {
+                setErrors((prev) => {
+                  const next = { ...prev };
+                  delete next.pickupAddress;
+                  return next;
+                });
+              }
+            }}
             onSelectLocation={({ address, latitude, longitude }) => {
               onChange({
                 pickupAddress: address,
@@ -246,7 +272,7 @@ export function Step2PickupLocation({ formData, onChange, onNext, onBack }: Step
                 <span className="text-destructive">*</span>
               </Label>
               <Input
-                placeholder="e.g. Osama Abdullahi"
+                placeholder="e.g. Damian Oboshi"
                 value={formData.senderName}
                 onChange={(e) => {
                   onChange({ senderName: e.target.value });

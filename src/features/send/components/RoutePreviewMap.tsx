@@ -51,14 +51,10 @@ export function RoutePreviewMap({
 
     L.control.zoom({ position: 'topright' }).addTo(map);
 
-    const cartoApiKey = import.meta.env.VITE_CARTO_API_KEY;
-    const tileUrl = cartoApiKey
-      ? `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${cartoApiKey}`
-      : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-
-    L.tileLayer(tileUrl, {
+    // Standard OpenStreetMap tiles (100% free, zero watermarks, no API key needed)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      subdomains: 'abcd',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(map);
 
     mapInstance.current = map;

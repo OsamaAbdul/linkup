@@ -29,13 +29,23 @@ export const ensureAddressString = (val: any): string | null => {
 export const getPickupAddress = (shipment: any) => {
     if (!shipment) return "Pickup Point";
     
-    // Priority 1: New Normalized Flat Column (shipments)
-    if (shipment.pickup_address_text) return shipment.pickup_address_text;
+    // Priority 1: Send Order / Normalized direct pickup address
+    const directPickup = ensureAddressString(
+        shipment.pickup_address ||
+        shipment.pickup_address_text ||
+        shipment.origin_address
+    );
+    if (directPickup) return directPickup;
     
-    // Priority 2: Seller's profile address (Legacy fallback)
-    const seller = Array.isArray(shipment.seller) ? shipment.seller[0] : shipment.seller;
+    // Priority 2: Seller's profile address (Marketplace shipments)
+    const seller = Array.isArray(shipment.seller) ? shipment.seller[0] : (shipment.seller || shipment.order?.seller);
     const sellerAddr = ensureAddressString(seller?.address);
     if (sellerAddr) return sellerAddr;
+
+    // Priority 3: Order nested pickup address
+    const order = Array.isArray(shipment.order) ? shipment.order[0] : shipment.order;
+    const orderPickup = ensureAddressString(order?.pickup_address || order?.pickup_address_text);
+    if (orderPickup) return orderPickup;
 
     return "Pickup Point";
 };
@@ -43,23 +53,52 @@ export const getPickupAddress = (shipment: any) => {
 export const getDeliveryAddress = (shipment: any) => {
     if (!shipment) return "Drop-off Node";
     
-    // Priority 1: New Normalized Flat Column (shipments)
-    if (shipment.delivery_address_text) return shipment.delivery_address_text;
+    // Priority 1: Send Order direct dropoff fields
+    const directDropoff = ensureAddressString(
+        shipment.dropoff_address ||
+        shipment.delivery_address ||
+        shipment.delivery_address_text ||
+        shipment.destination_address
+    );
+    if (directDropoff) return directDropoff;
     
-    // Priority 2: order_recipient relation (Core Source of Truth)
+    // Priority 2: order_recipient relation (Marketplace Orders)
     const order = Array.isArray(shipment.order) ? shipment.order[0] : shipment.order;
     const recipient = order?.order_recipient?.[0] || order?.order_recipient;
-    if (recipient?.address_line) return recipient.address_line;
+    const recipientAddr = ensureAddressString(recipient?.address_line || recipient?.address);
+    if (recipientAddr) return recipientAddr;
+
+    // Priority 3: Order direct dropoff/shipping address
+    const orderDropoff = ensureAddressString(
+        order?.dropoff_address ||
+        order?.delivery_address ||
+        order?.delivery_address_text ||
+        order?.shipping_address
+    );
+    if (orderDropoff) return orderDropoff;
+
+    // Priority 4: Buyer profile address (Legacy fallback)
+    const buyer = order?.buyer || (order?.profiles && !Array.isArray(order.profiles) ? order.profiles : null) || shipment.buyer;
+    const buyerAddr = ensureAddressString(buyer?.address);
+    if (buyerAddr) return buyerAddr;
 
     return "Drop-off Node";
 };
 
 export const getBuyerContact = (shipment: any) => {
-    if (!shipment?.order) return { name: "Customer", phone: "No phone" };
+    if (!shipment) return { name: "Customer", phone: "No phone" };
     
+    // Send order direct recipient
+    if (shipment.is_send_order || shipment.dropoff_recipient_name || shipment.recipient_name) {
+        return {
+            name: shipment.dropoff_recipient_name || shipment.recipient_name || shipment.buyer?.name || "Customer",
+            phone: shipment.dropoff_recipient_phone || shipment.recipient_phone || shipment.buyer?.phone || "No phone"
+        };
+    }
+
     const order = Array.isArray(shipment.order) ? shipment.order[0] : shipment.order;
     const recipient = order?.order_recipient?.[0] || order?.order_recipient || {};
-    const buyerProfile = order?.buyer || (order?.profiles && !Array.isArray(order.profiles) ? order.profiles : null) || {};
+    const buyerProfile = order?.buyer || (order?.profiles && !Array.isArray(order.profiles) ? order.profiles : null) || shipment.buyer || {};
     
     return {
         name: recipient.full_name || 
@@ -72,6 +111,15 @@ export const getBuyerContact = (shipment: any) => {
 
 export const getSellerInfo = (shipment: any) => {
     if (!shipment) return { name: "Seller", phone: "No phone" };
+
+    // Send order direct sender
+    if (shipment.is_send_order || shipment.sender_name) {
+        return {
+            name: shipment.sender_name || shipment.seller?.name || "Sender",
+            phone: shipment.sender_phone || shipment.seller?.phone || "No phone provided"
+        };
+    }
+
     const seller = Array.isArray(shipment.seller) ? shipment.seller[0] : shipment.seller;
     const orderSeller = shipment.order?.seller;
     const activeSeller = seller || orderSeller;
@@ -102,17 +150,18 @@ export const generateMapsUrl = (shipment: any, mode: 'pickup' | 'delivery' = 'de
     if (mode === 'pickup') {
         const seller = Array.isArray(shipment.seller) ? shipment.seller[0] : (shipment.seller || shipment.order?.seller);
         
-        // Use standardized columns
-        lat = shipment.pickup_lat || seller?.latitude;
-        lng = shipment.pickup_lng || seller?.longitude;
+        // Use standardized columns and Send Order coordinate fields
+        lat = shipment.pickup_lat || seller?.latitude || seller?.lat;
+        lng = shipment.pickup_lng || seller?.longitude || seller?.lng;
         address = getPickupAddress(shipment);
     } else {
         const order = Array.isArray(shipment.order) ? shipment.order[0] : shipment.order;
         const recipient = order?.order_recipient?.[0] || order?.order_recipient;
+        const buyer = order?.buyer || shipment.buyer;
         
-        // Use standardized columns
-        lat = shipment.delivery_lat || recipient?.lat || order?.buyer?.latitude;
-        lng = shipment.delivery_lng || recipient?.lng || order?.buyer?.longitude;
+        // Use standardized columns, Send Order dropoff fields, or recipient coordinates
+        lat = shipment.delivery_lat || shipment.dropoff_lat || recipient?.lat || recipient?.latitude || buyer?.latitude || buyer?.lat;
+        lng = shipment.delivery_lng || shipment.dropoff_lng || recipient?.lng || recipient?.longitude || buyer?.longitude || buyer?.lng;
         address = getDeliveryAddress(shipment);
     }
     

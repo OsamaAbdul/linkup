@@ -119,43 +119,39 @@ export default function AdminUserManagement() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                     <h2 className="text-2xl font-black">Member List</h2>
                     <p className="text-sm text-muted-foreground font-medium">Manage everyone who uses the platform.</p>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <div className="flex-1 max-w-md">
-                        <div className="relative">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                            <input
-                                type="text"
-                                placeholder="Search by name or role..."
-                                className="w-full h-11 bg-white border-none rounded-xl pl-12 pr-4 text-sm font-medium shadow-sm focus:ring-2 focus:ring-primary/20 transition-all"
-                                value={searchQuery}
-                                onChange={handleSearchChange}
-                            />
-                        </div>
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <div className="relative flex-1 sm:w-72">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+                        <input
+                            type="text"
+                            placeholder="Search by name or role..."
+                            className="w-full h-10 sm:h-11 bg-white border border-black/5 rounded-xl pl-10 pr-4 text-xs sm:text-sm font-medium shadow-sm focus:ring-2 focus:ring-primary/20 transition-all"
+                            value={searchQuery}
+                            onChange={handleSearchChange}
+                        />
                     </div>
-                    <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="h-10 px-4 rounded-xl border-white bg-white/50 text-[10px] font-black uppercase tracking-widest text-muted-foreground shadow-sm">
-                            {totalCount} Members
-                        </Badge>
-                    </div>
+                    <Badge variant="outline" className="h-10 px-3.5 rounded-xl border-black/5 bg-white text-[10px] font-black uppercase tracking-widest text-muted-foreground shadow-sm shrink-0">
+                        {totalCount} Members
+                    </Badge>
                 </div>
             </div>
 
             <Card className="border-none shadow-sm rounded-xl bg-white overflow-hidden">
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto no-scrollbar">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="border-b border-gray-100 bg-gray-50/50">
-                                <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Member Info</th>
-                                <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Roles</th>
-                                <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Activity</th>
-                                <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Joined</th>
-                                <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right">Options</th>
+                                <th className="px-3 py-3.5 sm:px-6 sm:py-4 md:px-8 md:py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Member Info</th>
+                                <th className="hidden sm:table-cell px-4 py-4 md:px-8 md:py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Roles</th>
+                                <th className="px-3 py-3.5 sm:px-6 sm:py-4 md:px-8 md:py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Activity</th>
+                                <th className="hidden md:table-cell px-4 py-4 md:px-8 md:py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Joined</th>
+                                <th className="px-3 py-3.5 sm:px-6 sm:py-4 md:px-8 md:py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right">Options</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
@@ -163,18 +159,38 @@ export default function AdminUserManagement() {
                                 const stats = getUserStats(u.id);
                                 return (
                                     <tr key={u.id} className="hover:bg-gray-50/50 transition-colors group">
-                                        <td className="px-8 py-6">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-primary border border-gray-200 overflow-hidden font-black text-xs">
+                                        <td className="px-3 py-3.5 sm:px-6 sm:py-4 md:px-8 md:py-5">
+                                            <div className="flex items-center gap-2.5 sm:gap-3">
+                                                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gray-100 flex items-center justify-center text-primary border border-gray-200 overflow-hidden font-black text-xs shrink-0">
                                                     {u.avatar_url ? <img src={u.avatar_url} className="w-full h-full object-cover" alt={u.display_name || "User"} /> : u.display_name?.[0]}
                                                 </div>
-                                                <div>
-                                                    <p className="font-bold text-sm text-foreground">{u.display_name || "Unnamed User"}</p>
-                                                    <p className="text-[10px] text-muted-foreground font-medium">{u.id}</p>
+                                                <div className="min-w-0">
+                                                    <p className="font-bold text-xs sm:text-sm text-foreground truncate">{u.display_name || "Unnamed User"}</p>
+                                                    <p className="text-[10px] text-muted-foreground font-mono truncate max-w-[120px] sm:max-w-[180px]">{u.id}</p>
+                                                    {/* Mobile roles and joined date */}
+                                                    <div className="flex flex-wrap items-center gap-1 mt-1 sm:hidden">
+                                                        {(u.user_roles as unknown as any[])?.map((r, i) => (
+                                                            <Badge key={i} className={cn(
+                                                                "rounded-full border-none text-[8px] font-black uppercase px-2 py-0",
+                                                                r.role === 'admin' ? 'bg-red-50 text-red-600' :
+                                                                r.role === 'seller' ? 'bg-amber-100 text-amber-700' :
+                                                                r.role === 'promoter' ? 'bg-purple-100 text-purple-700' :
+                                                                r.role === 'logistics' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                                                            )}>
+                                                                {r.role}
+                                                            </Badge>
+                                                        ))}
+                                                        {(!u.user_roles || u.user_roles.length === 0) && (
+                                                            <Badge className="rounded-full bg-indigo-50 text-indigo-600 border-none text-[8px] font-black uppercase px-2 py-0">Buyer</Badge>
+                                                        )}
+                                                        <span className="text-[9px] text-muted-foreground ml-1">
+                                                            · {new Date(u.created_at).toLocaleDateString()}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-8 py-6">
+                                        <td className="hidden sm:table-cell px-4 py-4 md:px-8 md:py-5">
                                             <div className="flex flex-wrap gap-1">
                                                 {(u.user_roles as unknown as any[])?.map((r, i) => (
                                                     <Badge key={i} className={cn(
@@ -192,20 +208,20 @@ export default function AdminUserManagement() {
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="px-8 py-6">
+                                        <td className="px-3 py-3.5 sm:px-6 sm:py-4 md:px-8 md:py-5 whitespace-nowrap">
                                             <div>
-                                                <p className="font-bold text-sm">{stats.count} Orders</p>
-                                                <p className="text-[10px] text-muted-foreground font-black uppercase">{stats.totalSpent.toLocaleString()} Spent</p>
+                                                <p className="font-bold text-xs sm:text-sm">{stats.count} Orders</p>
+                                                <p className="text-[9px] sm:text-[10px] text-muted-foreground font-black uppercase">₦{stats.totalSpent.toLocaleString()} Spent</p>
                                             </div>
                                         </td>
-                                        <td className="px-8 py-6 text-xs font-medium text-muted-foreground">
+                                        <td className="hidden md:table-cell px-4 py-4 md:px-8 md:py-5 text-xs font-medium text-muted-foreground whitespace-nowrap">
                                             {new Date(u.created_at).toLocaleDateString()}
                                         </td>
-                                        <td className="px-8 py-6 text-right">
+                                        <td className="px-3 py-3.5 sm:px-6 sm:py-4 md:px-8 md:py-5 text-right">
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="rounded-xl text-destructive hover:bg-destructive/10"
+                                                className="rounded-xl text-destructive hover:bg-destructive/10 h-8 w-8"
                                                 onClick={() => {
                                                     if (confirm("Are you sure? This will permanently delete this member and cannot be undone.")) {
                                                         deleteUserMutation.mutate(u.id);
@@ -213,7 +229,7 @@ export default function AdminUserManagement() {
                                                 }}
                                                 disabled={deleteUserMutation.isPending}
                                             >
-                                                <Trash2 size={18} />
+                                                <Trash2 size={16} />
                                             </Button>
                                         </td>
                                     </tr>
@@ -225,21 +241,21 @@ export default function AdminUserManagement() {
             </Card>
 
             {totalPages > 0 && (
-                <div className="flex items-center justify-between mt-6 bg-white p-4 rounded-xl border border-gray-50 shadow-sm">
-                    <div className="text-xs font-bold text-muted-foreground px-4">
-                        Page {currentPage} of {totalPages}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-6 bg-white p-3 sm:p-4 rounded-xl border border-gray-100 shadow-sm">
+                    <div className="text-xs font-bold text-muted-foreground">
+                        Page {currentPage} of {totalPages} ({totalCount} total members)
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2">
                         <Button
                             variant="outline"
                             size="sm"
-                            className="rounded-xl font-bold text-xs border-gray-100 h-10 px-6"
+                            className="rounded-xl font-bold text-xs border-gray-200 h-9 px-4"
                             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                             disabled={currentPage === 1}
                         >
                             Previous
                         </Button>
-                        <div className="flex gap-1">
+                        <div className="hidden sm:flex gap-1">
                             {[...Array(totalPages)].map((_, i) => {
                                 const page = i + 1;
                                 if (page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
@@ -249,7 +265,7 @@ export default function AdminUserManagement() {
                                             variant={currentPage === page ? "default" : "outline"}
                                             size="sm"
                                             className={cn(
-                                                "w-10 h-10 rounded-xl font-bold text-xs border-gray-100",
+                                                "w-9 h-9 rounded-xl font-bold text-xs border-gray-200",
                                                 currentPage === page ? "bg-primary text-white" : "text-muted-foreground"
                                             )}
                                             onClick={() => setCurrentPage(page)}
@@ -259,7 +275,7 @@ export default function AdminUserManagement() {
                                     );
                                 }
                                 if (page === currentPage - 2 || page === currentPage + 2) {
-                                    return <span key={page} className="w-10 h-10 flex items-center justify-center text-muted-foreground">...</span>;
+                                    return <span key={page} className="w-9 h-9 flex items-center justify-center text-muted-foreground">...</span>;
                                 }
                                 return null;
                             })}
@@ -267,7 +283,7 @@ export default function AdminUserManagement() {
                         <Button
                             variant="outline"
                             size="sm"
-                            className="rounded-xl font-bold text-xs border-gray-100 h-10 px-6"
+                            className="rounded-xl font-bold text-xs border-gray-200 h-9 px-4"
                             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                             disabled={currentPage === totalPages}
                         >

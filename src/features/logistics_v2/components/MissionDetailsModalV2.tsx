@@ -65,8 +65,23 @@ export function MissionDetailsModalV2({ shipment, open, onOpenChange }: MissionD
                         ...sendData,
                         is_send_order: true,
                         pickup_address: sendData.pickup_address,
+                        pickup_address_text: sendData.pickup_address,
                         delivery_address: sendData.dropoff_address,
+                        delivery_address_text: sendData.dropoff_address,
+                        dropoff_address: sendData.dropoff_address,
+                        pickup_lat: sendData.pickup_lat,
+                        pickup_lng: sendData.pickup_lng,
+                        delivery_lat: sendData.dropoff_lat,
+                        delivery_lng: sendData.dropoff_lng,
+                        dropoff_lat: sendData.dropoff_lat,
+                        dropoff_lng: sendData.dropoff_lng,
                         delivery_fee: sendData.delivery_fee,
+                        sender_name: sendData.sender_name,
+                        sender_phone: sendData.sender_phone,
+                        recipient_name: sendData.dropoff_recipient_name,
+                        recipient_phone: sendData.dropoff_recipient_phone,
+                        pickup_directions: sendData.pickup_directions,
+                        dropoff_directions: sendData.dropoff_directions,
                         seller: { name: sendData.sender_name, phone: sendData.sender_phone, address: sendData.pickup_address },
                         buyer: { name: sendData.dropoff_recipient_name, phone: sendData.dropoff_recipient_phone, address: sendData.dropoff_address },
                         package_details: sendData.package_details,
@@ -326,6 +341,11 @@ export function MissionDetailsModalV2({ shipment, open, onOpenChange }: MissionD
                                         <div className="pt-1">
                                             <p className="text-[10px] font-black text-orange-700 uppercase tracking-widest mb-1">Pickup Node</p>
                                             <p className="text-sm font-bold text-foreground line-clamp-2 leading-snug">{getPickupAddress(activeShipment)}</p>
+                                            {activeShipment?.pickup_directions && (
+                                                <p className="text-[11px] text-amber-800/90 font-medium italic mt-0.5">
+                                                    Note: "{activeShipment.pickup_directions}"
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                     <Button size="sm" variant="outline" className="rounded-xl font-black text-[10px] uppercase tracking-widest border-orange-200 text-orange-600 hover:bg-orange-50" onClick={() => handleOpenMaps('pickup')}>
@@ -340,6 +360,11 @@ export function MissionDetailsModalV2({ shipment, open, onOpenChange }: MissionD
                                         <div className="pt-1">
                                             <p className="text-[10px] font-black text-orange-700 uppercase tracking-widest mb-1">Delivery Node</p>
                                             <p className="text-sm font-bold text-foreground line-clamp-2 leading-snug">{getDeliveryAddress(activeShipment)}</p>
+                                            {activeShipment?.dropoff_directions && (
+                                                <p className="text-[11px] text-amber-800/90 font-medium italic mt-0.5">
+                                                    Note: "{activeShipment.dropoff_directions}"
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                     <Button size="sm" variant="outline" className="rounded-xl font-black text-[10px] uppercase tracking-widest border-orange-200 text-[#E96F28] hover:bg-orange-50" onClick={() => handleOpenMaps('delivery')}>

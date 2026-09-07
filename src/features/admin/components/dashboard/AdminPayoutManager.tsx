@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/shared/components/ui/card";
@@ -6,7 +6,7 @@ import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
-import { Landmark, CheckCircle2, XCircle, Clock, Save, Settings2, User, Wallet } from "lucide-react";
+import { Landmark, CheckCircle2, XCircle, Clock, Save, Settings2, User, Wallet, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -16,6 +16,9 @@ export function AdminPayoutManager() {
     const [feeInput, setFeeInput] = useState("");
     const [intervalInput, setIntervalInput] = useState("");
     const [releaseDaysInput, setReleaseDaysInput] = useState("");
+    const [sendRiderDelayInput, setSendRiderDelayInput] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
 
     // Fetch payout requests
     const { data: requests = [], isLoading } = useQuery({
@@ -62,16 +65,23 @@ export function AdminPayoutManager() {
             const withdrawal_fee = data?.find(s => s.key === 'withdrawal_fee')?.value as any;
             const payout_interval = data?.find(s => s.key === 'payout_interval_days')?.value as any;
             const escrow_release = data?.find(s => s.key === 'escrow_release_days')?.value as any;
+            const send_rider_delay = data?.find(s => s.key === 'send_rider_payout_delay_hours')?.value as any;
             
             // Sync local inputs if not set
             if (withdrawal_fee && feeInput === "") setFeeInput(withdrawal_fee.amount.toString());
             if (payout_interval && intervalInput === "") setIntervalInput(payout_interval.toString());
             if (escrow_release && releaseDaysInput === "") setReleaseDaysInput(escrow_release.toString());
+            if (send_rider_delay !== undefined && send_rider_delay !== null && sendRiderDelayInput === "") {
+                setSendRiderDelayInput(send_rider_delay.toString());
+            } else if (send_rider_delay === undefined && sendRiderDelayInput === "") {
+                setSendRiderDelayInput("24");
+            }
             
             return {
                 withdrawal_fee,
                 payout_interval,
-                escrow_release
+                escrow_release,
+                send_rider_delay: send_rider_delay ?? 24
             };
         }
     });
@@ -126,7 +136,7 @@ export function AdminPayoutManager() {
     });
 
     const updateSettingsMutation = useMutation({
-        mutationFn: async ({ fee, interval, release }: { fee: number, interval: number, release: number }) => {
+        mutationFn: async ({ fee, interval, release, sendRiderDelay }: { fee: number, interval: number, release: number, sendRiderDelay: number }) => {
             const { error: feeErr } = await supabase
                 .from("system_settings")
                 .update({ value: { amount: fee, type: "flat" } })
@@ -140,8 +150,12 @@ export function AdminPayoutManager() {
             const { error: releaseErr } = await supabase
                 .from("system_settings")
                 .upsert({ key: "escrow_release_days", value: release });
+
+            const { error: sendRiderErr } = await supabase
+                .from("system_settings")
+                .upsert({ key: "send_rider_payout_delay_hours", value: sendRiderDelay });
                 
-            if (feeErr || intErr || releaseErr) throw new Error("Update failed");
+            if (feeErr || intErr || releaseErr || sendRiderErr) throw new Error("Update failed");
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["payout-settings"] });
@@ -164,12 +178,13 @@ export function AdminPayoutManager() {
                                 <Settings2 className="text-primary" size={20} />
                             </div>
                             <div>
-                                <h3 className="text-lg font-black tracking-tight">Payout Settings</h3>
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Manage how and when sellers get paid.</p>
+                                <h3 className="text-lg font-black tracking-tight">Payout & Escrow Rules</h3>
+                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Manage how and when sellers & dispatch riders get paid.</p>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-6">
+                        {/* Marketplace Payouts */}
+                        <div className="grid grid-cols-3 gap-4">
                             <div className="space-y-2">
                                 <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Payout Fee (₦)</Label>
                                 <Input 
@@ -189,7 +204,7 @@ export function AdminPayoutManager() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Escrow Release (Days)</Label>
+                                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Marketplace Escrow (Days)</Label>
                                 <Input 
                                     type="number" 
                                     value={releaseDaysInput} 
@@ -199,8 +214,72 @@ export function AdminPayoutManager() {
                             </div>
                         </div>
 
+                        {/* LinkUp SEND Rider Payout Section */}
+                        <div className="p-4 rounded-2xl bg-gray-50/80 border border-black/[0.04] space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h4 className="text-xs font-black uppercase tracking-widest text-foreground">LinkUp Send: Rider Payout Delay</h4>
+                                    <p className="text-[11px] font-medium text-muted-foreground mt-0.5">
+                                        Choose when Send riders receive their cut. Set to <span className="font-bold text-foreground">0</span> for instant payout upon delivery, or <span className="font-bold text-foreground">24</span> for standard escrow buffer.
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-black/[0.05] shadow-sm">
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant={sendRiderDelayInput === "0" ? "default" : "ghost"}
+                                        className="h-7 px-2.5 text-[9px] font-black uppercase rounded-lg"
+                                        onClick={() => setSendRiderDelayInput("0")}
+                                    >
+                                        Instant (0h)
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant={sendRiderDelayInput === "24" ? "default" : "ghost"}
+                                        className="h-7 px-2.5 text-[9px] font-black uppercase rounded-lg"
+                                        onClick={() => setSendRiderDelayInput("24")}
+                                    >
+                                        24h (Standard)
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant={sendRiderDelayInput === "48" ? "default" : "ghost"}
+                                        className="h-7 px-2.5 text-[9px] font-black uppercase rounded-lg"
+                                        onClick={() => setSendRiderDelayInput("48")}
+                                    >
+                                        48h
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <div className="w-48">
+                                    <Input 
+                                        type="number" 
+                                        min="0"
+                                        placeholder="Hours"
+                                        value={sendRiderDelayInput} 
+                                        onChange={(e) => setSendRiderDelayInput(e.target.value)}
+                                        className="h-10 rounded-xl border-black/[0.05] bg-white font-bold transition-all text-xs"
+                                    />
+                                </div>
+                                <span className="text-[11px] font-semibold text-muted-foreground">
+                                    {Number(sendRiderDelayInput) === 0 
+                                        ? "⚡ Instant release — Rider's available wallet balance is credited immediately when marked delivered." 
+                                        : `⏳ Held in escrow for ${sendRiderDelayInput || "24"} hours after delivery before automated cron release.`}
+                                </span>
+                            </div>
+                        </div>
+
                         <Button 
-                            onClick={() => updateSettingsMutation.mutate({ fee: Number(feeInput), interval: Number(intervalInput), release: Number(releaseDaysInput) })}
+                            onClick={() => updateSettingsMutation.mutate({ 
+                                fee: Number(feeInput), 
+                                interval: Number(intervalInput), 
+                                release: Number(releaseDaysInput),
+                                sendRiderDelay: Number(sendRiderDelayInput)
+                            })}
                             disabled={updateSettingsMutation.isPending}
                             className="bg-primary text-white h-12 px-8 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
                         >
@@ -228,7 +307,7 @@ export function AdminPayoutManager() {
 
             {/* Requests Table */}
             <Card className="rounded-3xl border-none shadow-2xl shadow-black/[0.03] overflow-hidden bg-white">
-                <div className="p-6 border-b border-black/[0.03] flex items-center justify-between">
+                <div className="p-4 md:p-6 border-b border-black/[0.03] flex items-center justify-between">
                     <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
                         <Clock size={14} /> Waiting List
                     </h3>
@@ -238,34 +317,37 @@ export function AdminPayoutManager() {
                     <table className="w-full text-left">
                         <thead>
                             <tr className="bg-gray-50/50">
-                                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Member Info</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Total & Fee</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Bank Details</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Status</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right">Actions</th>
+                                <th className="px-3 py-3 md:px-6 md:py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Member Info</th>
+                                <th className="px-3 py-3 md:px-6 md:py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Total & Fee</th>
+                                <th className="hidden md:table-cell px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Bank Details</th>
+                                <th className="px-3 py-3 md:px-6 md:py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Status</th>
+                                <th className="px-3 py-3 md:px-6 md:py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-black/[0.03]">
-                            {requests.map((r: any) => (
+                            {paginatedRequests.map((r: any) => (
                                 <tr key={r.id} className="hover:bg-gray-50/50 transition-colors group">
-                                    <td className="px-6 py-5">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center font-black text-primary">
+                                    <td className="px-3 py-3 md:px-6 md:py-5">
+                                        <div className="flex items-center gap-2.5 md:gap-3">
+                                            <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-gray-100 flex items-center justify-center font-black text-primary text-xs shrink-0">
                                                 {r.profiles?.display_name?.[0] || 'S'}
                                             </div>
                                              <div>
-                                                <p className="text-[13px] font-black text-foreground tracking-tight">{r.profiles?.display_name || 'Anonymous User'}</p>
+                                                <p className="text-xs md:text-[13px] font-black text-foreground tracking-tight">{r.profiles?.display_name || 'Anonymous User'}</p>
                                                 <Badge variant="outline" className="text-[8px] font-bold uppercase tracking-widest mt-0.5 border-black/5 bg-gray-50">
                                                     {r.profiles?.user_roles?.[0]?.role || 'user'}
                                                 </Badge>
+                                                <p className="text-[10px] text-muted-foreground md:hidden mt-1 font-medium">
+                                                    {r.bank_name} · {r.account_number}
+                                                </p>
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-5">
-                                        <p className="text-sm font-black text-foreground">₦{r.amount.toLocaleString()}</p>
-                                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Fee: ₦{r.fee_amount.toLocaleString()}</p>
+                                    <td className="px-3 py-3 md:px-6 md:py-5">
+                                        <p className="text-xs md:text-sm font-black text-foreground">₦{r.amount.toLocaleString()}</p>
+                                        <p className="text-[9px] md:text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Fee: ₦{r.fee_amount.toLocaleString()}</p>
                                     </td>
-                                    <td className="px-6 py-5">
+                                    <td className="hidden md:table-cell px-6 py-5">
                                         <div className="flex items-center gap-2">
                                             <Landmark size={14} className="text-muted-foreground" />
                                             <div>
@@ -274,18 +356,18 @@ export function AdminPayoutManager() {
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-5">
+                                    <td className="px-3 py-3 md:px-6 md:py-5">
                                         <Badge className={cn(
-                                            "rounded-full px-3 py-0.5 text-[9px] font-black uppercase tracking-widest border-none shadow-sm",
+                                            "rounded-full px-2.5 py-0.5 text-[8px] md:text-[9px] font-black uppercase tracking-widest border-none shadow-sm",
                                             r.status === 'completed' ? "bg-emerald-100 text-emerald-800" :
                                             r.status === 'rejected' ? "bg-red-100 text-red-800" :
                                             r.status === 'approved' ? "bg-blue-100 text-blue-800" : "bg-amber-100 text-amber-800"
                                         )}>
                                             {r.status}
                                         </Badge>
-                                        <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-widest">{format(new Date(r.created_at), "MMM d, HH:mm")}</p>
+                                        <p className="text-[8px] md:text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-widest">{format(new Date(r.created_at), "MMM d, HH:mm")}</p>
                                     </td>
-                                    <td className="px-6 py-5 text-right">
+                                    <td className="px-3 py-3 md:px-6 md:py-5 text-right">
                                         <div className="flex justify-end gap-2">
                                             {r.status === 'pending' && (
                                                 <>
@@ -326,6 +408,68 @@ export function AdminPayoutManager() {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Pagination Controls */}
+                {requests.length > 0 && (
+                    <div className="p-4 border-t border-black/[0.04] bg-white flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
+                        <div className="text-xs text-muted-foreground font-bold">
+                            Showing <span className="text-foreground font-black">{(currentPage - 1) * pageSize + 1}</span> –{" "}
+                            <span className="text-foreground font-black">{Math.min(currentPage * pageSize, requests.length)}</span> of{" "}
+                            <span className="text-foreground font-black">{requests.length}</span> requests
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5 mr-2">
+                                <span className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Per Page:</span>
+                                <div className="inline-flex rounded-xl bg-gray-100 p-0.5 border border-black/[0.04]">
+                                    {[10, 25, 50].map((size) => (
+                                        <button
+                                            key={size}
+                                            onClick={() => {
+                                                setPageSize(size);
+                                                setCurrentPage(1);
+                                            }}
+                                            className={cn(
+                                                "px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all",
+                                                pageSize === size
+                                                    ? "bg-white text-foreground shadow-sm font-black"
+                                                    : "text-muted-foreground hover:text-foreground"
+                                            )}
+                                        >
+                                            {size}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="h-8 px-3 rounded-xl text-xs font-bold gap-1 bg-white hover:bg-gray-50 disabled:opacity-40"
+                            >
+                                <ChevronLeft size={14} />
+                                <span>Prev</span>
+                            </Button>
+
+                            <span className="text-xs font-bold text-muted-foreground px-1">
+                                Page {currentPage} of {totalPages}
+                            </span>
+
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                                className="h-8 px-3 rounded-xl text-xs font-bold gap-1 bg-white hover:bg-gray-50 disabled:opacity-40"
+                            >
+                                <span>Next</span>
+                                <ChevronRight size={14} />
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </Card>
         </div>
     );

@@ -35,6 +35,7 @@ import {
   Banknote,
   ShieldCheck,
   ChevronRight,
+  ChevronLeft,
   Filter,
   User,
   ArrowRight,
@@ -52,6 +53,8 @@ export default function AdminSendPackagesManager() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [selectedOrder, setSelectedOrder] = useState<SendOrder | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // 1. Query all LinkUp SEND packages
   const { data: orders = [], isLoading, refetch } = useQuery({
@@ -142,6 +145,19 @@ export default function AdminSendPackagesManager() {
     toast.success(`${label} copied to clipboard`);
   };
 
+  // Helper to calculate rider cut vs system cut for an order
+  const getOrderCut = (order: SendOrder) => {
+    const fee = Number(order.delivery_fee || 0);
+    let riderCut = order.rider_payout_amount && Number(order.rider_payout_amount) > 0
+      ? Number(order.rider_payout_amount)
+      : Math.round(fee * 0.80);
+    if (!order.rider_payout_amount && fee > 0) {
+      riderCut = Math.min(fee, Math.max(1000, riderCut));
+    }
+    const systemCut = Math.max(0, fee - riderCut);
+    return { fee, riderCut, systemCut };
+  };
+
   // Metrics Calculation
   const metrics = useMemo(() => {
     const total = orders.length;
@@ -151,11 +167,35 @@ export default function AdminSendPackagesManager() {
     const active = orders.filter(
       (o) => o.status === "assigned_rider" || o.status === "pickup" || o.status === "on_the_way"
     ).length;
-    const delivered = orders.filter((o) => o.status === "delivered").length;
+    const deliveredOrders = orders.filter((o) => o.status === "delivered");
+    const delivered = deliveredOrders.length;
     const cancelled = orders.filter((o) => o.status === "cancelled").length;
+    
+    // Gross delivery fees (all non-cancelled or all)
+    const validOrders = orders.filter((o) => o.status !== "cancelled");
     const totalRevenue = orders.reduce((sum, o) => sum + Number(o.delivery_fee || 0), 0);
+    const deliveredVolume = deliveredOrders.reduce((sum, o) => sum + Number(o.delivery_fee || 0), 0);
 
-    return { total, pending, active, delivered, cancelled, totalRevenue };
+    // Riders cut & System cut
+    const totalRiderCut = validOrders.reduce((sum, o) => sum + getOrderCut(o).riderCut, 0);
+    const totalSystemCut = validOrders.reduce((sum, o) => sum + getOrderCut(o).systemCut, 0);
+
+    const deliveredRiderEarnings = deliveredOrders.reduce((sum, o) => sum + getOrderCut(o).riderCut, 0);
+    const deliveredSystemEarnings = deliveredOrders.reduce((sum, o) => sum + getOrderCut(o).systemCut, 0);
+
+    return { 
+      total, 
+      pending, 
+      active, 
+      delivered, 
+      cancelled, 
+      totalRevenue, 
+      deliveredVolume,
+      totalRiderCut, 
+      totalSystemCut,
+      deliveredRiderEarnings,
+      deliveredSystemEarnings
+    };
   }, [orders]);
 
   // Filtered orders based on status tab & search input
@@ -199,6 +239,18 @@ export default function AdminSendPackagesManager() {
       return true;
     });
   }, [orders, statusFilter, searchQuery]);
+
+  // Reset to page 1 whenever filters, search, or page size changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / pageSize));
+
+  const paginatedOrders = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredOrders.slice(start, start + pageSize);
+  }, [filteredOrders, currentPage, pageSize]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -316,8 +368,93 @@ export default function AdminSendPackagesManager() {
         </div>
       </div>
 
-      {/* Metrics Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+      {/* Financial Split Cards: Riders Total Cut vs System Cut */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Gross Volume */}
+        <Card className="rounded-3xl border-black/[0.04] bg-white shadow-sm p-5 relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+              Total Delivery Volume
+            </span>
+            <div className="w-8 h-8 rounded-xl bg-orange-50 text-[#E96F28] flex items-center justify-center font-bold">
+              <Banknote size={16} />
+            </div>
+          </div>
+          <div className="mt-3">
+            <p className="text-3xl font-black text-foreground font-heading">
+              ₦{metrics.totalRevenue.toLocaleString()}
+            </p>
+            <p className="text-[11px] text-muted-foreground font-medium mt-1">
+              Total gross fees paid across all {metrics.total} packages
+            </p>
+          </div>
+          <div className="mt-3 pt-3 border-t border-black/[0.03] flex items-center justify-between text-[11px] font-bold text-muted-foreground">
+            <span>Delivered Volume:</span>
+            <span className="text-foreground font-black">₦{metrics.deliveredVolume.toLocaleString()}</span>
+          </div>
+        </Card>
+
+        {/* Riders Total Cut */}
+        <Card className="rounded-3xl border-emerald-100 bg-emerald-50/40 shadow-sm p-5 relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800">
+                Riders Total Cut (Earned)
+              </span>
+              <Badge className="bg-emerald-100 text-emerald-800 border-none text-[9px] font-extrabold px-1.5 py-0">
+                80% Guarantee
+              </Badge>
+            </div>
+            <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+              <Bike size={16} />
+            </div>
+          </div>
+          <div className="mt-3">
+            <p className="text-3xl font-black text-emerald-900 font-heading">
+              ₦{metrics.totalRiderCut.toLocaleString()}
+            </p>
+            <p className="text-[11px] text-emerald-700/90 font-medium mt-1">
+              Allocated earnings to courier dispatch riders
+            </p>
+          </div>
+          <div className="mt-3 pt-3 border-t border-emerald-100 flex items-center justify-between text-[11px] font-bold text-emerald-800">
+            <span>Realized (Delivered):</span>
+            <span className="text-emerald-950 font-black">₦{metrics.deliveredRiderEarnings.toLocaleString()}</span>
+          </div>
+        </Card>
+
+        {/* System Cut */}
+        <Card className="rounded-3xl border-indigo-100 bg-indigo-50/40 shadow-sm p-5 relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-black uppercase tracking-wider text-indigo-800">
+                System Platform Cut (Net)
+              </span>
+              <Badge className="bg-indigo-100 text-indigo-800 border-none text-[9px] font-extrabold px-1.5 py-0">
+                LinkUp Profit
+              </Badge>
+            </div>
+            <div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
+              <Sparkles size={16} />
+            </div>
+          </div>
+          <div className="mt-3">
+            <p className="text-3xl font-black text-indigo-900 font-heading">
+              ₦{metrics.totalSystemCut.toLocaleString()}
+            </p>
+            <p className="text-[11px] text-indigo-700/90 font-medium mt-1">
+              Net platform commission retained by LinkUp
+            </p>
+          </div>
+          <div className="mt-3 pt-3 border-t border-indigo-100 flex items-center justify-between text-[11px] font-bold text-indigo-800">
+            <span>Realized (Delivered):</span>
+            <span className="text-indigo-950 font-black">₦{metrics.deliveredSystemEarnings.toLocaleString()}</span>
+          </div>
+        </Card>
+      </div>
+
+      {/* Operational Status Metrics Row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         {/* Total Packages */}
         <Card className="rounded-2xl border-black/[0.04] bg-white shadow-sm p-4">
           <div className="flex items-center justify-between">
@@ -380,22 +517,6 @@ export default function AdminSendPackagesManager() {
             {metrics.delivered.toLocaleString()}
           </p>
           <span className="text-[10px] text-emerald-700 font-bold">Completed successfully</span>
-        </Card>
-
-        {/* Total Delivery Volume (Revenue) */}
-        <Card className="rounded-2xl border-purple-100 bg-purple-50/40 shadow-sm p-4 col-span-2 sm:col-span-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-black uppercase tracking-wider text-purple-800">
-              Total Volume
-            </span>
-            <div className="w-7 h-7 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center">
-              <Banknote size={14} />
-            </div>
-          </div>
-          <p className="text-2xl font-black text-purple-900 font-heading mt-2">
-            ₦{metrics.totalRevenue.toLocaleString()}
-          </p>
-          <span className="text-[10px] text-purple-700 font-bold">Total delivery value</span>
         </Card>
       </div>
 
@@ -519,225 +640,259 @@ export default function AdminSendPackagesManager() {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="flex items-center justify-between text-xs text-muted-foreground font-bold px-2">
-            <span>
-              Showing {filteredOrders.length} of {orders.length} packages
-            </span>
+          {/* Top Pagination & Count Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-muted-foreground font-bold px-1 bg-white p-3 rounded-2xl border border-black/[0.04]">
+            <div className="flex items-center gap-2">
+              <span>
+                Showing {filteredOrders.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} –{" "}
+                {Math.min(currentPage * pageSize, filteredOrders.length)} of {filteredOrders.length} packages
+              </span>
+              {filteredOrders.length !== orders.length && (
+                <span className="text-[11px] font-normal text-muted-foreground/80">
+                  (filtered from {orders.length} total)
+                </span>
+              )}
+            </div>
+
+            {/* Page Size Selector */}
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <span className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Per Page:</span>
+              <div className="inline-flex rounded-xl bg-gray-100 p-0.5 border border-black/[0.04]">
+                {[10, 20, 50].map((size) => (
+                  <button
+                    key={size}
+                    onClick={() => setPageSize(size)}
+                    className={cn(
+                      "px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all",
+                      pageSize === size
+                        ? "bg-white text-foreground shadow-sm font-black"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4">
-            {filteredOrders.map((order) => {
+          {/* Compact Click-to-Open Package Cards */}
+          <div className="grid grid-cols-1 gap-3">
+            {paginatedOrders.map((order) => {
               const packageDetails =
                 typeof order.package_details === "string"
                   ? JSON.parse(order.package_details)
                   : order.package_details || {};
 
+              const { fee, riderCut, systemCut } = getOrderCut(order);
+
               return (
                 <div
                   key={order.id}
-                  className="bg-white rounded-3xl p-5 sm:p-6 border border-black/[0.04] hover:border-[#E96F28]/30 shadow-sm hover:shadow-md transition-all space-y-4"
+                  onClick={() => setSelectedOrder(order)}
+                  className="group cursor-pointer bg-white rounded-2xl p-4 sm:p-4.5 border border-black/[0.05] hover:border-[#E96F28]/50 hover:shadow-md transition-all duration-200 space-y-3 relative"
+                  title="Click to view full package details"
                 >
-                  {/* Top Row: Order ID, Status, Placed Date & Delivery Fee */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-black/[0.03]">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-orange-50 border border-orange-100 text-[#E96F28] flex items-center justify-center shrink-0">
-                        <Package size={20} />
+                  {/* Top Row: ID, Placed Date, Status Badge, Gross Fee & Split Badges */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-black/[0.04]">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-xl bg-orange-50 border border-orange-100/80 text-[#E96F28] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                        <Package size={16} />
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-black text-sm text-foreground">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono font-bold text-xs sm:text-sm text-foreground truncate">
                             {order.id}
                           </span>
                           <button
-                            onClick={() => handleCopy(order.id, "Order ID")}
-                            className="text-muted-foreground hover:text-foreground transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCopy(order.id, "Order ID");
+                            }}
+                            className="text-muted-foreground hover:text-foreground p-0.5 rounded transition-colors"
                             title="Copy ID"
                           >
-                            <Copy size={13} />
+                            <Copy size={12} />
                           </button>
                         </div>
-                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-semibold mt-0.5">
-                          <Clock size={12} />
-                          <span>Placed: {formatDate(order.created_at)}</span>
+                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium">
+                          <Clock size={11} />
+                          <span>{formatDate(order.created_at)}</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 self-end sm:self-auto">
+                    <div className="flex items-center justify-between sm:justify-end gap-3 flex-wrap">
                       {getStatusBadge(order.status)}
+
                       <div className="text-right pl-2 border-l border-black/[0.05]">
-                        <span className="text-sm font-black text-foreground font-heading block">
-                          ₦{Number(order.delivery_fee || 0).toLocaleString()}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground font-bold uppercase">
-                          {order.payment_status === "paid" ? "Paid ✅" : "Unpaid ⏳"}
-                        </span>
+                        <div className="flex items-center gap-1.5 justify-end">
+                          <span className="text-sm sm:text-base font-black text-foreground font-heading">
+                            ₦{fee.toLocaleString()}
+                          </span>
+                          <span
+                            className={cn(
+                              "text-[9px] font-black uppercase px-1.5 py-0.5 rounded",
+                              order.payment_status === "paid"
+                                ? "bg-emerald-50 text-emerald-700"
+                                : "bg-amber-50 text-amber-700"
+                            )}
+                          >
+                            {order.payment_status === "paid" ? "Paid" : "Unpaid"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold mt-0.5 justify-end">
+                          <span className="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/50">
+                            Rider: ₦{riderCut.toLocaleString()}
+                          </span>
+                          <span className="text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200/50">
+                            System: ₦{systemCut.toLocaleString()}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Middle Row: Route (Sender -> Recipient) & Package Details */}
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4 text-xs">
-                    {/* Route Details */}
-                    <div className="md:col-span-7 space-y-2.5 bg-gray-50/60 p-4 rounded-2xl border border-black/[0.02]">
-                      {/* Pickup Point */}
-                      <div className="flex items-start gap-2.5">
-                        <div className="w-2.5 h-2.5 rounded-full border-2 border-[#E96F28] bg-white mt-1 shrink-0" />
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-black uppercase text-muted-foreground">
-                              Pickup
-                            </span>
-                            <span className="font-bold text-foreground truncate">
-                              {order.sender_name}
-                            </span>
-                            {order.sender_phone && (
-                              <a
-                                href={`tel:${order.sender_phone}`}
-                                className="text-primary hover:underline font-semibold text-[11px] flex items-center gap-0.5"
-                              >
-                                <Phone size={10} />
-                                <span>{order.sender_phone}</span>
-                              </a>
-                            )}
-                          </div>
-                          <p className="text-muted-foreground mt-0.5 line-clamp-1">
-                            {order.pickup_address}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Drop-off Point */}
-                      <div className="flex items-start gap-2.5 pt-2 border-t border-black/[0.04]">
-                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-600 mt-1 shrink-0" />
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-black uppercase text-emerald-800">
-                              Drop-off
-                            </span>
-                            <span className="font-bold text-foreground truncate">
-                              {order.dropoff_recipient_name}
-                            </span>
-                            {order.dropoff_recipient_phone && (
-                              <a
-                                href={`tel:${order.dropoff_recipient_phone}`}
-                                className="text-emerald-700 hover:underline font-semibold text-[11px] flex items-center gap-0.5"
-                              >
-                                <Phone size={10} />
-                                <span>{order.dropoff_recipient_phone}</span>
-                              </a>
-                            )}
-                          </div>
-                          <p className="text-muted-foreground mt-0.5 line-clamp-1">
-                            {order.dropoff_address}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Assigned Rider & Package Specs */}
-                    <div className="md:col-span-5 flex flex-col justify-between gap-3 bg-gray-50/60 p-4 rounded-2xl border border-black/[0.02]">
-                      {/* Assigned Rider */}
-                      <div>
-                        <span className="text-[10px] font-black uppercase text-muted-foreground block mb-1">
-                          Assigned Rider
+                  {/* Bottom Row: Route, Assigned Rider, Specs & Click Cue */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+                    {/* Route Overview */}
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 min-w-0 text-muted-foreground text-[11px] font-medium">
+                        <MapPin size={12} className="text-[#E96F28] shrink-0" />
+                        <span
+                          className="truncate max-w-[130px] sm:max-w-[180px] md:max-w-[220px]"
+                          title={`Pickup: ${order.pickup_address || order.sender_name}`}
+                        >
+                          {order.pickup_address || order.sender_name || "Pickup"}
                         </span>
-                        {order.rider_id ? (
-                          <div className="flex items-center gap-2.5">
-                            <Avatar className="w-9 h-9 rounded-full border border-primary/20 shrink-0">
-                              <AvatarImage
-                                src={order.rider_avatar || defaultRiderImg}
-                                alt={order.rider_name || "Rider"}
-                              />
-                              <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
-                                {(order.rider_name || "R").charAt(0).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="min-w-0">
-                              <p className="font-bold text-foreground text-xs truncate">
-                                {order.rider_name || "Dispatch Rider"}
-                              </p>
-                              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                                {order.rider_phone && (
-                                  <a
-                                    href={`tel:${order.rider_phone}`}
-                                    className="text-primary hover:underline"
-                                  >
-                                    {order.rider_phone}
-                                  </a>
-                                )}
-                                <span>· {order.rider_vehicle || "Motorcycle"}</span>
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 text-amber-700 font-bold text-xs py-1">
-                            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                            <span>Awaiting rider pickup</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Package details preview */}
-                      <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-black/[0.04]">
-                        {packageDetails.weight_kg && (
-                          <Badge variant="outline" className="text-[10px] font-bold bg-white">
-                            ⚖️ {packageDetails.weight_kg <= 2 ? "Small (<2kg)" : `${packageDetails.weight_kg}kg`}
-                          </Badge>
-                        )}
-                        {packageDetails.contents && (
-                          <Badge variant="outline" className="text-[10px] font-bold bg-white truncate max-w-[140px]">
-                            📦 {packageDetails.contents}
-                          </Badge>
-                        )}
-                        {packageDetails.is_fragile && (
-                          <Badge variant="destructive" className="text-[10px] font-bold px-1.5 py-0">
-                            Fragile ⚠️
-                          </Badge>
-                        )}
+                        <ArrowRight size={12} className="text-muted-foreground/60 shrink-0 mx-0.5" />
+                        <span
+                          className="truncate max-w-[130px] sm:max-w-[180px] md:max-w-[220px] text-foreground font-semibold"
+                          title={`Drop-off: ${order.dropoff_address || order.dropoff_recipient_name}`}
+                        >
+                          {order.dropoff_address || order.dropoff_recipient_name || "Drop-off"}
+                        </span>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Bottom Action Buttons */}
-                  <div className="flex items-center justify-between gap-3 pt-2">
-                    <div className="text-[11px] text-muted-foreground font-semibold">
-                      {order.delivered_at && (
-                        <span className="text-emerald-700 font-bold">
-                          Delivered: {formatDate(order.delivered_at)}
+                    {/* Rider & Quick Actions */}
+                    <div className="flex items-center justify-between sm:justify-end gap-2.5 shrink-0">
+                      {/* Assigned Rider indicator */}
+                      {order.rider_name ? (
+                        <div className="flex items-center gap-1.5 bg-gray-50/80 px-2 py-1 rounded-xl border border-black/[0.03]">
+                          <Avatar className="w-5 h-5 rounded-full border border-primary/20 shrink-0">
+                            <AvatarImage src={order.rider_avatar || defaultRiderImg} alt={order.rider_name} />
+                            <AvatarFallback className="bg-primary/10 text-primary text-[9px] font-bold">
+                              {order.rider_name.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-bold text-foreground text-[11px] truncate max-w-[110px]">
+                            {order.rider_name}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                          <span>No Rider</span>
                         </span>
                       )}
-                    </div>
 
-                    <div className="flex items-center gap-2">
-                      {/* Live Tracking Link */}
+                      {/* Package contents/weight tag */}
+                      {packageDetails.contents && (
+                        <Badge variant="outline" className="text-[10px] font-medium bg-gray-50/80 border-black/[0.04] truncate max-w-[110px] hidden md:inline-flex">
+                          📦 {packageDetails.contents}
+                        </Badge>
+                      )}
+
+                      {/* Quick Track Link */}
                       <Button
                         asChild
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
-                        className="h-9 px-3 rounded-xl text-xs font-bold gap-1.5 border-black/[0.08] hover:border-primary text-foreground"
+                        onClick={(e) => e.stopPropagation()}
+                        className="h-7 px-2 rounded-lg text-[11px] font-bold gap-1 text-muted-foreground hover:text-primary hover:bg-orange-50/50"
                       >
                         <a href={`/send/track/${order.id}`} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink size={13} className="text-primary" />
-                          <span>Track Live</span>
+                          <ExternalLink size={11} className="text-primary" />
+                          <span className="hidden sm:inline">Track</span>
                         </a>
                       </Button>
 
-                      {/* Pop-up Details Modal Button */}
-                      <Button
-                        size="sm"
-                        onClick={() => setSelectedOrder(order)}
-                        className="h-9 px-3.5 rounded-xl text-xs font-bold gap-1.5 bg-primary hover:bg-primary/95 text-white shadow-sm shadow-primary/20"
-                      >
-                        <Eye size={14} />
-                        <span>View Details</span>
-                      </Button>
+                      {/* Click to open badge cue */}
+                      <div className="flex items-center gap-1 text-[11px] font-bold text-primary bg-primary/5 group-hover:bg-primary group-hover:text-white px-2.5 py-1 rounded-xl transition-all">
+                        <span>Details</span>
+                        <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+                      </div>
                     </div>
                   </div>
                 </div>
               );
             })}
           </div>
+
+          {/* Bottom Pagination Bar */}
+          {totalPages > 1 && (
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-black/[0.04] shadow-sm">
+              <div className="text-xs text-muted-foreground font-bold">
+                Page <span className="text-foreground font-black">{currentPage}</span> of{" "}
+                <span className="text-foreground font-black">{totalPages}</span>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="h-8 px-3 rounded-xl text-xs font-bold gap-1 bg-white hover:bg-gray-50 disabled:opacity-40"
+                >
+                  <ChevronLeft size={14} />
+                  <span>Previous</span>
+                </Button>
+
+                {/* Smart Page Numbers */}
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                    .map((p, idx, arr) => {
+                      const prevPage = arr[idx - 1];
+                      const hasGap = prevPage && p - prevPage > 1;
+                      return (
+                        <div key={p} className="flex items-center gap-1">
+                          {hasGap && (
+                            <span className="px-1 text-xs text-muted-foreground font-black">…</span>
+                          )}
+                          <Button
+                            variant={currentPage === p ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setCurrentPage(p)}
+                            className={cn(
+                              "w-8 h-8 p-0 rounded-xl text-xs font-bold transition-all",
+                              currentPage === p
+                                ? "bg-primary text-white hover:bg-primary/95 shadow-sm shadow-primary/20 border-primary"
+                                : "bg-white text-muted-foreground hover:text-foreground hover:bg-gray-50 border-black/[0.08]"
+                            )}
+                          >
+                            {p}
+                          </Button>
+                        </div>
+                      );
+                    })}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="h-8 px-3 rounded-xl text-xs font-bold gap-1 bg-white hover:bg-gray-50 disabled:opacity-40"
+                >
+                  <span>Next</span>
+                  <ChevronRight size={14} />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -818,40 +973,95 @@ export default function AdminSendPackagesManager() {
                 </div>
               </div>
 
-              {/* Package Details & Financials Grid */}
-              <div className="grid grid-cols-2 gap-3">
-                {/* Package Specs */}
-                <div className="p-3.5 rounded-2xl bg-gray-50 border border-black/[0.04] space-y-1.5">
-                  <p className="text-[10px] font-black uppercase text-muted-foreground">Package Content</p>
-                  <p className="font-bold text-foreground">
-                    {(selectedOrder.package_details as any)?.contents || "Standard Parcel"}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    Weight: {(selectedOrder.package_details as any)?.weight_kg || 1} kg
-                  </p>
-                  {(selectedOrder.package_details as any)?.is_fragile && (
-                    <Badge variant="destructive" className="text-[9px] px-1.5 py-0">
-                      Fragile Handling
-                    </Badge>
-                  )}
-                </div>
+              {/* Package Details & Financials */}
+              {(() => {
+                const selectedCut = selectedOrder ? getOrderCut(selectedOrder) : { fee: 0, riderCut: 0, systemCut: 0 };
+                return (
+                  <div className="space-y-3">
+                    {/* Financial Cut Breakdown Card */}
+                    <div className="p-4 rounded-2xl bg-gray-50 border border-black/[0.04] space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <p className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">
+                            Financial Cut Breakdown
+                          </p>
+                          <Badge variant="outline" className={cn(
+                            "text-[9px] font-extrabold capitalize",
+                            selectedOrder.payment_status === "paid" ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-amber-50 text-amber-800 border-amber-200"
+                          )}>
+                            {selectedOrder.payment_status === "paid" ? "Paid ✅" : "Pending Payment ⏳"}
+                          </Badge>
+                        </div>
+                        {selectedOrder.payment_ref && (
+                          <span className="font-mono text-[10px] text-muted-foreground truncate">
+                            Ref: {selectedOrder.payment_ref}
+                          </span>
+                        )}
+                      </div>
 
-                {/* Financials */}
-                <div className="p-3.5 rounded-2xl bg-gray-50 border border-black/[0.04] space-y-1.5">
-                  <p className="text-[10px] font-black uppercase text-muted-foreground">Delivery Charge</p>
-                  <p className="text-base font-black text-foreground font-heading">
-                    ₦{Number(selectedOrder.delivery_fee || 0).toLocaleString()}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    Status: <span className="font-bold text-foreground capitalize">{selectedOrder.payment_status}</span>
-                  </p>
-                  {selectedOrder.payment_ref && (
-                    <p className="font-mono text-[10px] text-muted-foreground truncate">
-                      Ref: {selectedOrder.payment_ref}
-                    </p>
-                  )}
-                </div>
-              </div>
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div className="bg-white p-3 rounded-xl border border-black/[0.04] shadow-sm">
+                          <span className="text-[10px] font-black uppercase text-muted-foreground block">
+                            Customer Paid
+                          </span>
+                          <span className="text-base font-black text-foreground font-heading block mt-0.5">
+                            ₦{selectedCut.fee.toLocaleString()}
+                          </span>
+                          <span className="text-[9px] text-muted-foreground block font-medium mt-0.5">Gross Fee</span>
+                        </div>
+
+                        <div className="bg-emerald-50/70 p-3 rounded-xl border border-emerald-100/80">
+                          <span className="text-[10px] font-black uppercase text-emerald-800 block">
+                            Rider Cut
+                          </span>
+                          <span className="text-base font-black text-emerald-900 font-heading block mt-0.5">
+                            ₦{selectedCut.riderCut.toLocaleString()}
+                          </span>
+                          <span className="text-[9px] font-extrabold text-emerald-700 block uppercase mt-0.5">
+                            {selectedOrder.rider_payout_status === "released"
+                              ? "Released to Wallet ✅"
+                              : selectedOrder.rider_payout_status === "held"
+                              ? "Held in Escrow ⏳"
+                              : selectedOrder.status === "delivered"
+                              ? "Delivered"
+                              : "Pending Delivery"}
+                          </span>
+                        </div>
+
+                        <div className="bg-indigo-50/70 p-3 rounded-xl border border-indigo-100/80">
+                          <span className="text-[10px] font-black uppercase text-indigo-800 block">
+                            System Cut
+                          </span>
+                          <span className="text-base font-black text-indigo-900 font-heading block mt-0.5">
+                            ₦{selectedCut.systemCut.toLocaleString()}
+                          </span>
+                          <span className="text-[9px] font-extrabold text-indigo-700 block uppercase mt-0.5">
+                            LinkUp Margin
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Package Specs */}
+                    <div className="p-3.5 rounded-2xl bg-gray-50 border border-black/[0.04] space-y-1.5">
+                      <p className="text-[10px] font-black uppercase text-muted-foreground">Package Content</p>
+                      <div className="flex items-center justify-between">
+                        <p className="font-bold text-foreground">
+                          {(selectedOrder.package_details as any)?.contents || "Standard Parcel"}
+                        </p>
+                        {(selectedOrder.package_details as any)?.is_fragile && (
+                          <Badge variant="destructive" className="text-[9px] px-1.5 py-0">
+                            Fragile Handling
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Declared Weight: {(selectedOrder.package_details as any)?.weight_kg || 1} kg
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Assigned Rider Box */}
               <div className="p-4 rounded-2xl bg-gray-50 border border-black/[0.04] space-y-2">

@@ -65,6 +65,9 @@ export interface SendOrder {
   estimated_delivery_time?: string | null;
   picked_up_at?: string | null;
   delivered_at?: string | null;
+  rider_payout_amount?: number;
+  rider_payout_status?: 'pending' | 'held' | 'released' | 'refunded' | 'disputed';
+  rider_payout_released_at?: string | null;
   created_at: string;
   updated_at: string;
 }

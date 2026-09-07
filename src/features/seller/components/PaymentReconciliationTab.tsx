@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/context/AuthContext";
@@ -10,8 +10,15 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/shared/components/ui/dialog";
 import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+} from "@/shared/components/ui/dropdown-menu";
+import {
   CreditCard, RefreshCw, CheckCircle2, XCircle, AlertTriangle,
-  Search, Eye, Loader2,
+  Search, Eye, Loader2, Filter, ChevronDown, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -156,6 +163,20 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
     return matchesSearch && matchesFilter;
   });
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterStatus, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+
+  const paginated = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, currentPage, pageSize]);
+
   const stats = {
     total: orders.length,
     paid: orders.filter((o) => o.payment_status === "paid").length,
@@ -197,30 +218,55 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
         ))}
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col md:flex-row gap-4">
+      {/* Filters: Search & Status Dropdown */}
+      <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search by Order ID or Payment Ref..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-11 rounded-xl h-12 border-muted/30 bg-background font-medium"
+            className="pl-11 rounded-2xl h-12 border-muted/30 bg-background font-medium"
           />
         </div>
-        <div className="flex gap-2 flex-wrap">
-          {["all", "pending", "processing", "settled", "failed", "refunded"].map((s) => (
+
+        {/* Status Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <Button
-              key={s}
-              variant={filterStatus === s ? "default" : "outline"}
-              size="sm"
-              className="rounded-xl text-[10px] font-black uppercase tracking-widest"
-              onClick={() => setFilterStatus(s)}
+              variant="outline"
+              className="rounded-2xl h-12 px-4 font-bold text-xs gap-2 border-muted/30 bg-background hover:bg-muted/10 shrink-0"
             >
-              {s.replace(/_/g, " ")}
+              <Filter size={15} className="text-primary" />
+              <span>Status:</span>
+              <Badge className={cn(
+                "rounded-lg px-2 py-0.5 text-[10px] font-black uppercase tracking-wider border-none",
+                filterStatus === "all" ? "bg-muted text-muted-foreground" : "bg-primary text-white"
+              )}>
+                {filterStatus.replace(/_/g, " ")}
+              </Badge>
+              <ChevronDown size={14} className="text-muted-foreground ml-0.5" />
             </Button>
-          ))}
-        </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56 p-1.5 rounded-2xl shadow-xl bg-white border border-black/[0.06]">
+            <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-2 py-1">
+              Filter By Status
+            </DropdownMenuLabel>
+            {["all", "pending", "processing", "settled", "failed", "refunded"].map((s) => (
+              <DropdownMenuItem
+                key={s}
+                onClick={() => setFilterStatus(s)}
+                className={cn(
+                  "flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors capitalize",
+                  filterStatus === s ? "bg-primary/10 text-primary font-black" : "hover:bg-gray-100"
+                )}
+              >
+                <span>{s === "all" ? "All Statuses" : s.replace(/_/g, " ")}</span>
+                {filterStatus === s && <CheckCircle2 size={14} className="text-primary" />}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Orders Table */}
@@ -229,48 +275,67 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-muted/20 bg-muted/5">
-                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest min-w-[100px]">Order ID</th>
-                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest min-w-[100px]">Date</th>
-                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest min-w-[100px]">Amount</th>
-                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest min-w-[100px]">Method</th>
-                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest min-w-[150px]">Payment Ref</th>
-                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest min-w-[120px]">Status</th>
-                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest min-w-[100px]">Payout Status</th>
-                <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right min-w-[80px]">Actions</th>
+                <th className="px-3 py-3 md:px-6 md:py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Order</th>
+                <th className="hidden md:table-cell px-4 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest min-w-[100px]">Date</th>
+                <th className="px-3 py-3 md:px-6 md:py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Amount</th>
+                <th className="hidden lg:table-cell px-4 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest min-w-[90px]">Method</th>
+                <th className="hidden xl:table-cell px-4 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest min-w-[140px]">Payment Ref</th>
+                <th className="px-3 py-3 md:px-6 md:py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Status</th>
+                <th className="hidden md:table-cell px-4 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest min-w-[110px]">Payout Status</th>
+                <th className="px-3 py-3 md:px-6 md:py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-muted/10">
-              {filtered.length === 0 ? (
+              {paginated.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-6 py-16 text-center text-muted-foreground font-bold">
                     No orders match your criteria
                   </td>
                 </tr>
               ) : (
-                filtered.map((o) => (
-                  <tr key={o.id} className="hover:bg-muted/5 transition-colors group">
-                    <td className="px-6 py-5 font-mono text-xs font-bold text-primary">#{o.id.slice(0, 8)}</td>
-                    <td className="px-6 py-5 text-xs font-medium text-muted-foreground">
+                paginated.map((o) => (
+                  <tr
+                    key={o.id}
+                    onClick={() => setSelectedOrder(o)}
+                    className="hover:bg-muted/5 transition-colors group cursor-pointer"
+                  >
+                    <td className="px-3 py-3 md:px-6 md:py-5">
+                      <p className="font-mono text-xs font-bold text-primary">#{o.id.slice(0, 8)}</p>
+                      <p className="text-[10px] text-muted-foreground font-medium md:hidden mt-0.5">
+                        {new Date(o.created_at).toLocaleDateString()}
+                      </p>
+                    </td>
+                    <td className="hidden md:table-cell px-4 py-5 text-xs font-medium text-muted-foreground whitespace-nowrap">
                       {new Date(o.created_at).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-5 font-black text-sm">₦{(o.grand_total || 0).toLocaleString()}</td>
-                    <td className="px-6 py-5">
+                    <td className="px-3 py-3 md:px-6 md:py-5 font-black text-xs md:text-sm whitespace-nowrap">
+                      ₦{(o.grand_total || 0).toLocaleString()}
+                    </td>
+                    <td className="hidden lg:table-cell px-4 py-5">
                       <Badge variant="outline" className="rounded-full text-[9px] font-black uppercase tracking-widest border-muted/30 whitespace-nowrap">
                         {o.payment_method || "direct"}
                       </Badge>
                     </td>
-                    <td className="px-6 py-5 font-mono text-[11px] text-muted-foreground truncate max-w-[150px]">
+                    <td className="hidden xl:table-cell px-4 py-5 font-mono text-[11px] text-muted-foreground truncate max-w-[150px]">
                       {o.payment_ref || <span className="italic opacity-50">none</span>}
                     </td>
-                    <td className="px-6 py-5">
+                    <td className="px-3 py-3 md:px-6 md:py-5">
                       <Badge className={cn(
-                        "rounded-full px-3 py-0.5 text-[9px] font-black uppercase tracking-widest border-none shadow-sm whitespace-nowrap",
+                        "rounded-full px-2.5 py-0.5 text-[8px] md:text-[9px] font-black uppercase tracking-widest border-none shadow-sm whitespace-nowrap",
                         statusColors[o.payment_status || "pending"] || "bg-muted text-muted-foreground"
                       )}>
                         {(o.payment_status || "pending").replace(/_/g, " ")}
                       </Badge>
+                      {o.settlement_status && (
+                        <p className="text-[9px] font-bold text-muted-foreground md:hidden mt-0.5 uppercase tracking-wider">
+                          Payout: <span className={cn(
+                            o.settlement_status === 'settled' ? "text-emerald-600" :
+                            o.settlement_status === 'pending' ? "text-amber-600" : "text-muted-foreground"
+                          )}>{o.settlement_status}</span>
+                        </p>
+                      )}
                     </td>
-                    <td className="px-6 py-5">
+                    <td className="hidden md:table-cell px-4 py-5">
                       <Badge variant="outline" className={cn(
                         "rounded-full px-3 py-0.5 text-[9px] font-black uppercase tracking-widest whitespace-nowrap",
                         o.settlement_status === 'settled' ? "border-emerald-200 text-emerald-700 bg-emerald-50" :
@@ -280,14 +345,17 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
                         {o.settlement_status || 'none'}
                       </Badge>
                     </td>
-                    <td className="px-6 py-5 text-right">
+                    <td className="px-3 py-3 md:px-6 md:py-5 text-right">
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="rounded-xl group-hover:bg-background group-hover:shadow-sm"
-                        onClick={() => setSelectedOrder(o)}
+                        className="rounded-xl group-hover:bg-background group-hover:shadow-sm h-8 w-8"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedOrder(o);
+                        }}
                       >
-                        <Eye size={18} />
+                        <Eye size={16} />
                       </Button>
                     </td>
                   </tr>
@@ -297,6 +365,65 @@ export function PaymentReconciliationTab({ isAdmin = false }: PaymentReconciliat
           </table>
         </div>
       </Card>
+
+      {/* Pagination Controls */}
+      {filtered.length > 0 && (
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-black/[0.04] shadow-sm">
+          <div className="text-xs text-muted-foreground font-bold">
+            Showing <span className="text-foreground font-black">{filtered.length > 0 ? (currentPage - 1) * pageSize + 1 : 0}</span> –{" "}
+            <span className="text-foreground font-black">{Math.min(currentPage * pageSize, filtered.length)}</span> of{" "}
+            <span className="text-foreground font-black">{filtered.length}</span> orders
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 mr-2">
+              <span className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">Per Page:</span>
+              <div className="inline-flex rounded-xl bg-gray-100 p-0.5 border border-black/[0.04]">
+                {[10, 25, 50].map((size) => (
+                  <button
+                    key={size}
+                    onClick={() => setPageSize(size)}
+                    className={cn(
+                      "px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all",
+                      pageSize === size
+                        ? "bg-white text-foreground shadow-sm font-black"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="h-8 px-3 rounded-xl text-xs font-bold gap-1 bg-white hover:bg-gray-50 disabled:opacity-40"
+            >
+              <ChevronLeft size={14} />
+              <span>Prev</span>
+            </Button>
+
+            <span className="text-xs font-bold text-muted-foreground px-1">
+              Page {currentPage} of {totalPages}
+            </span>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="h-8 px-3 rounded-xl text-xs font-bold gap-1 bg-white hover:bg-gray-50 disabled:opacity-40"
+            >
+              <span>Next</span>
+              <ChevronRight size={14} />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Detail / Reconcile Dialog */}
       <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>

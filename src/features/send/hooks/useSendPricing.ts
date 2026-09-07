@@ -63,7 +63,7 @@ export function useSendPricing({
   // Query real road network route from OSRM
   const { data: roadData } = useRoadRoute(pickupLat, pickupLng, dropoffLat, dropoffLng);
 
-  // Query backend calculation RPC
+  // Query authoritative backend calculation RPC with bounded road distance verification
   const { data: rpcData } = useQuery({
     queryKey: [
       'calculate_send_delivery_fee',
@@ -73,6 +73,7 @@ export function useSendPricing({
       dropoffLng,
       weightKg,
       isFragile,
+      roadData?.distanceKm || null,
     ],
     queryFn: async () => {
       try {
@@ -83,6 +84,7 @@ export function useSendPricing({
           p_dropoff_lng: dropoffLng || null,
           p_weight_kg: weightKg || 1.0,
           p_is_fragile: isFragile,
+          p_distance_km: roadData?.distanceKm || null,
         });
         if (error) throw error;
         return data;
@@ -95,7 +97,7 @@ export function useSendPricing({
   });
 
   return useMemo(() => {
-    // 1. Determine distance: prioritize road network calculation
+    // 1. Determine distance: prioritize verified road distance from RPC or roadData
     let distanceKm = roadData?.distanceKm;
     if (typeof distanceKm !== 'number') {
       if (rpcData && typeof rpcData.distance_km === 'number') {
@@ -114,10 +116,14 @@ export function useSendPricing({
 
     const baseFee = rpcData?.base_fee ? Number(rpcData.base_fee) : 500;
     const perKmRate = rpcData?.per_km_rate ? Number(rpcData.per_km_rate) : 100;
-    const distanceFee = Math.round(distanceKm * perKmRate);
+    const distanceFee = rpcData?.distance_fee != null
+      ? Number(rpcData.distance_fee)
+      : Math.round(distanceKm * perKmRate);
 
     let packageSurcharge = 0;
-    if (weightKg <= 2) {
+    if (rpcData?.package_surcharge != null) {
+      packageSurcharge = Number(rpcData.package_surcharge);
+    } else if (weightKg <= 2) {
       packageSurcharge = 0;
     } else if (weightKg <= 5) {
       packageSurcharge = 200;
@@ -128,8 +134,13 @@ export function useSendPricing({
     }
 
     const serviceFee = rpcData?.service_fee ? Number(rpcData.service_fee) : 200;
-    const fragileSurcharge = isFragile ? (rpcData?.fragile_surcharge ? Number(rpcData.fragile_surcharge) : 300) : 0;
-    const totalFee = baseFee + distanceFee + packageSurcharge + serviceFee + fragileSurcharge;
+    const fragileSurcharge = isFragile
+      ? (rpcData?.fragile_surcharge ? Number(rpcData.fragile_surcharge) : 300)
+      : 0;
+
+    const totalFee = rpcData?.total_fee != null
+      ? Number(rpcData.total_fee)
+      : baseFee + distanceFee + packageSurcharge + serviceFee + fragileSurcharge;
 
     const estimatedMinutesRange = roadData?.estimatedMinutesRange || `${Math.round(15 + distanceKm * 2.5)} - ${Math.round(35 + distanceKm * 2.5)} mins`;
 
@@ -142,8 +153,8 @@ export function useSendPricing({
       serviceFee,
       fragileSurcharge,
       totalFee,
-      riderEarnings: Math.round(totalFee * 0.8),
-      platformFee: Math.round(totalFee * 0.2),
+      riderEarnings: rpcData?.rider_earnings ? Number(rpcData.rider_earnings) : Math.round(totalFee * 0.8),
+      platformFee: rpcData?.platform_fee ? Number(rpcData.platform_fee) : Math.round(totalFee * 0.2),
       currency: 'NGN',
       estimatedMinutesRange,
       estimatedPickupWindow: '10 - 20 mins',

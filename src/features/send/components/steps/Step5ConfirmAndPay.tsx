@@ -97,7 +97,7 @@ export function Step5ConfirmAndPay({
       const orderId = generateSendOrderId();
       const clientReference = `ref_${orderId}_${Date.now()}`;
 
-      // 1. Authoritative Backend Fee Verification (Frontend values are never trusted)
+      // 1. Authoritative Backend Fee Verification (with bounded road distance validation)
       let verifiedFee = pricing.totalFee;
       let verifiedDistanceKm = pricing.distanceKm;
       let feeBreakdownDetails: any = null;
@@ -110,6 +110,7 @@ export function Step5ConfirmAndPay({
           p_dropoff_lng: formData.dropoffLng || null,
           p_weight_kg: formData.weightKg,
           p_is_fragile: formData.isFragile,
+          p_distance_km: pricing.distanceKm,
         });
 
         if (!feeErr && feeData && typeof feeData.total_fee === 'number') {

@@ -444,14 +444,14 @@ export default function AdminOrderTracker() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="border-b border-gray-100 bg-gray-50/50">
-                                <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Order ID</th>
-                                <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Tracking</th>
-                                <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Customer</th>
-                                <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Rider</th>
-                                <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Date</th>
-                                <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Amount</th>
-                                <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Status</th>
-                                <th className="px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right">Actions</th>
+                                <th className="px-4 md:px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Order</th>
+                                <th className="hidden lg:table-cell px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Tracking</th>
+                                <th className="hidden md:table-cell px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Customer</th>
+                                <th className="hidden md:table-cell px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Rider</th>
+                                <th className="hidden lg:table-cell px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Date</th>
+                                <th className="hidden md:table-cell px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Amount</th>
+                                <th className="px-4 md:px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Status</th>
+                                <th className="px-4 md:px-8 py-5 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
@@ -464,8 +464,13 @@ export default function AdminOrderTracker() {
                                 const rider = shipment?.rider || shipment?.profiles;
                                 return (
                                     <tr key={o.id} className="hover:bg-gray-50/50 transition-colors group">
-                                        <td className="px-8 py-6 font-mono text-xs font-bold text-primary">#{o.id.slice(0, 8)}</td>
-                                        <td className="px-8 py-6">
+                                        <td className="px-4 md:px-8 py-6">
+                                            <div className="font-mono text-xs font-bold text-primary">#{o.id.slice(0, 8)}</div>
+                                            <div className="md:hidden mt-1 font-bold text-xs text-foreground truncate max-w-[100px]">
+                                                {(o.profiles as any)?.display_name || "Guest"}
+                                            </div>
+                                        </td>
+                                        <td className="hidden lg:table-cell px-8 py-6">
                                             {shipment?.tracking_code ? (
                                                 <div className="flex flex-col">
                                                     <code className="text-[10px] font-black text-foreground">
@@ -477,10 +482,10 @@ export default function AdminOrderTracker() {
                                                 <span className="text-[10px] font-medium text-muted-foreground italic">No Tracker</span>
                                             )}
                                         </td>
-                                        <td className="px-8 py-6">
+                                        <td className="hidden md:table-cell px-8 py-6">
                                             <p className="font-bold text-sm text-foreground">{(o.profiles as any)?.display_name || "Guest"}</p>
                                         </td>
-                                        <td className="px-8 py-6">
+                                        <td className="hidden md:table-cell px-8 py-6">
                                             {rider ? (
                                                 <div className="flex items-center gap-3">
                                                     <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0 border-2 border-white shadow-sm overflow-hidden">
@@ -510,11 +515,11 @@ export default function AdminOrderTracker() {
                                                 </div>
                                             )}
                                         </td>
-                                        <td className="px-8 py-6 text-xs font-medium text-muted-foreground">
+                                        <td className="hidden lg:table-cell px-8 py-6 text-xs font-medium text-muted-foreground">
                                             {new Date(o.created_at).toLocaleDateString()}
                                         </td>
-                                        <td className="px-8 py-6 font-black text-sm">₦{(o.total_amount || 0).toLocaleString()}</td>
-                                        <td className="px-8 py-6">
+                                        <td className="hidden md:table-cell px-8 py-6 font-black text-sm">₦{(o.total_amount || 0).toLocaleString()}</td>
+                                        <td className="px-4 md:px-8 py-6">
                                             <Badge className={cn(
                                                 "rounded-full px-3 py-0.5 text-[9px] font-black uppercase tracking-widest border-none shadow-sm",
                                                 o.status === 'pending' ? 'bg-amber-100 text-amber-800' :
@@ -529,8 +534,11 @@ export default function AdminOrderTracker() {
                                             )}>
                                                 {o.status.replace(/_/g, ' ')}
                                             </Badge>
+                                            <div className="md:hidden mt-2 font-black text-xs text-foreground">
+                                                ₦{(o.total_amount || 0).toLocaleString()}
+                                            </div>
                                         </td>
-                                        <td className="px-8 py-6 text-right">
+                                        <td className="px-4 md:px-8 py-6 text-right">
                                             <Button
                                                 variant="ghost"
                                                 size="icon"

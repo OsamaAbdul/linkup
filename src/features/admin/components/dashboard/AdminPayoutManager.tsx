@@ -164,6 +164,12 @@ export function AdminPayoutManager() {
         onError: (err: any) => toast.error(err.message)
     });
 
+    const totalPages = Math.max(1, Math.ceil(requests.length / pageSize));
+    const paginatedRequests = useMemo(() => {
+        const start = (currentPage - 1) * pageSize;
+        return requests.slice(start, start + pageSize);
+    }, [requests, currentPage, pageSize]);
+
     if (isLoading) return <div className="p-8 text-center animate-pulse">Loading requests...</div>;
 
     return (

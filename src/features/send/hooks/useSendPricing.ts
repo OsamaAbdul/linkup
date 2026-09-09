@@ -21,7 +21,9 @@ export interface SendFeeBreakdown {
   packageSurcharge: number;
   serviceFee: number;
   fragileSurcharge: number;
+  rawTotalFee: number;
   totalFee: number;
+  isFreeDelivery: boolean;
   riderEarnings?: number;
   platformFee?: number;
   currency: string;
@@ -96,6 +98,24 @@ export function useSendPricing({
     staleTime: 60000,
   });
 
+  // Query fee configuration to check for promotional free delivery
+  const { data: feeConfigs } = useQuery({
+    queryKey: ['fee-config'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('fee_config')
+        .select('*')
+        .eq('is_active', true);
+      if (error) return [];
+      return (data as any[]) || [];
+    },
+    staleTime: 60000,
+  });
+
+  const isFreeDeliveryConfig = feeConfigs?.some(
+    (f: any) => f.fee_type === 'send_free_delivery' && f.is_active
+  );
+
   return useMemo(() => {
     // 1. Determine distance: prioritize verified road distance from RPC or roadData
     let distanceKm = roadData?.distanceKm;
@@ -138,9 +158,13 @@ export function useSendPricing({
       ? (rpcData?.fragile_surcharge ? Number(rpcData.fragile_surcharge) : 300)
       : 0;
 
-    const totalFee = rpcData?.total_fee != null
-      ? Number(rpcData.total_fee)
-      : baseFee + distanceFee + packageSurcharge + serviceFee + fragileSurcharge;
+    const rawCalculatedFee = baseFee + distanceFee + packageSurcharge + serviceFee + fragileSurcharge;
+    const rawTotalFee = rpcData?.raw_total_fee != null ? Number(rpcData.raw_total_fee) : rawCalculatedFee;
+
+    const isFreeDelivery = Boolean(rpcData?.is_free_delivery || isFreeDeliveryConfig);
+    const totalFee = isFreeDelivery
+      ? 0
+      : (rpcData?.total_fee != null ? Number(rpcData.total_fee) : rawCalculatedFee);
 
     const estimatedMinutesRange = roadData?.estimatedMinutesRange || `${Math.round(15 + distanceKm * 2.5)} - ${Math.round(35 + distanceKm * 2.5)} mins`;
 
@@ -152,14 +176,16 @@ export function useSendPricing({
       packageSurcharge,
       serviceFee,
       fragileSurcharge,
+      rawTotalFee,
       totalFee,
-      riderEarnings: rpcData?.rider_earnings ? Number(rpcData.rider_earnings) : Math.round(totalFee * 0.8),
-      platformFee: rpcData?.platform_fee ? Number(rpcData.platform_fee) : Math.round(totalFee * 0.2),
+      isFreeDelivery,
+      riderEarnings: rpcData?.rider_earnings ? Number(rpcData.rider_earnings) : Math.round(rawTotalFee * 0.8),
+      platformFee: isFreeDelivery ? 0 : (rpcData?.platform_fee ? Number(rpcData.platform_fee) : Math.round(totalFee * 0.2)),
       currency: 'NGN',
       estimatedMinutesRange,
       estimatedPickupWindow: '10 - 20 mins',
       isBackendVerified: Boolean(rpcData && typeof rpcData.total_fee === 'number'),
     };
-  }, [roadData, rpcData, pickupLat, pickupLng, dropoffLat, dropoffLng, weightKg, isFragile]);
+  }, [roadData, rpcData, feeConfigs, isFreeDeliveryConfig, pickupLat, pickupLng, dropoffLat, dropoffLng, weightKg, isFragile]);
 }
 

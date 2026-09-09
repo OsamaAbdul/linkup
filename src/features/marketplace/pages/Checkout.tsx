@@ -166,8 +166,15 @@ export default function Checkout() {
     ? (shipping.zone_id ? dynamicDefaultFee : 0)
     : zFee;
     
-  const deliveryFee = baseDeliveryFee * sellerCount;
-  const finalCrossZoneFee = crossZoneFee;
+  const isMarketplaceFreeDelivery = feeConfigs.some(
+    (f: any) => f.fee_type === "marketplace_free_delivery" && f.is_active
+  );
+
+  const rawDeliveryFee = baseDeliveryFee * sellerCount;
+  const rawCrossZoneFee = crossZoneFee;
+
+  const deliveryFee = isMarketplaceFreeDelivery ? 0 : rawDeliveryFee;
+  const finalCrossZoneFee = isMarketplaceFreeDelivery ? 0 : rawCrossZoneFee;
   
   const grandTotal = productTotal + deliveryFee + finalCrossZoneFee;
 

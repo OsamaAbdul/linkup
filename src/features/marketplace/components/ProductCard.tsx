@@ -82,18 +82,15 @@ export function ProductCard({
       <Card className="group h-full overflow-hidden border border-border/40 bg-card premium-shadow-hover rounded-xl flex flex-col transition-all duration-500 hover:border-primary/20">
         <Link to={`/product/${id}`} className="block relative">
           <div className="aspect-[4/3] bg-muted relative overflow-hidden">
-            {image ? (
-              <LazyImage
-                src={image}
-                alt={title}
-                className={cn(
-                  "w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110",
-                  isOutOfStock && "opacity-50 grayscale"
-                )}
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-secondary/50 text-[10px]">No image</div>
-            )}
+            <LazyImage
+              src={image || "/product-backup.jpg"}
+              alt={title}
+              fallbackSrc="/product-backup.jpg"
+              className={cn(
+                "w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110",
+                isOutOfStock && "opacity-50 grayscale"
+              )}
+            />
 
             {/* Location & Delivery Time Overlay - Top Left */}
             {(zoneName || userLocation) && (

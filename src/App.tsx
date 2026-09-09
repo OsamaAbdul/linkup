@@ -69,19 +69,23 @@ persistQueryClient({
 import { GlobalPermissions } from "@/shared/components/GlobalPermissions";
 import { FloatingSupportButton } from "@/shared/components/FloatingSupportButton";
 import { AnalyticsProvider } from "@/shared/components/AnalyticsProvider";
+import { NetworkProvider } from "@/shared/context/NetworkContext";
+import { NetworkStatusBanner } from "@/shared/components/NetworkStatusBanner";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <LazyMotion features={domAnimation}>
-      <AuthProvider>
-        <GlobalPermissions />
-        <CartProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner position="top-right" closeButton richColors />
-            <FloatingSupportButton />
-            <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-              <AnalyticsProvider />
+    <NetworkProvider>
+      <LazyMotion features={domAnimation}>
+        <AuthProvider>
+          <GlobalPermissions />
+          <NetworkStatusBanner />
+          <CartProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner position="top-right" closeButton richColors />
+              <FloatingSupportButton />
+              <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                <AnalyticsProvider />
               <Suspense fallback={<GlobalLoader />}>
                 <Routes>
                   <Route path="/" element={<Index />} />
@@ -145,6 +149,7 @@ const App = () => (
         </CartProvider>
       </AuthProvider>
     </LazyMotion>
+    </NetworkProvider>
   </QueryClientProvider>
 );
 

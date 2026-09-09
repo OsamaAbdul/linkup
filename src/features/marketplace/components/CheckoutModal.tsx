@@ -87,7 +87,11 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
     const zFee = (selectedZone as any)?.delivery_fee;
     const baseFee = (zFee === 0 || zFee === 1500 || zFee === null || zFee === undefined) ? dynamicDefaultFee : zFee;
     
-    const deliveryFee = deliveryMethod === "standard" ? baseFee : 0;
+    const isMarketplaceFreeDelivery = feeConfigs.some(
+        (f: any) => f.fee_type === "marketplace_free_delivery" && f.is_active
+    );
+    const rawDeliveryFee = deliveryMethod === "standard" ? baseFee : 0;
+    const deliveryFee = isMarketplaceFreeDelivery ? 0 : rawDeliveryFee;
     const productPrice = (product.price ?? 0) * markupMultiplier;
     const grandTotal = productPrice + deliveryFee;
 

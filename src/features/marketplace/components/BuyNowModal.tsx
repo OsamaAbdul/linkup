@@ -4,7 +4,7 @@ import { RadioGroup, RadioGroupItem } from "@/shared/components/ui/radio-group";
 import { Label } from "@/shared/components/ui/label";
 import { Badge } from "@/shared/components/ui/badge";
 import { ChevronRight, ShieldCheck, MapPin, Store, Loader2 } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -22,9 +22,25 @@ export function BuyNowModal({ product, isOpen, onClose }: BuyNowModalProps) {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
 
+    const { data: feeConfigs = [] } = useQuery({
+        queryKey: ["fee-config"],
+        queryFn: async () => {
+            const { data, error } = await (supabase as any)
+                .from("fee_config")
+                .select("*")
+                .eq("is_active", true);
+            if (error) throw error;
+            return (data as any[]) || [];
+        }
+    });
+
+    const isMarketplaceFreeDelivery = feeConfigs.some(
+        (f: any) => f.fee_type === "marketplace_free_delivery" && f.is_active
+    );
+
     if (!product) return null;
 
-    const deliveryFee = 700;
+    const deliveryFee = isMarketplaceFreeDelivery ? 0 : 700;
     const total = product.price + deliveryFee;
     const sellerName = product.profiles?.display_name || "Seller";
     const sellerInitial = sellerName[0]?.toUpperCase() ?? "S";
@@ -224,7 +240,9 @@ export function BuyNowModal({ product, isOpen, onClose }: BuyNowModalProps) {
                         </div>
                         <div className="flex justify-between text-sm">
                             <span className="text-muted-foreground">Delivery Fee</span>
-                            <span className="font-medium">₦{deliveryFee}</span>
+                            <span className={isMarketplaceFreeDelivery ? "font-bold text-emerald-600" : "font-medium"}>
+                                {isMarketplaceFreeDelivery ? "FREE (Promo)" : `₦${deliveryFee.toLocaleString()}`}
+                            </span>
                         </div>
                         <div className="flex justify-between text-base font-bold text-[#27ae60] pt-2 border-t mt-2">
                             <span>Total</span>

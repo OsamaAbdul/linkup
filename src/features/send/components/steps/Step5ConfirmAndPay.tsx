@@ -164,7 +164,41 @@ export function Step5ConfirmAndPay({
       }
       localStorage.setItem(`linkup_send_order_${orderId}`, JSON.stringify(orderRecord));
 
-      // 2. WALLET PAYMENT BRANCH (1-Tap Instant Deduction)
+      // 2. FREE DELIVERY ZERO-FEE PROMOTION BRANCH
+      if (verifiedFee === 0 || pricing.isFreeDelivery) {
+        const confirmed = {
+          ...orderRecord,
+          status: 'finding_rider',
+          payment_status: 'paid',
+          payment_ref: `FREE_PROMO_${orderId}`,
+          paid_at: new Date().toISOString(),
+        };
+
+        if (user) {
+          try {
+            await (supabase as any)
+              .from('send_orders')
+              .update({
+                status: 'finding_rider',
+                payment_status: 'paid',
+                payment_ref: `FREE_PROMO_${orderId}`,
+              })
+              .eq('id', orderId);
+          } catch (updateErr) {
+            console.warn('send_orders free delivery status update error:', updateErr);
+          }
+        }
+
+        localStorage.setItem(`linkup_send_order_${orderId}`, JSON.stringify(confirmed));
+        queryClient.invalidateQueries({ queryKey: ['my_send_orders'] });
+        queryClient.invalidateQueries({ queryKey: ['send_orders'] });
+
+        toast.success('🎉 Free Delivery Promo Applied! Finding your dispatch rider now.');
+        onPaymentSuccess(orderId);
+        return;
+      }
+
+      // 3. WALLET PAYMENT BRANCH (1-Tap Instant Deduction)
       if (paymentMethod === 'wallet') {
         if (!user) {
           toast.error('Please sign in to pay with your LinkUp wallet');
@@ -483,86 +517,107 @@ export function Step5ConfirmAndPay({
 
       {/* 3. PAYMENT METHOD SELECTOR */}
       <div className="space-y-2 pt-1">
-        <div className="flex items-center justify-between">
-          <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-            <CreditCard className="w-3.5 h-3.5 text-primary" />
-            <span>Select Payment Method</span>
-          </label>
-          {user && (
-            <span className="text-[11px] text-muted-foreground">
-              Wallet Balance: <strong className="text-emerald-700">₦{walletBalance.toLocaleString()}</strong>
-            </span>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          {/* Option A: LinkUp Wallet Balance */}
-          <button
-            type="button"
-            onClick={() => {
-              if (hasSufficientWallet) setPaymentMethod('wallet');
-              else toast.error(`Insufficient wallet balance. You have ₦${walletBalance.toLocaleString()}, but total fee is ₦${pricing.totalFee.toLocaleString()}.`);
-            }}
-            className={`p-3 rounded-2xl border text-left transition-all relative flex items-start gap-3 ${
-              paymentMethod === 'wallet'
-                ? 'border-emerald-500 bg-emerald-50/60 ring-2 ring-emerald-500/20 shadow-sm'
-                : !hasSufficientWallet
-                ? 'border-border/60 bg-muted/40 opacity-70 cursor-pointer'
-                : 'border-border/80 bg-card hover:bg-muted/40'
-            }`}
-          >
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-              paymentMethod === 'wallet' ? 'bg-emerald-600 text-white' : 'bg-muted text-muted-foreground'
-            }`}>
-              <Wallet size={18} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-bold text-foreground">LinkUp Wallet</p>
-                {hasSufficientWallet ? (
-                  <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[9px] font-bold">
-                    Fast 1-Tap
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="text-[9px] text-destructive border-destructive/30">
-                    Low Balance
-                  </Badge>
-                )}
+        {pricing.isFreeDelivery ? (
+          <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-sm">
+                <Sparkles size={20} className="animate-bounce" />
               </div>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                Balance: <strong className={hasSufficientWallet ? 'text-emerald-700' : 'text-foreground'}>₦{walletBalance.toLocaleString()}</strong>
-              </p>
-            </div>
-          </button>
-
-          {/* Option B: Paystack (Card/Transfer) */}
-          <button
-            type="button"
-            onClick={() => setPaymentMethod('paystack')}
-            className={`p-3 rounded-2xl border text-left transition-all relative flex items-start gap-3 ${
-              paymentMethod === 'paystack'
-                ? 'border-primary bg-orange-50/60 ring-2 ring-primary/20 shadow-sm'
-                : 'border-border/80 bg-card hover:bg-muted/40'
-            }`}
-          >
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-              paymentMethod === 'paystack' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'
-            }`}>
-              <CreditCard size={18} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-bold text-foreground">Card / Transfer</p>
-                <Badge className="bg-orange-100 text-orange-900 border-orange-200 text-[9px] font-bold">
-                  Paystack
-                </Badge>
+              <div>
+                <p className="text-xs font-bold text-foreground">100% Free Delivery Applied</p>
+                <p className="text-[11px] text-emerald-700 font-medium">
+                  This trip is 100% free under the active LinkUp Send campaign.
+                </p>
               </div>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                Debit Card, USSD, Bank App
-              </p>
             </div>
-          </button>
-        </div>
+            <Badge className="bg-emerald-600 text-white text-[10px] font-extrabold px-2.5 py-1">
+              ₦0 FREE
+            </Badge>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <CreditCard className="w-3.5 h-3.5 text-primary" />
+                <span>Select Payment Method</span>
+              </label>
+              {user && (
+                <span className="text-[11px] text-muted-foreground">
+                  Wallet Balance: <strong className="text-emerald-700">₦{walletBalance.toLocaleString()}</strong>
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {/* Option A: LinkUp Wallet Balance */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (hasSufficientWallet) setPaymentMethod('wallet');
+                  else toast.error(`Insufficient wallet balance. You have ₦${walletBalance.toLocaleString()}, but total fee is ₦${pricing.totalFee.toLocaleString()}.`);
+                }}
+                className={`p-3 rounded-2xl border text-left transition-all relative flex items-start gap-3 ${
+                  paymentMethod === 'wallet'
+                    ? 'border-emerald-500 bg-emerald-50/60 ring-2 ring-emerald-500/20 shadow-sm'
+                    : !hasSufficientWallet
+                    ? 'border-border/60 bg-muted/40 opacity-70 cursor-pointer'
+                    : 'border-border/80 bg-card hover:bg-muted/40'
+                }`}
+              >
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                  paymentMethod === 'wallet' ? 'bg-emerald-600 text-white' : 'bg-muted text-muted-foreground'
+                }`}>
+                  <Wallet size={18} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold text-foreground">LinkUp Wallet</p>
+                    {hasSufficientWallet ? (
+                      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[9px] font-bold">
+                        Fast 1-Tap
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[9px] text-destructive border-destructive/30">
+                        Low Balance
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Balance: <strong className={hasSufficientWallet ? 'text-emerald-700' : 'text-foreground'}>₦{walletBalance.toLocaleString()}</strong>
+                  </p>
+                </div>
+              </button>
+
+              {/* Option B: Paystack (Card/Transfer) */}
+              <button
+                type="button"
+                onClick={() => setPaymentMethod('paystack')}
+                className={`p-3 rounded-2xl border text-left transition-all relative flex items-start gap-3 ${
+                  paymentMethod === 'paystack'
+                    ? 'border-primary bg-orange-50/60 ring-2 ring-primary/20 shadow-sm'
+                    : 'border-border/80 bg-card hover:bg-muted/40'
+                }`}
+              >
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                  paymentMethod === 'paystack' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'
+                }`}>
+                  <CreditCard size={18} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold text-foreground">Card / Transfer</p>
+                    <Badge className="bg-orange-100 text-orange-900 border-orange-200 text-[9px] font-bold">
+                      Paystack
+                    </Badge>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Debit Card, USSD, Bank App
+                  </p>
+                </div>
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {/* 4. SAFE & SECURE BANNER */}
@@ -602,7 +657,12 @@ export function Step5ConfirmAndPay({
           {isProcessing ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Processing Payment...</span>
+              <span>Confirming Order...</span>
+            </>
+          ) : pricing.isFreeDelivery ? (
+            <>
+              <Sparkles className="w-4 h-4" />
+              <span>Confirm Free Delivery Order (₦0)</span>
             </>
           ) : (
             <>

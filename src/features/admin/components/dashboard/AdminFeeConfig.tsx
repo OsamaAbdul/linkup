@@ -38,6 +38,8 @@ import {
   Sliders,
   ChevronRight,
   TrendingUp,
+  Gift,
+  Truck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -111,6 +113,56 @@ export default function AdminFeeConfig() {
     },
   });
 
+  const toggleFreeDeliveryMutation = useMutation({
+    mutationFn: async ({
+      fee_type,
+      name,
+      is_active,
+    }: {
+      fee_type: string;
+      name: string;
+      is_active: boolean;
+    }) => {
+      const existing = fees?.find((f) => f.fee_type === fee_type);
+      if (existing) {
+        const { error } = await (supabase as any)
+          .from("fee_config")
+          .update({ is_active, updated_at: new Date().toISOString() })
+          .eq("id", existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any)
+          .from("fee_config")
+          .insert({
+            fee_type,
+            name,
+            rate: 0,
+            flat_fee: 0,
+            priority: 95,
+            is_active,
+          });
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-fee-config"] });
+      queryClient.invalidateQueries({ queryKey: ["fee-config"] });
+      queryClient.invalidateQueries({ queryKey: ["calculate_send_delivery_fee"] });
+      toast.success(
+        variables.is_active
+          ? `Free delivery ENABLED for ${
+              variables.fee_type === "marketplace_free_delivery" ? "Marketplace" : "LinkUp Send"
+            }!`
+          : `Free delivery DISABLED for ${
+              variables.fee_type === "marketplace_free_delivery" ? "Marketplace" : "LinkUp Send"
+            }.`
+      );
+    },
+    onError: (err: any) => {
+      toast.error("Failed to update free delivery campaign", { description: err.message });
+    },
+  });
+
   const seedSendFeesMutation = useMutation({
     mutationFn: async () => {
       for (const fee of DEFAULT_SEND_FEES) {
@@ -147,6 +199,10 @@ export default function AdminFeeConfig() {
 
   const getIcon = (type: string) => {
     switch (type) {
+      case "marketplace_free_delivery":
+        return <Gift className="text-orange-500" />;
+      case "send_free_delivery":
+        return <Truck className="text-emerald-600" />;
       case "send_base_fee":
         return <Banknote className="text-orange-600" />;
       case "send_per_km_rate":
@@ -227,6 +283,9 @@ export default function AdminFeeConfig() {
   const simPlatformNet = Math.max(0, simTotalFee - simRiderEarnings);
 
   const formatFeeValue = (fee: FeeConfig) => {
+    if (fee.fee_type.includes("free_delivery")) {
+      return fee.is_active ? "100% Free (Active)" : "Standard (Off)";
+    }
     if (fee.fee_type === "send_rider_payout_rate" || (fee.fee_type.includes("rate") && !fee.fee_type.includes("per_km"))) {
       return `${Math.round((fee.rate || 0) * 100)}%`;
     }
@@ -238,6 +297,10 @@ export default function AdminFeeConfig() {
 
   const getFeeDescription = (fee_type: string) => {
     switch (fee_type) {
+      case "marketplace_free_delivery":
+        return "Promotional campaign: waive 100% of marketplace shipping fees for buyers at checkout";
+      case "send_free_delivery":
+        return "Promotional campaign: waive 100% of customer delivery fees for on-demand Send packages";
       case "send_base_fee":
         return "Base starting price for any package delivery mission";
       case "send_per_km_rate":
@@ -276,6 +339,12 @@ export default function AdminFeeConfig() {
   }
 
   const hasSendFees = fees?.some((f) => isSendFee(f.fee_type));
+
+  const marketplaceFreeDelivery = fees?.find((f) => f.fee_type === "marketplace_free_delivery");
+  const isMarketplaceFreeDeliveryActive = Boolean(marketplaceFreeDelivery?.is_active);
+
+  const sendFreeDelivery = fees?.find((f) => f.fee_type === "send_free_delivery");
+  const isSendFreeDeliveryActive = Boolean(sendFreeDelivery?.is_active);
 
   // Partition fees for SEND tab
   const sendCustomerFees = filteredFees?.filter((f) => !isRiderPayoutFee(f.fee_type)) || [];
@@ -340,6 +409,151 @@ export default function AdminFeeConfig() {
           </div>
         </div>
       </div>
+
+      {/* ================= FREE DELIVERY CAMPAIGN CENTER ================= */}
+      <Card className="rounded-3xl border-2 border-primary/20 bg-gradient-to-br from-orange-500/[0.05] via-background to-emerald-500/[0.05] shadow-sm overflow-hidden">
+        <CardHeader className="p-6 border-b border-black/[0.05] bg-muted/20">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-md">
+                <Gift size={22} className={isMarketplaceFreeDeliveryActive || isSendFreeDeliveryActive ? "animate-bounce" : ""} />
+              </div>
+              <div>
+                <CardTitle className="text-lg font-black text-foreground flex items-center gap-2">
+                  <span>Free Delivery Campaign Center</span>
+                  {(isMarketplaceFreeDeliveryActive || isSendFreeDeliveryActive) && (
+                    <Badge className="bg-emerald-500 text-white text-[10px] font-extrabold px-2 py-0.5 animate-pulse">
+                      PROMO LIVE
+                    </Badge>
+                  )}
+                </CardTitle>
+                <CardDescription className="text-xs font-semibold text-muted-foreground">
+                  Toggle 100% free delivery promotions for Marketplace orders and LinkUp Send packages.
+                </CardDescription>
+              </div>
+            </div>
+            {(isMarketplaceFreeDeliveryActive || isSendFreeDeliveryActive) && (
+              <Badge className="bg-emerald-50 text-emerald-800 border-emerald-200 font-extrabold text-xs self-start sm:self-auto">
+                Promotions Active
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Marketplace Free Delivery Card */}
+            <div
+              className={cn(
+                "p-5 rounded-2xl border transition-all flex flex-col justify-between gap-4",
+                isMarketplaceFreeDeliveryActive
+                  ? "bg-gradient-to-br from-emerald-500/[0.08] to-white border-emerald-300 shadow-sm"
+                  : "bg-white border-black/[0.06]"
+              )}
+            >
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600">
+                      <Gift size={20} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-foreground">Marketplace Free Delivery</h4>
+                      <p className="text-[11px] text-muted-foreground">Store products & vendor orders</p>
+                    </div>
+                  </div>
+                  <Badge
+                    variant={isMarketplaceFreeDeliveryActive ? "default" : "secondary"}
+                    className={cn(
+                      "text-[10px] font-extrabold px-2.5 py-0.5 rounded-full",
+                      isMarketplaceFreeDeliveryActive
+                        ? "bg-emerald-600 hover:bg-emerald-600 text-white"
+                        : "bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {isMarketplaceFreeDeliveryActive ? "ACTIVE (₦0 Delivery)" : "OFF (Standard Rates)"}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  When enabled, customers pay <strong>₦0 for shipping</strong> on all marketplace purchases at checkout.
+                </p>
+              </div>
+
+              <div className="pt-3 border-t border-black/[0.05] flex items-center justify-between">
+                <span className="text-xs font-bold text-foreground">
+                  {isMarketplaceFreeDeliveryActive ? "Marketplace Promo Active" : "Enable Marketplace Free Delivery"}
+                </span>
+                <Switch
+                  checked={isMarketplaceFreeDeliveryActive}
+                  disabled={toggleFreeDeliveryMutation.isPending}
+                  onCheckedChange={(checked) =>
+                    toggleFreeDeliveryMutation.mutate({
+                      fee_type: "marketplace_free_delivery",
+                      name: "Marketplace: 100% Free Delivery Promotion",
+                      is_active: checked,
+                    })
+                  }
+                />
+              </div>
+            </div>
+
+            {/* LinkUp Send Free Delivery Card */}
+            <div
+              className={cn(
+                "p-5 rounded-2xl border transition-all flex flex-col justify-between gap-4",
+                isSendFreeDeliveryActive
+                  ? "bg-gradient-to-br from-emerald-500/[0.08] to-white border-emerald-300 shadow-sm"
+                  : "bg-white border-black/[0.06]"
+              )}
+            >
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
+                      <Truck size={20} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-foreground">LinkUp Send Free Delivery</h4>
+                      <p className="text-[11px] text-muted-foreground">On-demand package dispatch</p>
+                    </div>
+                  </div>
+                  <Badge
+                    variant={isSendFreeDeliveryActive ? "default" : "secondary"}
+                    className={cn(
+                      "text-[10px] font-extrabold px-2.5 py-0.5 rounded-full",
+                      isSendFreeDeliveryActive
+                        ? "bg-emerald-600 hover:bg-emerald-600 text-white"
+                        : "bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {isSendFreeDeliveryActive ? "ACTIVE (₦0 Delivery)" : "OFF (KM Pricing)"}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  When enabled, senders pay <strong>₦0 total delivery fee</strong>. Dispatch riders still receive their guaranteed minimum payout funded by the platform.
+                </p>
+              </div>
+
+              <div className="pt-3 border-t border-black/[0.05] flex items-center justify-between">
+                <span className="text-xs font-bold text-foreground">
+                  {isSendFreeDeliveryActive ? "LinkUp Send Promo Active" : "Enable Send Free Delivery"}
+                </span>
+                <Switch
+                  checked={isSendFreeDeliveryActive}
+                  disabled={toggleFreeDeliveryMutation.isPending}
+                  onCheckedChange={(checked) =>
+                    toggleFreeDeliveryMutation.mutate({
+                      fee_type: "send_free_delivery",
+                      name: "LinkUp Send: 100% Free Delivery Promotion",
+                      is_active: checked,
+                    })
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* SEND PACKAGE FORMULA & SIMULATOR CARD (Visible on Send & All tabs) */}
       {(activeTab === "send" || activeTab === "all") && (

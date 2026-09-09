@@ -12,6 +12,8 @@ import {
   CheckCircle2,
   Route,
   MapPin,
+  Sparkles,
+  Gift,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
@@ -219,6 +221,21 @@ export function Step4ReviewAndPrice({
           </span>
         </CardHeader>
         <CardContent className="p-4 space-y-2.5 text-xs">
+          {pricing.isFreeDelivery && (
+            <div className="p-3 mb-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-600 animate-bounce" />
+                <div>
+                  <p className="text-xs font-black text-emerald-700">100% Free Delivery Applied!</p>
+                  <p className="text-[11px] text-emerald-600">Special LinkUp Send promotion is active on your trip.</p>
+                </div>
+              </div>
+              <Badge className="bg-emerald-600 text-white text-[10px] font-extrabold px-2 py-0.5">
+                PROMO
+              </Badge>
+            </div>
+          )}
+
           <div className="flex items-center justify-between text-muted-foreground">
             <span>Base Delivery Fee</span>
             <span className="font-semibold text-foreground">₦{pricing.baseFee.toLocaleString()}</span>
@@ -248,9 +265,20 @@ export function Step4ReviewAndPrice({
           </div>
           <div className="pt-2 border-t flex items-center justify-between font-bold">
             <span className="text-foreground">Total Delivery Fee</span>
-            <span className="text-base text-primary font-extrabold font-heading">
-              ₦{pricing.totalFee.toLocaleString()}
-            </span>
+            {pricing.isFreeDelivery ? (
+              <div className="flex items-center gap-2">
+                <span className="line-through text-muted-foreground/60 text-xs">
+                  ₦{pricing.rawTotalFee.toLocaleString()}
+                </span>
+                <span className="text-base text-emerald-600 font-extrabold font-heading">
+                  ₦0 (FREE)
+                </span>
+              </div>
+            ) : (
+              <span className="text-base text-primary font-extrabold font-heading">
+                ₦{pricing.totalFee.toLocaleString()}
+              </span>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -284,7 +312,7 @@ export function Step4ReviewAndPrice({
           onClick={onNext}
           className="flex-1 h-12 rounded-xl text-sm font-bold shadow-md bg-primary hover:bg-primary/95 text-white gap-2"
         >
-          <span>Continue to Payment</span>
+          <span>{pricing.isFreeDelivery ? 'Continue to Confirmation' : 'Continue to Payment'}</span>
           <ArrowRight className="w-4 h-4" />
         </Button>
       </div>

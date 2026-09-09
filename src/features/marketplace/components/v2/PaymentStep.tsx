@@ -159,7 +159,16 @@ export function PaymentStep({
               <span className="text-muted-foreground flex items-center gap-1.5">
                 <Truck size={12} className="text-blue-500" /> Delivery {sellerCount > 1 ? `(${sellerCount} Packages)` : ''}
               </span>
-              <span className="text-foreground">₦{deliveryFee.toLocaleString()}</span>
+              {deliveryFee === 0 ? (
+                <span className="flex items-center gap-1.5">
+                  <span className="line-through text-muted-foreground/60 text-[11px]">₦1,500</span>
+                  <Badge className="bg-emerald-500/15 text-emerald-600 border border-emerald-500/30 font-black text-[10px] px-2 py-0.5">
+                    FREE PROMO
+                  </Badge>
+                </span>
+              ) : (
+                <span className="text-foreground">₦{deliveryFee.toLocaleString()}</span>
+              )}
             </div>
             {crossZoneFee > 0 && (
               <div className="flex justify-between items-center text-xs font-semibold">

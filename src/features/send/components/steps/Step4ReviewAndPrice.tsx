@@ -226,8 +226,8 @@ export function Step4ReviewAndPrice({
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-emerald-600 animate-bounce" />
                 <div>
-                  <p className="text-xs font-black text-emerald-700">100% Free Delivery Applied!</p>
-                  <p className="text-[11px] text-emerald-600">Special LinkUp Send promotion is active on your trip.</p>
+                  <p className="text-xs font-black text-emerald-700">100% First-Time Free Delivery Applied!</p>
+                  <p className="text-[11px] text-emerald-600">Special LinkUp Send promotion is active for your first trip.</p>
                 </div>
               </div>
               <Badge className="bg-emerald-600 text-white text-[10px] font-extrabold px-2 py-0.5">

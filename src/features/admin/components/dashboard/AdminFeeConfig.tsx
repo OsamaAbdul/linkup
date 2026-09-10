@@ -298,9 +298,9 @@ export default function AdminFeeConfig() {
   const getFeeDescription = (fee_type: string) => {
     switch (fee_type) {
       case "marketplace_free_delivery":
-        return "Promotional campaign: waive 100% of marketplace shipping fees for buyers at checkout";
+        return "Promotional campaign: waive 100% of marketplace shipping fees for a buyer's first checkout";
       case "send_free_delivery":
-        return "Promotional campaign: waive 100% of customer delivery fees for on-demand Send packages";
+        return "Promotional campaign: waive 100% of customer delivery fees for their first on-demand Send package";
       case "send_base_fee":
         return "Base starting price for any package delivery mission";
       case "send_per_km_rate":
@@ -428,7 +428,7 @@ export default function AdminFeeConfig() {
                   )}
                 </CardTitle>
                 <CardDescription className="text-xs font-semibold text-muted-foreground">
-                  Toggle 100% free delivery promotions for Marketplace orders and LinkUp Send packages.
+                  Toggle 100% free delivery promotions for Marketplace orders and LinkUp Send first-time packages.
                 </CardDescription>
               </div>
             </div>
@@ -442,7 +442,7 @@ export default function AdminFeeConfig() {
 
         <CardContent className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Marketplace Free Delivery Card */}
+            {/* Marketplace First-Time Free Delivery Card */}
             <div
               className={cn(
                 "p-5 rounded-2xl border transition-all flex flex-col justify-between gap-4",
@@ -458,7 +458,7 @@ export default function AdminFeeConfig() {
                       <Gift size={20} />
                     </div>
                     <div>
-                      <h4 className="text-sm font-black text-foreground">Marketplace Free Delivery</h4>
+                      <h4 className="text-sm font-black text-foreground">Marketplace First-Time Free Delivery</h4>
                       <p className="text-[11px] text-muted-foreground">Store products & vendor orders</p>
                     </div>
                   </div>
@@ -475,13 +475,13 @@ export default function AdminFeeConfig() {
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  When enabled, customers pay <strong>₦0 for shipping</strong> on all marketplace purchases at checkout.
+                  When enabled, first-time customers pay <strong>₦0 for shipping</strong> on all marketplace purchases at checkout.
                 </p>
               </div>
 
               <div className="pt-3 border-t border-black/[0.05] flex items-center justify-between">
                 <span className="text-xs font-bold text-foreground">
-                  {isMarketplaceFreeDeliveryActive ? "Marketplace Promo Active" : "Enable Marketplace Free Delivery"}
+                  {isMarketplaceFreeDeliveryActive ? "Marketplace First-Time Promo Active" : "Enable Marketplace First-Time Free Delivery"}
                 </span>
                 <Switch
                   checked={isMarketplaceFreeDeliveryActive}
@@ -489,7 +489,7 @@ export default function AdminFeeConfig() {
                   onCheckedChange={(checked) =>
                     toggleFreeDeliveryMutation.mutate({
                       fee_type: "marketplace_free_delivery",
-                      name: "Marketplace: 100% Free Delivery Promotion",
+                      name: "Marketplace: 100% First-Time Free Delivery Promotion",
                       is_active: checked,
                     })
                   }
@@ -497,7 +497,7 @@ export default function AdminFeeConfig() {
               </div>
             </div>
 
-            {/* LinkUp Send Free Delivery Card */}
+            {/* LinkUp Send First-Time Free Delivery Card */}
             <div
               className={cn(
                 "p-5 rounded-2xl border transition-all flex flex-col justify-between gap-4",
@@ -513,7 +513,7 @@ export default function AdminFeeConfig() {
                       <Truck size={20} />
                     </div>
                     <div>
-                      <h4 className="text-sm font-black text-foreground">LinkUp Send Free Delivery</h4>
+                      <h4 className="text-sm font-black text-foreground">LinkUp Send First-Time Free Delivery</h4>
                       <p className="text-[11px] text-muted-foreground">On-demand package dispatch</p>
                     </div>
                   </div>
@@ -530,13 +530,13 @@ export default function AdminFeeConfig() {
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  When enabled, senders pay <strong>₦0 total delivery fee</strong>. Dispatch riders still receive their guaranteed minimum payout funded by the platform.
+                  When enabled, first-time senders pay <strong>₦0 total delivery fee</strong>. Dispatch riders still receive their guaranteed minimum payout funded by the platform.
                 </p>
               </div>
 
               <div className="pt-3 border-t border-black/[0.05] flex items-center justify-between">
                 <span className="text-xs font-bold text-foreground">
-                  {isSendFreeDeliveryActive ? "LinkUp Send Promo Active" : "Enable Send Free Delivery"}
+                  {isSendFreeDeliveryActive ? "First-Time Promo Active" : "Enable First-Time Free Delivery"}
                 </span>
                 <Switch
                   checked={isSendFreeDeliveryActive}
@@ -544,7 +544,7 @@ export default function AdminFeeConfig() {
                   onCheckedChange={(checked) =>
                     toggleFreeDeliveryMutation.mutate({
                       fee_type: "send_free_delivery",
-                      name: "LinkUp Send: 100% Free Delivery Promotion",
+                      name: "LinkUp Send: 100% First-Time Free Delivery Promotion",
                       is_active: checked,
                     })
                   }

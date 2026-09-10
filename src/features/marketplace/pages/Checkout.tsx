@@ -166,9 +166,25 @@ export default function Checkout() {
     ? (shipping.zone_id ? dynamicDefaultFee : 0)
     : zFee;
     
-  const isMarketplaceFreeDelivery = feeConfigs.some(
+  const isMarketplaceFreeDeliveryConfig = feeConfigs.some(
     (f: any) => f.fee_type === "marketplace_free_delivery" && f.is_active
   );
+
+  const { data: hasPastMarketplaceOrders } = useQuery({
+    queryKey: ['user-has-past-marketplace-orders', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return false;
+      const { count, error } = await (supabase as any)
+        .from('orders')
+        .select('id', { count: 'exact', head: true })
+        .eq('buyer_id', user.id);
+      if (error) throw error;
+      return (count ?? 0) > 0;
+    },
+    enabled: !!user?.id && !!isMarketplaceFreeDeliveryConfig,
+  });
+
+  const isMarketplaceFreeDelivery = isMarketplaceFreeDeliveryConfig && !hasPastMarketplaceOrders;
 
   const rawDeliveryFee = baseDeliveryFee * sellerCount;
   const rawCrossZoneFee = crossZoneFee;

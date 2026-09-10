@@ -188,17 +188,7 @@ export default function Auth() {
               setDisplayName={setDisplayName}
             />
 
-            {isLogin && !isForgotPassword && (
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setIsForgotPassword(true)}
-                  className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
-                >
-                  Forgot Password?
-                </button>
-              </div>
-            )}
+
 
             <Button
               type="submit"
@@ -215,11 +205,23 @@ export default function Auth() {
               ) : isForgotPassword ? (
                 "Send Reset Link"
               ) : isLogin ? (
-                "Sign In"
+                "Log In"
               ) : (
-                "Create Account"
+                "Create New Account"
               )}
             </Button>
+
+            {isLogin && !isForgotPassword && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsForgotPassword(true)}
+                  className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
+                >
+                  Forgot Password?
+                </button>
+              </div>
+            )}
           </form>
 
           {!isForgotPassword && (
@@ -265,20 +267,20 @@ export default function Auth() {
             {isForgotPassword ? (
               <button
                 type="button"
-                className="font-semibold text-primary hover:text-primary/80 transition-colors"
+                className="w-full h-12 rounded-xl font-semibold text-[15px] bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all"
                 onClick={handleBackToLogin}
               >
-                Back to sign in
+                Back to Log In
               </button>
             ) : (
               <>
                 {isLogin ? "Don't have an account?" : "Already have an account?"}
                 <button
                   type="button"
-                  className="ml-2 font-bold text-primary hover:text-primary/80 transition-colors text-base underline underline-offset-4"
+                  className="w-full h-12 rounded-xl font-semibold text-[15px] bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all"
                   onClick={() => setIsLogin(!isLogin)}
                 >
-                  {isLogin ? "Sign up" : "Sign in"}
+                  {isLogin ? "Create New Account" : "Log In"}
                 </button>
               </>
             )}

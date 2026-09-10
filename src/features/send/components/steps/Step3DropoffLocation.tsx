@@ -8,10 +8,7 @@ import {
   ArrowRight,
   ArrowLeft,
   Bookmark,
-  Loader2,
   AlertCircle,
-  CheckCircle2,
-  MapPin,
   Route,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
@@ -57,11 +54,11 @@ export function Step3DropoffLocation({ formData, onChange, onNext, onBack }: Ste
     roadData?.distanceKm ??
     (formData.pickupLat && formData.pickupLng && formData.dropoffLat && formData.dropoffLng
       ? calculateHaversineDistance(
-          formData.pickupLat,
-          formData.pickupLng,
-          formData.dropoffLat,
-          formData.dropoffLng
-        )
+        formData.pickupLat,
+        formData.pickupLng,
+        formData.dropoffLat,
+        formData.dropoffLng
+      )
       : null);
 
 
@@ -290,7 +287,7 @@ export function Step3DropoffLocation({ formData, onChange, onNext, onBack }: Ste
               <Input
                 placeholder="e.g. 0807 123 4567"
                 type="tel"
-                maxLength={15}
+                maxLength={11}
                 value={formData.dropoffRecipientPhone}
                 onChange={(e) => {
                   onChange({ dropoffRecipientPhone: e.target.value });

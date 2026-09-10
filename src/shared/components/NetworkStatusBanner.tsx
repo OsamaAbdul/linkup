@@ -2,12 +2,14 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Wifi, WifiOff, RefreshCw, X, AlertTriangle } from "lucide-react";
 import { useNetworkStatus } from "../context/NetworkContext";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/shared/components/ui/button";
 
 export const NetworkStatusBanner: React.FC = () => {
   const { isOnline, wasOffline, isChecking, checkConnection } = useNetworkStatus();
   const [isDismissed, setIsDismissed] = useState<boolean>(false);
   const [showRestored, setShowRestored] = useState<boolean>(false);
+  const queryClient = useQueryClient();
 
   // If user drops offline, un-dismiss so they are immediately warned
   useEffect(() => {
@@ -16,12 +18,14 @@ export const NetworkStatusBanner: React.FC = () => {
       setShowRestored(false);
     } else if (wasOffline) {
       setShowRestored(true);
+      // Invalidate queries to refetch products and other data
+      queryClient.invalidateQueries();
       const timer = setTimeout(() => {
         setShowRestored(false);
       }, 4000);
       return () => clearTimeout(timer);
     }
-  }, [isOnline, wasOffline]);
+  }, [isOnline, wasOffline, queryClient]);
 
   const handleRetry = async () => {
     await checkConnection();

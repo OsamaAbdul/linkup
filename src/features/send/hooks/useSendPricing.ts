@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useRoadRoute } from './useRoadRoute';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
 export interface PricingInput {
   pickupLat?: number | null;
@@ -62,6 +63,8 @@ export function useSendPricing({
   weightKg,
   isFragile = false,
 }: PricingInput): SendFeeBreakdown {
+  const { user } = useAuth();
+  
   // Query real road network route from OSRM
   const { data: roadData } = useRoadRoute(pickupLat, pickupLng, dropoffLat, dropoffLng);
 
@@ -116,6 +119,20 @@ export function useSendPricing({
     (f: any) => f.fee_type === 'send_free_delivery' && f.is_active
   );
 
+  const { data: hasPastOrders } = useQuery({
+    queryKey: ['user-has-past-send-orders', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return false;
+      const { count, error } = await (supabase as any)
+        .from('send_orders')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+      if (error) throw error;
+      return (count ?? 0) > 0;
+    },
+    enabled: !!user?.id && !!isFreeDeliveryConfig,
+  });
+
   return useMemo(() => {
     // 1. Determine distance: prioritize verified road distance from RPC or roadData
     let distanceKm = roadData?.distanceKm;
@@ -161,7 +178,8 @@ export function useSendPricing({
     const rawCalculatedFee = baseFee + distanceFee + packageSurcharge + serviceFee + fragileSurcharge;
     const rawTotalFee = rpcData?.raw_total_fee != null ? Number(rpcData.raw_total_fee) : rawCalculatedFee;
 
-    const isFreeDelivery = Boolean(rpcData?.is_free_delivery || isFreeDeliveryConfig);
+    const isFirstTimeFreeDelivery = isFreeDeliveryConfig && !hasPastOrders;
+    const isFreeDelivery = Boolean(rpcData?.is_free_delivery || isFirstTimeFreeDelivery);
     const totalFee = isFreeDelivery
       ? 0
       : (rpcData?.total_fee != null ? Number(rpcData.total_fee) : rawCalculatedFee);
@@ -186,6 +204,6 @@ export function useSendPricing({
       estimatedPickupWindow: '10 - 20 mins',
       isBackendVerified: Boolean(rpcData && typeof rpcData.total_fee === 'number'),
     };
-  }, [roadData, rpcData, feeConfigs, isFreeDeliveryConfig, pickupLat, pickupLng, dropoffLat, dropoffLng, weightKg, isFragile]);
+  }, [roadData, rpcData, feeConfigs, isFreeDeliveryConfig, hasPastOrders, pickupLat, pickupLng, dropoffLat, dropoffLng, weightKg, isFragile]);
 }
 

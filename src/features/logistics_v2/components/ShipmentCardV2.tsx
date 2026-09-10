@@ -123,8 +123,8 @@ export function ShipmentCardV2({ shipment, onClick }: ShipmentCardProps) {
                 // Quick patch for coordinates if fetched
                 if (currentLat && currentLng) {
                     await supabase.from("shipments").update({
-                        rider_latitude: currentLat,
-                        rider_longitude: currentLng,
+                        rider_lat: currentLat,
+                        rider_lng: currentLng,
                     }).eq("order_id", orderId);
                 }
             } else {
@@ -135,8 +135,8 @@ export function ShipmentCardV2({ shipment, onClick }: ShipmentCardProps) {
                 };
                 
                 if (currentLat && currentLng) {
-                    updatePayload.rider_latitude = currentLat;
-                    updatePayload.rider_longitude = currentLng;
+                    updatePayload.rider_lat = currentLat;
+                    updatePayload.rider_lng = currentLng;
                 }
 
                 const { error } = await supabase

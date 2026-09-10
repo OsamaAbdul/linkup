@@ -38,9 +38,25 @@ export function BuyNowModal({ product, isOpen, onClose }: BuyNowModalProps) {
         (f: any) => f.fee_type === "marketplace_free_delivery" && f.is_active
     );
 
+    const { data: hasPastOrders } = useQuery({
+        queryKey: ["user-has-past-orders", user?.id],
+        queryFn: async () => {
+            if (!user?.id) return false;
+            const { count, error } = await supabase
+                .from("orders")
+                .select("id", { count: "exact", head: true })
+                .eq("buyer_id", user.id);
+            if (error) throw error;
+            return (count ?? 0) > 0;
+        },
+        enabled: !!user?.id && isMarketplaceFreeDelivery
+    });
+
+    const isFirstTimeFreeDelivery = isMarketplaceFreeDelivery && !hasPastOrders;
+
     if (!product) return null;
 
-    const deliveryFee = isMarketplaceFreeDelivery ? 0 : 700;
+    const deliveryFee = isFirstTimeFreeDelivery ? 0 : 700;
     const total = product.price + deliveryFee;
     const sellerName = product.profiles?.display_name || "Seller";
     const sellerInitial = sellerName[0]?.toUpperCase() ?? "S";
@@ -240,8 +256,8 @@ export function BuyNowModal({ product, isOpen, onClose }: BuyNowModalProps) {
                         </div>
                         <div className="flex justify-between text-sm">
                             <span className="text-muted-foreground">Delivery Fee</span>
-                            <span className={isMarketplaceFreeDelivery ? "font-bold text-emerald-600" : "font-medium"}>
-                                {isMarketplaceFreeDelivery ? "FREE (Promo)" : `₦${deliveryFee.toLocaleString()}`}
+                            <span className={isFirstTimeFreeDelivery ? "font-bold text-emerald-600" : "font-medium"}>
+                                {isFirstTimeFreeDelivery ? "FREE (Promo)" : `₦${deliveryFee.toLocaleString()}`}
                             </span>
                         </div>
                         <div className="flex justify-between text-base font-bold text-[#27ae60] pt-2 border-t mt-2">

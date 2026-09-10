@@ -112,14 +112,16 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   useEffect(() => {
     const handleOnline = async () => {
+      // Optimistically set online so React Query instantly begins refetching without waiting for the ping
+      setIsOnline(true);
+      onlineManager.setOnline(true);
+
       const verified = await checkConnection();
       const now = new Date();
       setLastChangedAt(now);
       updateConnectionDetails();
 
       if (verified) {
-        setIsOnline(true);
-        onlineManager.setOnline(true);
         if (hasMountedRef.current) {
           setWasOffline(true);
           toast.success("Back online! Connection restored.", {
@@ -127,6 +129,10 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({ child
             duration: 3500,
           });
         }
+      } else {
+        // Revert if ping fails
+        setIsOnline(false);
+        onlineManager.setOnline(false);
       }
 
       // Track analytics

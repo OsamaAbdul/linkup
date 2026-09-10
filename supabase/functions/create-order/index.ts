@@ -47,6 +47,7 @@ serve(async (req: Request) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No Authorization header provided");
 
+    // @ts-ignore
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const authClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },

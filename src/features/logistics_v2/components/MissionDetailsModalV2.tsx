@@ -135,6 +135,7 @@ export function MissionDetailsModalV2({ shipment, open, onOpenChange }: MissionD
                         'picked_up': 'on_the_way',
                         'delivered': 'delivered',
                     };
+                    const mapped = statusMap[newStatus] || newStatus;
                     const updatePayload: any = {
                         status: mapped,
                         updated_at: new Date().toISOString(),

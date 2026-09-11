@@ -50,6 +50,7 @@ export function ProductCard({
       if (error) throw error;
       return data || [];
     },
+    staleTime: Infinity,
   });
 
   const productFeeConfig = feeConfigs.find((f: any) => f.fee_type === "platform_product");
@@ -83,9 +84,8 @@ export function ProductCard({
         <Link to={`/product/${id}`} className="block relative">
           <div className="aspect-[4/3] bg-muted relative overflow-hidden">
             <LazyImage
-              src={image || "/product-backup.jpg"}
+              src={image}
               alt={title}
-              fallbackSrc="/product-backup.jpg"
               className={cn(
                 "w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110",
                 isOutOfStock && "opacity-50 grayscale"

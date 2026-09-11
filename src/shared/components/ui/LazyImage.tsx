@@ -7,7 +7,6 @@ interface LazyImageProps extends HTMLMotionProps<"img"> {
   alt: string;
   className?: string;
   skeletonClassName?: string;
-  fallbackSrc?: string;
 }
 
 export const LazyImage = ({
@@ -15,15 +14,13 @@ export const LazyImage = ({
   alt,
   className = '',
   skeletonClassName = '',
-  fallbackSrc = '/product-backup.jpg',
   ...props
 }: LazyImageProps) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
 
-  const effectiveSrc = src?.trim() || fallbackSrc;
-  const isDirectFallback = !src || !src.trim() || src === fallbackSrc;
+  const effectiveSrc = src?.trim() || "";
 
   // Reset state if src changes
   useEffect(() => {
@@ -36,23 +33,13 @@ export const LazyImage = ({
 
   return (
     <div className={`relative overflow-hidden w-full h-full bg-muted/30 ${className}`}>
-      {/* Dedicated Backup Image: Always visible before load or on error so card NEVER looks broken */}
-      <img
-        src={fallbackSrc}
-        alt={alt || "Product backup placeholder"}
-        aria-hidden={isLoaded && !hasError && !isDirectFallback ? "true" : undefined}
-        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 pointer-events-none ${
-          isLoaded && !hasError && !isDirectFallback ? 'opacity-0' : 'opacity-100'
-        }`}
-      />
-
       {/* Subtle pulse shimmer while loading a real image */}
-      {!isLoaded && !hasError && !isDirectFallback && (
+      {!isLoaded && !hasError && effectiveSrc && (
         <Skeleton className={`absolute inset-0 w-full h-full opacity-20 pointer-events-none ${skeletonClassName}`} />
       )}
 
       {/* Actual Product Image - Smoothly fades in on top when loaded */}
-      {!isDirectFallback && !hasError && (
+      {effectiveSrc && !hasError && (
         <motion.img
           ref={imgRef}
           src={effectiveSrc}
@@ -69,6 +56,13 @@ export const LazyImage = ({
           className={`relative z-10 w-full h-full object-cover ${className}`}
           {...props}
         />
+      )}
+
+      {/* No Image State */}
+      {(!effectiveSrc || hasError) && (
+        <div className="absolute inset-0 w-full h-full bg-muted flex items-center justify-center">
+          <span className="text-muted-foreground text-xs font-medium uppercase tracking-widest">No Image</span>
+        </div>
       )}
     </div>
   );

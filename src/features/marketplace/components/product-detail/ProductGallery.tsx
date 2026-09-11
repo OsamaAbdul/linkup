@@ -1,6 +1,6 @@
 import { m, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Share2 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,7 +33,8 @@ export function ProductGallery({
   const markupMultiplier = 1 + platformProductRate;
   const finalPrice = productPrice * markupMultiplier;
 
-  const displayImages = images && images.length > 0 ? images : ['/product-backup.jpg'];
+  const navigate = useNavigate();
+  const displayImages = images && images.length > 0 ? images : [];
 
   const handleDragEnd = (event: any, info: any) => {
     const swipeThreshold = 50;
@@ -52,12 +53,12 @@ export function ProductGallery({
       transition={{ duration: 0.6 }}
     >
       <div className="relative aspect-square overflow-hidden bg-muted lg:rounded-xl lg:shadow-xl group">
-        <Link
-          to="/"
+        <button
+          onClick={() => navigate(-1)}
           className="absolute top-4 left-4 z-20 bg-foreground/20 backdrop-blur-xl p-2.5 rounded-xl text-card hover:bg-foreground/40 transition-all border border-card/10 shadow-lg"
         >
           <ArrowLeft size={20} />
-        </Link>
+        </button>
 
         <button aria-label="Share product" className="absolute top-4 right-4 z-20 bg-foreground/20 backdrop-blur-xl p-2.5 rounded-xl text-card hover:bg-foreground/40 transition-all border border-card/10 shadow-lg focus-visible:ring-2 focus-visible:ring-ring">
           <Share2 size={20} />
@@ -67,14 +68,8 @@ export function ProductGallery({
           <AnimatePresence mode="wait">
             <m.img
               key={currentImageIndex}
-              src={displayImages[currentImageIndex] || '/product-backup.jpg'}
+              src={displayImages[currentImageIndex] || ''}
               alt={`${productTitle} - image ${currentImageIndex + 1}`}
-              onError={(e) => {
-                const target = e.currentTarget as HTMLImageElement;
-                if (target.src !== `${window.location.origin}/product-backup.jpg`) {
-                  target.src = '/product-backup.jpg';
-                }
-              }}
               className="w-full h-full object-cover touch-none"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}

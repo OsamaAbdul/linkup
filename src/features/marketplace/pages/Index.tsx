@@ -11,7 +11,7 @@ import { useReferral } from "@/features/promoter/hooks/useReferral";
 import { AppLayout } from "@/shared/components/layout/AppLayout";
 import { WeaveSpinner } from "@/shared/components/ui/weave-spinner";
 import { toast } from "sonner";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 import { useCategories, useZones } from "@/shared/hooks/use-marketplace-metadata";
@@ -28,6 +28,7 @@ export default function Index() {
   const { position, loading: geoLoading, refresh: refreshGeo } = useGeolocation();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { likes, toggleLike } = useWishlist();
   useReferral();
@@ -245,8 +246,60 @@ export default function Index() {
 
   const displayProducts = infiniteProducts?.pages.flat() || [];
 
+  const [hasRestoredScroll, setHasRestoredScroll] = useState<string | null>(null);
+
+  // Save scroll position tied to history key
+  useEffect(() => {
+    const handleScroll = () => {
+      sessionStorage.setItem(`scroll-${location.key}`, window.scrollY.toString());
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [location.key]);
+
+  // Restore scroll position when products load
+  useEffect(() => {
+    if (hasRestoredScroll === location.key) return;
+
+    const savedScroll = sessionStorage.getItem(`scroll-${location.key}`);
+    
+    // Failsafe: if we take longer than 1.5s, just remove the overlay anyway so we don't trap the user
+    const failsafeTimer = setTimeout(() => {
+      setHasRestoredScroll(location.key);
+    }, 1500);
+
+    if (!isLoading && displayProducts.length > 0) {
+      if (savedScroll) {
+        setTimeout(() => {
+          try {
+            window.scrollTo(0, parseInt(savedScroll, 10));
+          } catch (e) {
+            // fallback if scrollTo fails
+          }
+          setHasRestoredScroll(location.key);
+          clearTimeout(failsafeTimer);
+        }, 100);
+      } else {
+        setHasRestoredScroll(location.key);
+        clearTimeout(failsafeTimer);
+      }
+    }
+
+    return () => clearTimeout(failsafeTimer);
+  }, [displayProducts.length, isLoading, location.key, hasRestoredScroll]);
+
+  const isRestoringScroll = hasRestoredScroll !== location.key && !!sessionStorage.getItem(`scroll-${location.key}`);
+
   return (
     <AppLayout>
+      {isRestoringScroll && (
+        <div className="fixed inset-0 z-[100] bg-background/60 backdrop-blur-md flex flex-col items-center justify-center transition-all duration-300">
+          <WeaveSpinner />
+          <p className="mt-8 text-xs font-black tracking-[0.2em] uppercase text-foreground animate-pulse drop-shadow-md">
+            Resuming...
+          </p>
+        </div>
+      )}
       <SEO 
         title="Linkup Marketplace | Buy and Sell Locally" 
         description="Join Linkup Marketplace to buy and sell items locally. Fast, secure, and reliable." 

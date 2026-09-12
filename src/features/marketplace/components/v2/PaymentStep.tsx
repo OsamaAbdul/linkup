@@ -9,7 +9,10 @@ interface PaymentStepProps {
   baseProductTotal: number;
   platformFee: number;
   deliveryFee: number;
+  rawDeliveryFee?: number;
   crossZoneFee?: number;
+  rawCrossZoneFee?: number;
+  isFreeDelivery?: boolean;
   grandTotal: number;
   sellerCount: number;
   onBack: () => void;
@@ -22,7 +25,10 @@ export function PaymentStep({
   baseProductTotal,
   platformFee,
   deliveryFee,
+  rawDeliveryFee,
   crossZoneFee = 0,
+  rawCrossZoneFee,
+  isFreeDelivery,
   grandTotal,
   sellerCount,
   onBack,
@@ -161,7 +167,9 @@ export function PaymentStep({
               </span>
               {deliveryFee === 0 ? (
                 <span className="flex items-center gap-1.5">
-                  <span className="line-through text-muted-foreground/60 text-[11px]">₦1,500</span>
+                  <span className="line-through text-muted-foreground/60 text-[11px]">
+                    ₦{(rawDeliveryFee || 1500).toLocaleString()}
+                  </span>
                   <Badge className="bg-emerald-500/15 text-emerald-600 border border-emerald-500/30 font-black text-[10px] px-2 py-0.5">
                     FREE PROMO
                   </Badge>
@@ -170,12 +178,23 @@ export function PaymentStep({
                 <span className="text-foreground">₦{deliveryFee.toLocaleString()}</span>
               )}
             </div>
-            {crossZoneFee > 0 && (
+            {(rawCrossZoneFee !== undefined ? rawCrossZoneFee > 0 : crossZoneFee > 0) && (
               <div className="flex justify-between items-center text-xs font-semibold">
                 <span className="text-muted-foreground flex items-center gap-1.5">
                   <MapIcon size={12} className="text-orange-500" /> Cross-Zone Surcharge
                 </span>
-                <span className="text-foreground">₦{crossZoneFee.toLocaleString()}</span>
+                {crossZoneFee === 0 ? (
+                  <span className="flex items-center gap-1.5">
+                    <span className="line-through text-muted-foreground/60 text-[11px]">
+                      ₦{(rawCrossZoneFee || 0).toLocaleString()}
+                    </span>
+                    <Badge className="bg-emerald-500/15 text-emerald-600 border border-emerald-500/30 font-black text-[10px] px-2 py-0.5">
+                      WAIVED
+                    </Badge>
+                  </span>
+                ) : (
+                  <span className="text-foreground">₦{crossZoneFee.toLocaleString()}</span>
+                )}
               </div>
             )}
             <div className="pt-4 border-t border-dashed flex justify-between items-end">

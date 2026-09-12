@@ -91,21 +91,25 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
         (f: any) => f.fee_type === "marketplace_free_delivery" && f.is_active
     );
 
-    const { data: hasPastMarketplaceOrders } = useQuery({
+    const { data: hasPastMarketplaceOrders, isLoading: isPastOrdersLoading } = useQuery({
         queryKey: ['user-has-past-marketplace-orders', user?.id],
         queryFn: async () => {
             if (!user?.id) return false;
             const { count, error } = await (supabase as any)
                 .from('orders')
                 .select('id', { count: 'exact', head: true })
-                .eq('buyer_id', user.id);
+                .eq('buyer_id', user.id)
+                .neq('status', 'cancelled');
             if (error) throw error;
             return (count ?? 0) > 0;
         },
         enabled: !!user?.id && !!isMarketplaceFreeDeliveryConfig,
     });
 
-    const isMarketplaceFreeDelivery = isMarketplaceFreeDeliveryConfig && !hasPastMarketplaceOrders;
+    const isMarketplaceFreeDelivery = Boolean(
+        isMarketplaceFreeDeliveryConfig && 
+        (user?.id ? (!isPastOrdersLoading && hasPastMarketplaceOrders === false) : true)
+    );
     const rawDeliveryFee = deliveryMethod === "standard" ? baseFee : 0;
     const deliveryFee = isMarketplaceFreeDelivery ? 0 : rawDeliveryFee;
     const productPrice = (product.price ?? 0) * markupMultiplier;

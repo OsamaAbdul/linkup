@@ -34,29 +34,36 @@ export function BuyNowModal({ product, isOpen, onClose }: BuyNowModalProps) {
         }
     });
 
+    const riderFeeConfig = feeConfigs.find((f: any) => f.fee_type === "rider");
+    const dynamicDefaultFee = riderFeeConfig?.flat_fee ?? 1500;
+
     const isMarketplaceFreeDelivery = feeConfigs.some(
         (f: any) => f.fee_type === "marketplace_free_delivery" && f.is_active
     );
 
-    const { data: hasPastOrders } = useQuery({
+    const { data: hasPastOrders, isLoading: isPastOrdersLoading } = useQuery({
         queryKey: ["user-has-past-orders", user?.id],
         queryFn: async () => {
             if (!user?.id) return false;
             const { count, error } = await supabase
                 .from("orders")
                 .select("id", { count: "exact", head: true })
-                .eq("buyer_id", user.id);
+                .eq("buyer_id", user.id)
+                .neq("status", "cancelled");
             if (error) throw error;
             return (count ?? 0) > 0;
         },
         enabled: !!user?.id && isMarketplaceFreeDelivery
     });
 
-    const isFirstTimeFreeDelivery = isMarketplaceFreeDelivery && !hasPastOrders;
+    const isFirstTimeFreeDelivery = Boolean(
+        isMarketplaceFreeDelivery && 
+        (user?.id ? (!isPastOrdersLoading && hasPastOrders === false) : true)
+    );
 
     if (!product) return null;
 
-    const deliveryFee = isFirstTimeFreeDelivery ? 0 : 700;
+    const deliveryFee = isFirstTimeFreeDelivery ? 0 : dynamicDefaultFee;
     const total = product.price + deliveryFee;
     const sellerName = product.profiles?.display_name || "Seller";
     const sellerInitial = sellerName[0]?.toUpperCase() ?? "S";
@@ -109,7 +116,7 @@ export function BuyNowModal({ product, isOpen, onClose }: BuyNowModalProps) {
                     phone: (profile as any)?.phone || "",
                     city: (profile as any)?.city || "Abuja"
                 },
-                total: product.price,
+                total: total,
                 delivery_fee: deliveryFee,
                 cross_zone_fee: 0,
                 zone: (profile as any)?.zone || "Standard Zone",

@@ -108,11 +108,12 @@ serve(async (req: Request) => {
     const { data: feeConfigs } = await adminClient
       .from("fee_config")
       .select("fee_type, rate, flat_fee")
-      .in("fee_type", ["platform", "platform_rider_cut", "promoter"]);
+      .in("fee_type", ["platform", "platform_rider_cut", "promoter", "rider"]);
 
     let platformProductRate = 0.05; // default 5%
     let platformRiderFlat = 300; // default flat fee 300
     let globalPromoterRate = 0.05; // default 5%
+    let riderBaseFlat = 1500; // default rider delivery fee
     if (feeConfigs) {
       const pFee = feeConfigs.find((f: any) => f.fee_type === "platform");
       if (pFee?.rate !== undefined) platformProductRate = Number(pFee.rate);
@@ -124,6 +125,11 @@ serve(async (req: Request) => {
 
       const promoFee = feeConfigs.find((f: any) => f.fee_type === "promoter");
       if (promoFee?.rate !== undefined) globalPromoterRate = Number(promoFee.rate);
+
+      const rFee = feeConfigs.find((f: any) => f.fee_type === "rider");
+      if (rFee?.flat_fee !== undefined && rFee?.flat_fee !== null) {
+        riderBaseFlat = Number(rFee.flat_fee);
+      }
     }
 
     // --- Group Items by Seller ---
@@ -385,8 +391,16 @@ serve(async (req: Request) => {
       }
 
       // --- Calculate Exact Financial Splits (Upfront) ---
-      // Rider gets the base delivery fee PLUS the cross zone distance fee
-      const current_rider_fee = (delivery_fee ? (delivery_fee / sellerIds.length) : 0) + (cross_zone_fee ? (cross_zone_fee / sellerIds.length) : 0);
+      // Customer shipping fee collected
+      const buyer_shipping_fee = (delivery_fee ? (Number(delivery_fee) / sellerIds.length) : 0) + (cross_zone_fee ? (Number(cross_zone_fee) / sellerIds.length) : 0);
+      
+      // Free Delivery promotion check: if delivery_fee is 0, platform guarantees standard baseline rider payout
+      const isFreeDeliveryOrder = Number(delivery_fee || 0) === 0;
+      const guaranteed_rider_fee = isFreeDeliveryOrder 
+        ? (riderBaseFlat / sellerIds.length) + (cross_zone_fee ? (Number(cross_zone_fee) / sellerIds.length) : 0)
+        : buyer_shipping_fee;
+
+      const current_rider_fee = guaranteed_rider_fee;
       
       const product_total = calculatedSubTotal;
       
@@ -395,9 +409,9 @@ serve(async (req: Request) => {
       let calculated_platform_fee = product_total - calculated_seller_earnings;
       
       // Deduction Calculation for Rider Fee (Flat Fee)
-      // The platform deducts the flat fee from whatever shipping fee was collected
-      const rider_platform_cut = current_rider_fee > 0 ? (platformRiderFlat / sellerIds.length) : 0;
-      const final_rider_fee = current_rider_fee - rider_platform_cut;
+      // The platform deducts the flat fee from whatever shipping fee was collected, unless free delivery was granted
+      const rider_platform_cut = (!isFreeDeliveryOrder && current_rider_fee > 0) ? (platformRiderFlat / sellerIds.length) : 0;
+      const final_rider_fee = isFreeDeliveryOrder ? current_rider_fee : (current_rider_fee - rider_platform_cut);
       
       calculated_platform_fee += rider_platform_cut;
       
@@ -448,7 +462,7 @@ serve(async (req: Request) => {
 
       // Seller earnings are already calculated above using the reverse markup logic
       
-      const total_order_charge = product_total + current_rider_fee;
+      const total_order_charge = product_total + buyer_shipping_fee;
 
       // --- Create Transactional Order Record ---
       const { data: order, error: orderError } = await adminClient
@@ -458,7 +472,7 @@ serve(async (req: Request) => {
           seller_id: sId,
           total: total_order_charge || 0,
           subtotal: product_total || 0,
-          shipping_fee: current_rider_fee || 0,
+          shipping_fee: buyer_shipping_fee || 0,
           platform_fee: calculated_platform_fee || 0,
           promoter_fee: calculated_promoter_fee || 0,
           seller_earnings: calculated_seller_earnings || 0,
@@ -602,16 +616,34 @@ serve(async (req: Request) => {
           earnings: totalPromoterEarnings
         });
 
+       let updateResult: any = null;
        if (matchedReferralId) {
-         await query.eq("id", matchedReferralId);
+         updateResult = await query.eq("id", matchedReferralId).select();
        } else {
-         await query
+         updateResult = await query
            .eq("promoter_id", finalPromoterId)
            .or(`buyer_id.eq.${user.id},visitor_id.eq.${body.visitor_id || 'none'}`)
-           .is("converted_at", null);
+           .is("converted_at", null)
+           .select();
+       }
+
+       // Fallback safeguard: If no existing click record was found to update, record the conversion directly
+       if (!updateResult?.data || updateResult.data.length === 0) {
+         console.log(`[Attribution] No prior click row updated. Inserting conversion row directly in referrals.`);
+         await adminClient.from("referrals").insert({
+           promoter_id: finalPromoterId,
+           product_id: promotedProductId || null,
+           campaign_id: promotedCampaignId || null,
+           visitor_id: body.visitor_id || null,
+           buyer_id: user.id,
+           order_id: createdOrderIds[0],
+           status: 'conversion',
+           earnings: totalPromoterEarnings,
+           converted_at: new Date().toISOString()
+         });
        }
        
-       console.log(`[Attribution] Conversion update triggered.`);
+       console.log(`[Attribution] Conversion recording completed.`);
 
        // Notify Promoter (In-app and Push)
        await adminClient.from("notifications").insert({

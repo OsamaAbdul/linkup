@@ -7,8 +7,9 @@ import { Input } from "@/shared/components/ui/input";
 import { Separator } from "@/shared/components/ui/separator";
 import {
   Minus, Plus, Trash2, Heart, Store,
-  ShieldCheck, Truck, RotateCcw, ChevronRight
+  ShieldCheck, Truck, RotateCcw, ChevronRight, Sparkles
 } from "lucide-react";
+import { Badge } from "@/shared/components/ui/badge";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
@@ -18,6 +19,8 @@ export default function Cart() {
   const { cartItems, isLoading, updateQuantity, removeFromCart, clearCart } = useCart();
   const navigate = useNavigate();
   const [couponCode, setCouponCode] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState<string | null>(() => localStorage.getItem("linkup_ref"));
+  const [isApplyingPromo, setIsApplyingPromo] = useState(false);
 
   // Fetch dynamic delivery fee from config
   const { data: feeConfigs = [] } = useQuery({
@@ -32,9 +35,72 @@ export default function Cart() {
     },
   });
 
-  const productFeeConfig = feeConfigs.find((f: any) => f.fee_type === "platform_product");
+  const productFeeConfig = feeConfigs.find((f: any) => f.fee_type === "platform_product" || f.fee_type === "platform");
   const platformProductRate = productFeeConfig?.rate ?? 0.10; // Default 10%
   const markupMultiplier = 1 + platformProductRate;
+
+  // Check Free Delivery Campaign
+  const isMarketplaceFreeDeliveryConfig = feeConfigs.some(
+    (f: any) => f.fee_type === "marketplace_free_delivery" && f.is_active
+  );
+
+  const { data: hasPastMarketplaceOrders, isLoading: isPastOrdersLoading } = useQuery({
+    queryKey: ['user-has-past-marketplace-orders', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return false;
+      const { count, error } = await (supabase as any)
+        .from('orders')
+        .select('id', { count: 'exact', head: true })
+        .eq('buyer_id', user.id)
+        .neq('status', 'cancelled');
+      if (error) throw error;
+      return (count ?? 0) > 0;
+    },
+    enabled: !!user?.id && !!isMarketplaceFreeDeliveryConfig,
+  });
+
+  const isEligibleForFreeDelivery = Boolean(
+    isMarketplaceFreeDeliveryConfig && 
+    (user?.id ? (!isPastOrdersLoading && hasPastMarketplaceOrders === false) : true)
+  );
+
+  const handleApplyCoupon = async () => {
+    const trimmed = couponCode.trim().toUpperCase();
+    if (!trimmed) {
+      toast.error("Please enter a promo or coupon code");
+      return;
+    }
+
+    setIsApplyingPromo(true);
+    try {
+      // Check if it's a promoter code
+      const { data: pCode } = await supabase
+        .from("promoter_codes")
+        .select("code, user_id")
+        .eq("code", trimmed)
+        .maybeSingle();
+
+      if (pCode) {
+        localStorage.setItem("linkup_ref", pCode.code);
+        localStorage.setItem("linkup_ref_expiry", String(Date.now() + 7 * 24 * 60 * 60 * 1000));
+        setAppliedPromo(pCode.code);
+        toast.success(`Promoter code ${pCode.code} applied! Referral recorded.`);
+        return;
+      }
+
+      if (trimmed === "FREEDELIVERY" || trimmed === "FREE") {
+        toast.success("Free delivery promotion will apply automatically at checkout!");
+        setAppliedPromo(trimmed);
+        return;
+      }
+
+      toast.error("Invalid coupon or promo code. Please check and try again.");
+    } catch {
+      toast.error("Could not verify promo code");
+    } finally {
+      setIsApplyingPromo(false);
+    }
+  };
 
   // Calculate totals
   const subtotal = cartItems.reduce((sum, item: any) => {
@@ -78,6 +144,26 @@ export default function Cart() {
           </div>
           <ChevronRight size={16} className="text-muted-foreground" />
         </div>
+
+        {isEligibleForFreeDelivery && (
+          <div className="bg-gradient-to-r from-emerald-500/15 via-emerald-500/10 to-teal-500/15 border border-emerald-500/30 rounded-2xl p-4 flex items-center justify-between gap-3 text-emerald-950 shadow-sm animate-in fade-in duration-300">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-700 shadow-sm">
+                <Truck size={20} />
+              </div>
+              <div>
+                <p className="font-black text-sm text-emerald-950 flex items-center gap-2">
+                  <span>100% Free Delivery Applied!</span>
+                  <Sparkles size={14} className="text-emerald-600 animate-bounce" />
+                </p>
+                <p className="text-xs font-medium text-emerald-800">Special LinkUp Marketplace promotion active on your checkout.</p>
+              </div>
+            </div>
+            <Badge className="bg-emerald-600 text-white font-black text-[10px] px-2.5 py-1 tracking-wider uppercase shadow-sm">
+              FREE PROMO
+            </Badge>
+          </div>
+        )}
 
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Cart Items Column */}
@@ -231,16 +317,42 @@ export default function Cart() {
 
               {/* Coupon Code */}
               <div className="bg-card rounded-xl border p-6 space-y-4">
-                <p className="text-sm font-medium">Have a coupon code?</p>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Enter coupon code..."
-                    className="bg-muted/30 border-dashed"
-                    value={couponCode}
-                    onChange={(e) => setCouponCode(e.target.value)}
-                  />
-                  <Button variant="secondary" className="bg-success/10 text-success hover:bg-success/20">Apply</Button>
-                </div>
+                <p className="text-sm font-medium">Have a coupon or promoter code?</p>
+                {appliedPromo ? (
+                  <div className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs">
+                    <span className="font-bold text-emerald-800">Applied: {appliedPromo}</span>
+                    <button
+                      onClick={() => {
+                        localStorage.removeItem("linkup_ref");
+                        localStorage.removeItem("linkup_ref_expiry");
+                        setAppliedPromo(null);
+                        setCouponCode("");
+                        toast.info("Promo code removed");
+                      }}
+                      className="text-destructive font-semibold hover:underline"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Enter coupon or promo code..."
+                      className="bg-muted/30 border-dashed"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()}
+                    />
+                    <Button 
+                      variant="secondary" 
+                      className="bg-success/10 text-success hover:bg-success/20 font-bold"
+                      onClick={handleApplyCoupon}
+                      disabled={isApplyingPromo || !couponCode.trim()}
+                    >
+                      {isApplyingPromo ? "Applying..." : "Apply"}
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           )}

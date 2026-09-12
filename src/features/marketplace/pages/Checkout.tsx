@@ -79,7 +79,7 @@ export default function Checkout() {
     },
   });
 
-  const productFeeConfig = feeConfigs.find((f: any) => f.fee_type === "platform_product");
+  const productFeeConfig = feeConfigs.find((f: any) => f.fee_type === "platform_product" || f.fee_type === "platform");
   const platformProductRate = productFeeConfig?.rate ?? 0.10;
   const markupMultiplier = 1 + platformProductRate;
 
@@ -170,21 +170,26 @@ export default function Checkout() {
     (f: any) => f.fee_type === "marketplace_free_delivery" && f.is_active
   );
 
-  const { data: hasPastMarketplaceOrders } = useQuery({
+  const { data: hasPastMarketplaceOrders, isLoading: isPastOrdersLoading } = useQuery({
     queryKey: ['user-has-past-marketplace-orders', user?.id],
     queryFn: async () => {
       if (!user?.id) return false;
       const { count, error } = await (supabase as any)
         .from('orders')
         .select('id', { count: 'exact', head: true })
-        .eq('buyer_id', user.id);
+        .eq('buyer_id', user.id)
+        .neq('status', 'cancelled');
       if (error) throw error;
       return (count ?? 0) > 0;
     },
     enabled: !!user?.id && !!isMarketplaceFreeDeliveryConfig,
   });
 
-  const isMarketplaceFreeDelivery = isMarketplaceFreeDeliveryConfig && !hasPastMarketplaceOrders;
+  // Free delivery promo is active if configured and buyer has no non-cancelled past orders
+  const isMarketplaceFreeDelivery = Boolean(
+    isMarketplaceFreeDeliveryConfig && 
+    (user?.id ? (!isPastOrdersLoading && hasPastMarketplaceOrders === false) : true)
+  );
 
   const rawDeliveryFee = baseDeliveryFee * sellerCount;
   const rawCrossZoneFee = crossZoneFee;
@@ -291,7 +296,7 @@ export default function Checkout() {
       shipping_address: shipping,
       total: grandTotal,
       delivery_fee: deliveryFee,
-      cross_zone_fee: crossZoneFee,
+      cross_zone_fee: finalCrossZoneFee,
       zone_id: shipping.zone_id,
       city_id: shipping.city_id,
     };
@@ -407,9 +412,12 @@ export default function Checkout() {
                   image: i.products?.images?.[0]
                 }))}
                   baseProductTotal={baseProductTotal}
-                  platformFee={platformFee}
+                platformFee={platformFee}
                 deliveryFee={deliveryFee}
-                crossZoneFee={crossZoneFee}
+                rawDeliveryFee={rawDeliveryFee}
+                crossZoneFee={finalCrossZoneFee}
+                rawCrossZoneFee={rawCrossZoneFee}
+                isFreeDelivery={isMarketplaceFreeDelivery}
                 grandTotal={grandTotal}
                 sellerCount={sellerCount}
                 onBack={() => setStep(1)}

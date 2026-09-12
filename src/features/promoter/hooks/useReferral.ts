@@ -11,10 +11,17 @@ export function useReferral() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
-    const refCode = searchParams.get("ref");
-    if (!refCode) return;
+    // Support ?ref=, ?promo=, ?referral=, or ?code=
+    const rawCode = 
+      searchParams.get("ref") || 
+      searchParams.get("promo") || 
+      searchParams.get("referral") || 
+      searchParams.get("code");
 
-    // Last Click Wins: always overwrite
+    if (!rawCode) return;
+    const refCode = rawCode.trim().toUpperCase();
+
+    // Last Click Wins: always overwrite with fresh window
     const expiry = Date.now() + TRACKING_DAYS * 24 * 60 * 60 * 1000;
     
     // Ensure we have a persistent visitor_id
@@ -52,8 +59,8 @@ export function useReferral() {
             campaignId = campaign?.id;
           }
 
-          // Insert into 'referrals' (not referral_clicks)
-          await supabase.from("referrals").insert({
+          // Insert into 'referrals' ledger
+          const { error: insertError } = await supabase.from("referrals").insert({
             promoter_id: codeRow.user_id,
             product_id: productId || null,
             campaign_id: campaignId,
@@ -61,14 +68,23 @@ export function useReferral() {
             buyer_id: user?.id || null,
             status: 'click'
           });
+
+          if (insertError) {
+            console.warn("[Referral] Click log note:", insertError.message);
+          } else {
+            console.log("[Referral] Click logged successfully for promoter:", codeRow.user_id);
+          }
         }
       } catch (e) {
         console.error("Referral click log error:", e);
       }
     })();
 
-    // Clean ref from URL without reload
+    // Clean tracking params from URL without reload
     searchParams.delete("ref");
+    searchParams.delete("promo");
+    searchParams.delete("referral");
+    searchParams.delete("code");
     setSearchParams(searchParams, { replace: true });
   }, [searchParams, setSearchParams]);
 }
@@ -77,7 +93,12 @@ export function useReferral() {
 export async function getReferralAttribution(): Promise<{ promoter_id: string | null; visitor_id: string | null }> {
   const code = localStorage.getItem(REFERRAL_KEY);
   const expiry = localStorage.getItem(REFERRAL_EXPIRY_KEY);
-  const visitorId = localStorage.getItem(VISITOR_ID_KEY);
+  
+  let visitorId = localStorage.getItem(VISITOR_ID_KEY);
+  if (!visitorId) {
+    visitorId = crypto.randomUUID();
+    localStorage.setItem(VISITOR_ID_KEY, visitorId);
+  }
 
   if (!code || !expiry) return { promoter_id: null, visitor_id: visitorId };
   
